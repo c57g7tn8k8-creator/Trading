@@ -1,0 +1,33 @@
+name: 月度维护
+
+# 每月1日 10:00 北京时间 = UTC 02:00：合约换月校准 + 面板重建
+on:
+  schedule:
+    - cron: '0 2 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 合约换月维护
+        run: |
+          node monitor.mjs contracts
+          node monitor.mjs nav
+
+      - name: 提交变更
+        run: |
+          git config user.name "qls-bot"
+          git config user.email "qls-bot@users.noreply.github.com"
+          git add config data docs
+          git diff --cached --quiet || git commit -m "maintenance $(date -u +'%F')"
+          git push
