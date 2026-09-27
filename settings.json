@@ -1,8 +1,0 @@
-{
-  "note": "风控参数。以损定量：单手风险=R点数×乘数；手数=max(1, floor(权益×risk_pct / 单手风险))，且总保证金不超过 权益×margin_cap。fee_mult=手续费系数：pool.json 按交易所标准近似配置，期货公司实际加收部分用此系数调整（如贵20%则设1.2，设0则不扣费）。",
-  "risk_pct": 0.03,
-  "margin_cap": 0.8,
-  "max_zone_signals": 3,
-  "min_history": 60,
-  "fee_mult": 1.0
-}
