@@ -293,6 +293,13 @@ function advanceContracts(today) {
 }
 const contractOf = code => (CONTRACTS[code] && CONTRACTS[code].main) || code;
 
+/** 单手单边手续费（元）= 固定值 或 成交金额×比例，再乘券商系数 fee_mult */
+function feePerLot(spec, price) {
+  const fix = spec.fee_fix || 0;
+  const rate = spec.fee_rate ? price * spec.mult * spec.fee_rate : 0;
+  return (fix + rate) * (SETTINGS.fee_mult || 1);
+}
+
 /* ---------------- 飞书 ---------------- */
 function feishuSign() {
   if (!FSECRET) return {};
@@ -345,7 +352,7 @@ function equityNow(ledger, lastPx = {}) {
   for (const t of ledger.trades) {
     if (t.status === 'closed') eq += t.pnl;
     else {
-      eq += t.realized || 0;
+      eq += (t.realized || 0) - (t.fees || 0);
       const lp = lastPx[t.sym];
       if (lp) eq += (t.dir === 'long' ? lp - t.entry : t.entry - lp) * t.mult * t.lots;
     }
@@ -359,8 +366,11 @@ function computeLots(equity, R, mult, margin1) {
   return lots;
 }
 function closeTrade(t, px, date, reason) {
+  const spec = SPEC[t.sym];
   const sgn = t.dir === 'long' ? 1 : -1;
-  t.pnl = Math.round(((t.realized || 0) + (px - t.entry) * sgn * t.mult * t.lots) * 100) / 100;
+  // 平仓侧手续费入账后，按净额结算本单盈亏
+  t.fees = Math.round(((t.fees || 0) + feePerLot(spec, px) * t.lots) * 100) / 100;
+  t.pnl = Math.round(((t.realized || 0) + (px - t.entry) * sgn * t.mult * t.lots - t.fees) * 100) / 100;
   t.status = 'closed';
   t.exit_date = date;
   t.exit_px = px;
@@ -395,6 +405,7 @@ async function checkPositions(ledger, barCache, today) {
         } else {              // 师姐方案：3R平一半，余仓止损推保本
           const h = Math.max(1, Math.floor(t.lots / 2));
           t.realized = Math.round(((t.realized || 0) + 3 * t.R * spec.mult * h) * 100) / 100;
+          t.fees = Math.round(((t.fees || 0) + feePerLot(spec, t.t3) * h) * 100) / 100;
           t.lots -= h; t.half_done = true; t.stop = t.entry;
           await feishuSend(cardTouch(t, '3R', t.t3, `已按纪律平 ${h} 手锁定 +${3 * t.R * spec.mult * h} 元，余 ${t.lots} 手止损推保本，追5R/变色`));
           notes.push(`${t.name} 3R 平半`);
@@ -431,6 +442,7 @@ function renderDashboard(ledger, state) {
   const wins = closed.filter(t => t.pnl > 0).length;
   const winRate = closed.length ? (100 * wins / closed.length).toFixed(0) : '-';
   const opens = ledger.trades.filter(t => t.status === 'open');
+  const feeSum = Math.round(ledger.trades.reduce((a, t) => a + (t.fees || 0), 0) * 100) / 100;
 
   // SVG 权益曲线
   const W = 920, H = 260, P = 34;
@@ -475,6 +487,7 @@ th{background:#fafafa;color:#666;font-weight:600}
 <div class="card"><span>最大回撤</span><b>¥${Math.round(dd).toLocaleString()}</b></div>
 <div class="card"><span>已平仓/胜率</span><b>${closed.length} 笔 / ${winRate}%</b></div>
 <div class="card"><span>当前持仓</span><b>${opens.length} 笔</b></div>
+<div class="card"><span>累计手续费</span><b>¥${feeSum.toLocaleString()}</b></div>
 </div>
 <div class="panel"><b>净值曲线</b><br>
 <svg width="100%" viewBox="0 0 ${W} ${H}" style="margin-top:8px">
@@ -484,7 +497,7 @@ ${svgDots}
 <text x="${W - P}" y="${P - 8}" text-anchor="end" font-size="11" fill="#888">高 ${Math.round(ymax)}</text>
 <text x="${W - P}" y="${H - 6}" text-anchor="end" font-size="11" fill="#888">低 ${Math.round(ymin)}</text>
 </svg></div>
-<div class="panel"><b>交易记录</b>（红涨绿跌，盈亏单位：元）<br>
+<div class="panel"><b>交易记录</b>（红涨绿跌；盈亏=已扣双边手续费净额，单位：元）<br>
 <table><thead><tr><th>日期</th><th>品种合约</th><th>方向</th><th>手数</th><th>入场</th><th>止损</th><th>3R</th><th>5R</th><th>状态</th><th>盈亏</th></tr></thead>
 <tbody>${ledger.trades.slice().reverse().map(row).join('') || '<tr><td colspan="10" style="text-align:center;color:#999">暂无成交记录</td></tr>'}</tbody></table></div>
 </body></html>`;
@@ -643,7 +656,9 @@ async function modeFeedback() {
         dir: p.dir, entry_date: today, entry, lots, lots0: lots,
         stop: p.stop, stop0: p.stop, R,
         t3: entry + 3 * sgn * R, t5: entry + 5 * sgn * R,
-        mult: spec.mult, half_done: false, realized: 0, status: 'open', fb: body.slice(0, 100)
+        mult: spec.mult, half_done: false, realized: 0, status: 'open',
+        fees: Math.round(feePerLot(spec, entry) * lots * 100) / 100,
+        fb: body.slice(0, 100)
       };
       ledger.trades.push(t);
       p.status = 'filled'; p.trade = t.id;
