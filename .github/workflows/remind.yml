@@ -1,0 +1,60 @@
+name: 信号提醒推送
+
+# 北京时间 12:00 / 20:30 / 次日08:30 = UTC 04:00 / 12:30 / 00:30
+on:
+  schedule:
+    - cron: '0 4 * * *'     # 12:00 推送 11:31 时段信号
+    - cron: '30 12 * * *'   # 20:30 推送 15:01 时段信号
+    - cron: '30 0 * * *'    # 08:30 推送前一交易日 23:01 时段信号
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: '提醒时段 noon/evening/morning'
+        required: true
+        default: 'noon'
+        type: choice
+        options: [noon, evening, morning]
+
+concurrency: qls-remind
+permissions:
+  contents: write
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 确定提醒时段
+        id: slot
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            S="${{ github.event.inputs.slot }}"
+          else
+            H=$(date -u +%H)
+            case $H in
+              04) S=noon ;;
+              12) S=evening ;;
+              00) S=morning ;;
+              *)  S=noon ;;
+            esac
+          fi
+          echo "slot=$S" >> "$GITHUB_OUTPUT"
+
+      - name: 推送入场信号到飞书
+        env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
+        run: node monitor.mjs remind ${{ steps.slot.outputs.slot }}
+
+      - name: 提交状态
+        run: |
+          git config user.name "qls-bot"
+          git config user.email "qls-bot@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "remind ${{ steps.slot.outputs.slot }} $(date -u +'%F %T')"
+          git push
