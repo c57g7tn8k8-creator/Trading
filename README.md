@@ -1,0 +1,207 @@
+# 擒龙手 · 黄大侠拐点战法 云端监控系统
+
+以《策略执行手册 v1.0》为规则内核、运行在 **GitHub Actions** 上的全自动信号监控与交易台账系统。
+**零服务器、零费用**，电脑关机也照常运行；提醒走**飞书群机器人**，反馈走 **GitHub Issue 评论**。
+
+```
+每个交易日（北京时间）
+  11:31 ──扫描──┐          12:00 ──飞书提醒──→ 你（下午开盘手动操作）
+  15:01 ──扫描──┼─→ 信号    20:30 ──飞书提醒──→ 你（夜盘手动操作）
+  23:01 ──扫描──┘          次日8:30 ─飞书提醒──→ 你（早盘手动操作）
+                └─→ 持仓检查：触及止损/3R/5R/反向变色 → 即时飞书提醒
+你：按提醒下单后 → 到置顶 Issue 回复「成交 #信号号」→ 自动记账 → 净值面板自动更新
+```
+
+---
+
+## 一、部署前准备（约15分钟）
+
+| 需要 | 说明 |
+|---|---|
+| GitHub 账号 | 免费版即可（公开仓库 Actions 免费额度充足） |
+| 飞书账号 + 一个群 | 专门用来收信号提醒，可只拉自己 |
+| 启动资金 | 默认 5000 元（改法见"常见问题"） |
+
+---
+
+## 二、部署步骤（照着做即可）
+
+### 第 1 步：创建飞书群机器人（3分钟）
+
+1. 飞书里新建一个群（例如叫"擒龙手信号"），群设置 → **群机器人** → **添加机器人** → 选 **自定义机器人**。
+2. 名字随便起（如"擒龙手"），安全设置**建议选"签名校验"**（复制那串 `SEC...` 开头的密钥备用；不选也可以，但任何人拿到 Webhook 都能发消息）。
+3. 创建后复制 **Webhook 地址**，形如：
+   `https://open.feishu.cn/open-apis/bot/v2/hook/xxxxxxxx-xxxx-xxxx`
+
+### 第 2 步：把代码放上 GitHub（5~10分钟）
+
+GitHub 网页上传**支持文件夹，但必须用"拖"的**——点 "choose your files" 按钮只能选文件、选不了文件夹。以下三种方式任选其一，**新手推荐方式 B（GitHub Desktop 图形界面）**。
+
+**⚠ 上传前必看（90% 的失败在这一步）：**
+仓库根目录必须**直接**就是 `monitor.mjs`、`config`、`data`、`docs`、`.github` 这些文件。
+**不要**把外层 `qls_monitor` 文件夹整个传上去（否则所有文件多一层 `qls_monitor/` 前缀，Actions 找不到文件）。
+正确做法：**进入**解压后的 `qls_monitor` 文件夹，选中**里面的全部内容**再上传。
+
+**方式 A：网页拖拽（需 Chrome / Edge 浏览器）**
+1. 登录 GitHub → 右上角 `+` → **New repository**：
+   - Repository name：`qls-monitor`（可自定义）
+   - 选 **Public**（公开仓库 Actions 定时任务免费额度充足；私有仓库额度有限）
+   - **不要勾选** "Add a README file"（保持空仓库，避免上传时冲突）
+   - 点 **Create repository**
+2. 创建后的欢迎页有个 **"uploading an existing file"** 链接，点它（或之后进仓库点 **Add file → Upload files**）。
+3. Windows 资源管理器里**打开**解压出的 `qls_monitor` 文件夹，按 `Ctrl+A` 全选**里面**所有内容（应看到 `.github`、`config`、`data`、`docs`、`monitor.mjs`、`README.md` 等）。
+4. 用鼠标把选中内容**直接拖进**网页中央的虚线框（写着 "Drag files here to add them to your repository"）——是"拖"，不是点按钮。
+5. 等列表全部显示上传完成 → 页面底部点绿色 **Commit changes**。
+6. 浏览器若拖不动文件夹（Safari 或老旧浏览器常见），换 Chrome/Edge，或用方式 B。
+7. **`.github` 文件夹被跳过/提示"隐藏"时的补救（常见坑）**：网页拖拽会忽略点开头的文件夹。其余文件传完后这样补传 4 个工作流：
+   - 点 **Add file → Create new file**；
+   - 文件名输入框里输入 `.github/workflows/scan.yml`（打 `/` 会自动变成目录层级，点的开头直接打即可）；
+   - 用记事本打开本地 `qls_monitor/.github/workflows/scan.yml`，全选复制 → 粘贴到编辑区 → 底部 **Commit new file**；
+   - 同样方法再建 `remind.yml`、`feedback.yml`、`maintenance.yml`，共 4 个。
+   （若资源管理器里连 `.github` 文件夹都看不到：资源管理器菜单 **查看 → 显示 → 勾选"隐藏的项目"**。）
+8. **`.gitignore` 被跳过属正常，无需处理**：它只用于本地开发时让 git 忽略临时文件，云端系统运行完全不依赖它，不传不影响任何功能。想要的话也可用上面"Create new file"方法手动建一个，内容照抄本地文件即可。
+
+**方式 B：GitHub Desktop（图形界面，最省心，推荐）**
+1. 下载安装 GitHub Desktop：https://desktop.github.com ，装完登录你的 GitHub 账号。
+2. 菜单 **File → New repository**：
+   - Name：`qls-monitor`
+   - Local path：选一个本地位置（如 `D:\github`），它会自动建 `D:\github\qls-monitor` 文件夹
+   - **取消勾选** "Initialize this repository with a README"
+   - 点 **Create repository**
+3. 点 **Show in Explorer** 打开本地仓库文件夹，把解压出的 `qls_monitor` 文件夹**里面的全部内容**复制粘贴进去（`.github` 这个开头带点的文件夹也必须复制；**GitHub Desktop 不受"隐藏"限制，会原样上传**，这就是推荐它的原因）。
+4. 回到 GitHub Desktop，左侧会列出全部新文件 → 左下角 Summary 填 `init` → 点 **Commit to main**。
+5. 点顶部 **Publish repository** → 保持 Public → **Publish**。完成。
+
+**方式 C：git 命令行（已装 git 的用户）**
+```bash
+cd 解压目录/qls_monitor
+git init -b main
+git add -A
+git commit -m "init"
+git remote add origin https://github.com/你的用户名/qls-monitor.git
+git push -u origin main
+```
+（先在 GitHub 网页建好同名空仓库，不要勾 README）
+
+**上传后验证（30秒，必做）：**
+仓库首页应**直接看到**：`monitor.mjs`、`config`、`data`、`docs`、`.github`、`README.md`。
+- 点进 `.github → workflows` 必须看到 4 个文件：`scan.yml` / `remind.yml` / `feedback.yml` / `maintenance.yml`（GitHub Actions 只认这个路径）。
+- 如果首页只看到一个 `qls_monitor` 文件夹 → 传错了：进 **Settings → 最底部 Danger Zone → Delete this repository** 删掉，按上面方式重传（别试图在网页上移动文件，重建最快）。
+
+上传成功后仓库结构：
+```
+qls-monitor/
+├── monitor.mjs              ← 核心引擎（零依赖单文件）
+├── config/                  ← 品种池/合约/禁提醒日/风控参数
+├── data/                    ← 状态/待提醒/账本（程序自动维护）
+├── docs/index.html          ← 净值面板（程序自动更新）
+└── .github/workflows/       ← 4个定时工作流
+```
+
+### 第 3 步：配置密钥 Secrets（2分钟）
+
+仓库页面 → **Settings** → 左侧 **Secrets and variables → Actions** → **New repository secret**，添加两条：
+
+| Name | Value |
+|---|---|
+| `FEISHU_WEBHOOK` | 第1步复制的 Webhook 地址 |
+| `FEISHU_SECRET` | 第1步的签名密钥（没开启签名校验则不用建这条） |
+
+### 第 4 步：启用 Actions（1分钟）
+
+仓库页面 → **Actions** 标签 → 如提示"This repository contains scheduled workflows..."点 **I understand my workflows, go ahead and enable them**。
+你会看到4个工作流：`盘中扫描`、`信号提醒推送`、`交易反馈处理`、`月度维护`。
+
+### 第 5 步：验证运行（2分钟）
+
+1. **Actions → 盘中扫描 → Run workflow**（时段选 noon）→ 绿色对勾即成功。首次运行会把全部历史信号"播种"（不提醒），日志里能看到 22 个品种的扫描过程。
+2. 想立刻看到一条飞书提醒长什么样？进入仓库 `data/pending.json` 点编辑，把 `items` 改成：
+   ```json
+   {"seq": 1, "items": [{"id":"S20260101-001","sym":"C0","name":"玉米","contract":"C2701","dir":"long","date":"2026-01-01","slot":"noon","ref":2300,"stop":2280,"R":20,"t3":2360,"t5":2400,"mult":10,"lots":1,"margin1":1610,"equity":5000,"remind_date":"2099-01-01","status":"pending","created":"测试"}]}
+   ```
+   再把 `remind_date` 改成**今天**，然后 **Actions → 信号提醒推送 → Run workflow (noon)** → 飞书群里就会收到测试卡片。看完记得把 `data/pending.json` 改回 `{"seq": 0, "items": []}`。
+3. **Settings → Pages → Source 选 `Deploy from a branch` → Branch: `main` / `/docs` → Save**。几分钟后访问 `https://你的用户名.github.io/qls-monitor/` 即可看到净值面板。
+
+### 第 6 步：建反馈 Issue（1分钟）
+
+仓库 → **Issues → New issue** → 标题写 `交易反馈（置顶勿关）` → 内容随意 → **Submit** → 右侧 **Pin issue** 置顶。
+以后所有反馈都发在**这一个 Issue 的评论里**。
+
+**部署完成。** 从下一个交易日起系统自动运行，你什么都不用管。
+
+---
+
+## 三、日常使用（30秒/次）
+
+1. **收到飞书"入场信号"卡片** → 卡片上有：品种合约、方向、手数、参考入场、止损、3R、5R。
+2. **你登录期货账户手动下单**（12:00 提醒→下午操作；20:30 提醒→夜盘操作；8:30 提醒→早盘操作）。
+3. **到置顶 Issue 回复一条评论**：
+
+| 你回复的指令 | 效果 |
+|---|---|
+| `成交 #S20260927-001` | 按信号价记账建仓 |
+| `成交 #S20260927-001 3052 1` | 按**实际价3052、1手**记账（止损不变，3R/5R按实际价重算） |
+| `未成交 #S20260927-001` | 丢弃该信号，不记录、不再提醒 |
+| `平仓 #T0001 3100` | 手动平仓记账（不写价则按最新收盘价） |
+
+- 信号号在每张提醒卡片上；没带 `#号` 时默认处理最近一条待反馈信号。
+- **只有仓库所有者（你）的评论有效**，别人评论会被忽略；指令处理成功后机器人会给评论点 ✅。
+- 没成交的信号**不需要回复**，它会自动过期。
+
+4. **持仓期间**：每个交易日三次扫描自动检查，触及**止损 / 3R / 5R / 反向变色**会立刻发飞书"到位提醒"卡片并按纪律自动记账（3R平半推保本/单手锁+2R，与手册一致）。若你的实际离场价不同，回复 `平仓 #单号 实际价` 修正。
+5. **净值面板**：`https://你的用户名.github.io/qls-monitor/` 随时查看权益曲线、盈亏、胜率、每笔明细（红涨绿跌）。
+
+---
+
+## 四、时间表
+
+| 北京时间 | 动作 |
+|---|---|
+| 11:31 | 扫描（上午收盘后）→ 信号入队 |
+| 12:00 | 推送 11:31 时段信号 |
+| 15:01 | 扫描（日盘收盘后）→ 信号入队 + 持仓检查 |
+| 20:30 | 推送 15:01 时段信号 |
+| 23:01 | 扫描（夜盘收盘后）→ 信号入队 + 持仓检查 |
+| 次日 8:30 | 推送前一交易日 23:01 时段信号 |
+| 每月1日 10:00 | 合约换月校准 + 面板重建 |
+
+> GitHub 定时任务高峰期可能延迟 5~20 分钟，属正常现象，不影响使用。
+
+---
+
+## 五、规则口径（重要）
+
+- **信号**：日线三色K(EMA5/10/20) 定趋势 → 回调计数 → K2触发 → 日线新鲜转色入场，含创新高作废补丁、只做第一次回调、每区最多3次试错——与回测引擎同构，仅把入场确认从60分钟线改为日线（云端监控只承诺日线粒度，具体分钟级入场点由你手动把握）。
+- **品种池**：22个活跃主力（保证金≤1万 + 20日均量≥20万手 + 沉淀保证金≥10亿），见 `config/pool.json`。
+- **以损定量**：`手数 = max(1, 权益×3% ÷ 单手止损额)`，且总保证金≤权益×80%；当前权益不足开1手的品种**不提醒**（权益长大会自动解锁更多品种）。
+- **换月**：信号取自新浪"主力连续"合约（自动跟随真实主力，永不断裂）；提醒消息里的合约名按"交割月前一月1日（≈交割日前45天）"自动切换，与真实主力基本同步。
+- **禁提醒**：重大假日（春节/国庆等）前一交易日**自动识别不提醒**；重大政策/数据发布前一交易日需手工加进 `config/blackout.json`（格式 `"2026-11-04": "美国大选"`）。**禁提醒只停入场信号，止损/3R/5R持仓提醒照常发送**。
+- **盘中信号**：11:31 和 15:01 的当日K线未完结，信号以当时价格计算，可能与收盘略有出入——这是用"提前量"换"操作窗口"的设计，与手动执行的场景匹配。
+
+---
+
+## 六、常见问题
+
+**Q：怎么改启动资金？**
+`data/ledger.json` 里 `"capital": 5000` 改成你的实际本金并提交；已有交易记录时不要改（改了曲线会错），可改为把差额记一笔到 `capital`。
+
+**Q：Actions 停了？**
+GitHub 对 **60 天无 git 活动** 的仓库会暂停定时任务并邮件通知你。本系统每天自动提交数据，正常使用不会触发；若真触发，到 Actions 页点一下重新启用即可。
+
+**Q：想加/删品种？**
+编辑 `config/pool.json`（仿照现有格式加一行），再到 `config/contracts.json` 配上主力合约即可。
+
+**Q：飞书收不到消息？**
+①检查 Secrets 名字拼写；②机器人若开了"签名校验"必须配 `FEISHU_SECRET`；③Actions 日志里搜"飞书发送失败"看返回码。
+
+**Q：本地想跑一下验证？**
+```bash
+node monitor.mjs scan noon        # 无 FEISHU_WEBHOOK 时为演示模式，只打印不发送
+TODAY_OVERRIDE=2026-09-25 FORCE_TRADING_DAY=1 node monitor.mjs scan noon   # 模拟指定交易日
+```
+
+---
+
+## 七、风险声明
+
+本系统只是**信号提醒 + 记账工具**：信号源于历史回测验证过的规则，但回测不代表未来；所有下单、仓位、止损执行均由你本人手动完成并承担全部风险。5000元本金下请务必遵守：单笔1手起步、3跳止损必设、3R纪律必执行、禁提醒日不开新仓。

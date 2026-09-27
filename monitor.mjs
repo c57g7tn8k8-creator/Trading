@@ -1,0 +1,713 @@
+#!/usr/bin/env node
+/**
+ * 擒龙手 · 黄大侠拐点战法 云端监控引擎（零依赖，Node >= 18）
+ *
+ * 用法：
+ *   node monitor.mjs scan <noon|evening|night>   采集日线→判信号→持仓到位检查→写pending/ledger/nav
+ *   node monitor.mjs remind <noon|evening|morning>  推送到期入场信号到飞书
+ *   node monitor.mjs feedback                     解析GitHub Issue评论反馈（读环境变量）
+ *   node monitor.mjs nav                          重建 docs/index.html 净值面板
+ *   node monitor.mjs contracts                    合约换月维护（到期切换主力）
+ *
+ * 环境变量：
+ *   FEISHU_WEBHOOK   飞书群机器人 Webhook（缺失时仅打印不发送，便于本地测试）
+ *   FEISHU_SECRET    飞书机器人签名校验密钥（可选）
+ *   TODAY_OVERRIDE   强制指定"今天"（YYYY-MM-DD，本地回测用）
+ *   FORCE_TRADING_DAY=1  跳过交易日判定（本地调试用）
+ *   COMMENT_AUTHOR / COMMENT_BODY  feedback 模式读取
+ *   REPO_OWNER       仓库 owner 登录名（仅其评论生效）
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+
+const ROOT = path.dirname(fileURLToPath(import.meta.url));
+const J = (...p) => path.join(ROOT, ...p);
+const readJson = (p, dft) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return dft; } };
+const writeJson = (p, obj) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, JSON.stringify(obj, null, 2)); };
+
+const POOL = readJson(J('config/pool.json'), []);
+const BLACKOUT = readJson(J('config/blackout.json'), { dates: {} });
+const SETTINGS = readJson(J('config/settings.json'), { risk_pct: 0.03, margin_cap: 0.8, max_zone_signals: 3, min_history: 60 });
+let CONTRACTS = readJson(J('config/contracts.json'), {});
+const SPEC = Object.fromEntries(POOL.map(s => [s.code, s]));
+
+const WEBHOOK = process.env.FEISHU_WEBHOOK || '';
+const FSECRET = process.env.FEISHU_SECRET || '';
+const TODAY_OVERRIDE = process.env.TODAY_OVERRIDE || '';
+const FORCE_TD = process.env.FORCE_TRADING_DAY === '1';
+
+/* ---------------- 时间（全部按北京时间 CST 处理） ---------------- */
+const CST = 8 * 3600 * 1000;
+const nowCST = () => new Date(Date.now() + CST);
+const todayStr = () => TODAY_OVERRIDE || nowCST().toISOString().slice(0, 10);
+const nowStr = () => nowCST().toISOString().slice(0, 16).replace('T', ' ');
+const d2s = d => d.toISOString().slice(0, 10);
+const addDays = (ds, n) => { const d = new Date(ds + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d2s(d); };
+const dayDiff = (a, b) => Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+const weekday = ds => new Date(ds + 'T00:00:00Z').getUTCDay(); // 0周日 6周六
+const pad2 = n => String(n).padStart(2, '0');
+
+/* ---------------- 网络 ---------------- */
+async function httpGet(url, timeout = 30000) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), timeout);
+  try {
+    const r = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', 'Referer': 'https://finance.sina.com.cn' },
+      signal: ac.signal
+    });
+    return await r.text();
+  } finally { clearTimeout(t); }
+}
+
+/** 新浪期货主力连续日线，最后一根为当日实时bar（盘中为未完结bar） */
+async function fetchDaily(sym) {
+  const url = 'https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20d=/InnerFuturesNewService.getDailyKLine?symbol=' + sym;
+  const t = await httpGet(url);
+  const i = t.indexOf('['), j = t.lastIndexOf(']');
+  if (i < 0 || j < 0) return [];
+  return JSON.parse(t.slice(i, j + 1)).map(x => ({
+    d: x.d, o: +x.o, h: +x.h, l: +x.l, c: +x.c, v: +(x.v || 0)
+  })).filter(b => b.d && isFinite(b.c));
+}
+
+/* ---------------- 指标：EMA 三色K ---------------- */
+function ema(vals, n) {
+  const a = 2 / (n + 1); const out = []; let e = vals[0];
+  for (const v of vals) { e = a * v + (1 - a) * e; out.push(e); }
+  return out;
+}
+function addColor(bars) {
+  const c = bars.map(b => b.c);
+  const e5 = ema(c, 5), e10 = ema(c, 10), e20 = ema(c, 20);
+  bars.forEach((b, i) => {
+    b.color = (e5[i] > e10[i] && e5[i] > e20[i]) ? 'R'
+      : (e5[i] < e10[i] && e5[i] < e20[i]) ? 'G' : 'W';
+  });
+  return bars;
+}
+
+/* ---------------- 日线信号状态机（移植自回测引擎，日线适配版） ----------------
+ * 三色K定趋势 → 首K锚定/收盘破锚确认 → 回调创新低计数 → K2触发线
+ * → 日线破触发线激活操作区 → 日线新鲜转色=入场信号
+ * 含：创新高作废补丁、只做第一次回调(zoneUsed)、每区最多3次信号(外层限制)
+ */
+function replayDaily(daily, spec) {
+  addColor(daily);
+  const tick = spec.tick;
+  let trend = 'none', anchorR = null, anchorG = null, flip = null;
+  let base = null, baseJust = false;
+  let pull = { n: 0, run: null, k2: null };
+  let zoneUsed = false, trig = null, zone = null;
+  const signals = [];
+
+  for (let i = 1; i < daily.length; i++) {
+    const B = daily[i];
+    baseJust = false;
+
+    // 1) 趋势状态机
+    if (trend === 'none') {
+      if (B.color === 'R') {
+        if (!anchorR) anchorR = B;
+        else if (B.c > anchorR.h) {
+          trend = 'long'; flip = null; base = { px: B.h, idx: i }; baseJust = true;
+          pull = { n: 0, run: null, k2: null }; zoneUsed = false;
+        }
+      }
+      if (trend === 'none' && B.color === 'G') {
+        if (!anchorG) anchorG = B;
+        else if (B.c < anchorG.l) {
+          trend = 'short'; flip = null; base = { px: B.l, idx: i }; baseJust = true;
+          pull = { n: 0, run: null, k2: null }; zoneUsed = false;
+        }
+      }
+    } else if (trend === 'long') {
+      if (B.color === 'G') {
+        if (!flip) flip = B;
+        else if (B.c < flip.l) {
+          trend = 'short'; flip = null; base = { px: B.l, idx: i }; baseJust = true;
+          pull = { n: 0, run: null, k2: null }; zoneUsed = false; trig = null; zone = null;
+        }
+      } else if (B.color === 'R') flip = null;
+    } else {
+      if (B.color === 'R') {
+        if (!flip) flip = B;
+        else if (B.c > flip.h) {
+          trend = 'long'; flip = null; base = { px: B.h, idx: i }; baseJust = true;
+          pull = { n: 0, run: null, k2: null }; zoneUsed = false; trig = null; zone = null;
+        }
+      } else if (B.color === 'G') flip = null;
+    }
+
+    // 2) 创新高作废补丁：触发线未激活时创新高/低，重置基准与回调计数
+    if (trig && !zoneUsed && base &&
+      ((trend === 'long' && B.h > base.px) || (trend === 'short' && B.l < base.px))) {
+      trig = null;
+      base = { px: trend === 'long' ? B.h : B.l, idx: i };
+      pull = { n: 0, run: null, k2: null };
+    }
+
+    // 3) 回调计数与K2形成（平底合并：不创新低/高的bar跳过）
+    if ((trend === 'long' || trend === 'short') && !zoneUsed && !trig && !baseJust && base) {
+      if (trend === 'long') {
+        if (B.h > base.px) { base = { px: B.h, idx: i }; pull = { n: 0, run: null, k2: null }; }
+        else if (pull.run === null || B.l < pull.run) {
+          pull.run = B.l; pull.n++;
+          if (pull.n === 2) pull.k2 = B;
+        }
+      } else {
+        if (B.l < base.px) { base = { px: B.l, idx: i }; pull = { n: 0, run: null, k2: null }; }
+        else if (pull.run === null || B.h > pull.run) {
+          pull.run = B.h; pull.n++;
+          if (pull.n === 2) pull.k2 = B;
+        }
+      }
+      if (pull.k2 && !trig) trig = trend === 'long' ? pull.k2.l : pull.k2.h;
+    }
+
+    // 4) 触发：本bar破K2极值 → 激活操作区（K2形成当日不可能自破，天然滞后一根）
+    if (trig && !zone && !zoneUsed && (trend === 'long' || trend === 'short')) {
+      if (trend === 'long' && B.l < trig) {
+        zone = { dir: 'long', seg: B.l, born: B.d, trigPx: trig };
+        zoneUsed = true; trig = null;
+      } else if (trend === 'short' && B.h > trig) {
+        zone = { dir: 'short', seg: B.h, born: B.d, trigPx: trig };
+        zoneUsed = true; trig = null;
+      }
+    }
+
+    // 5) 操作区内：作废判定 + 新鲜转色入场信号
+    if (zone) {
+      if (trend !== zone.dir) zone = null;
+      else if (zone.dir === 'long' && base && B.h > base.px) zone = null;   // 创新高作废
+      else if (zone.dir === 'short' && base && B.l < base.px) zone = null;
+      else {
+        zone.seg = zone.dir === 'long' ? Math.min(zone.seg, B.l) : Math.max(zone.seg, B.h);
+        const prev = daily[i - 1];
+        const fresh = zone.dir === 'long'
+          ? (B.color === 'R' && prev.color !== 'R')
+          : (B.color === 'G' && prev.color !== 'G');
+        if (fresh) {
+          const entry = B.c;
+          const stop = zone.dir === 'long' ? zone.seg - 3 * tick : zone.seg + 3 * tick;
+          const R = zone.dir === 'long' ? entry - stop : stop - entry;
+          if (R > 0) {
+            signals.push({
+              date: B.d, dir: zone.dir,
+              zoneId: `${zone.born}|${zone.dir}|${zone.trigPx}`,
+              ref: entry, stop, R,
+              t3: zone.dir === 'long' ? entry + 3 * R : entry - 3 * R,
+              t5: zone.dir === 'long' ? entry + 5 * R : entry - 5 * R,
+              seg: zone.seg
+            });
+          }
+        }
+      }
+    }
+  }
+  return { signals, bars: daily };
+}
+
+/* ---------------- 交易日历（timor.tech + 本地缓存，失败兜底周一至周五） ---------------- */
+let HOLIDAYS = readJson(J('data/holidays.json'), {});
+async function holidayType(ds) {
+  if (HOLIDAYS[ds] !== undefined) return HOLIDAYS[ds];
+  let type = null;
+  try {
+    const t = await httpGet('https://timor.tech/api/holiday/info/' + ds, 10000);
+    const j = JSON.parse(t);
+    if (j && j.type && typeof j.type.type === 'number') type = j.type.type; // 0工作日 1周末 2节假日 3调休
+  } catch { /* 网络失败 */ }
+  if (type === null) type = (weekday(ds) >= 1 && weekday(ds) <= 5) ? 0 : 1; // 兜底
+  HOLIDAYS[ds] = type;
+  return type;
+}
+/** 期货交易日：周一至周五 且 非法定节假日（周六调休工作日也不开盘） */
+async function isTradingDay(ds) {
+  if (FORCE_TD) return true;
+  const wd = weekday(ds);
+  if (wd === 0 || wd === 6) return false;
+  const t = await holidayType(ds);
+  return t !== 2;
+}
+async function nextTradingDay(ds) {
+  let d = addDays(ds, 1);
+  for (let k = 0; k < 20; k++) {
+    if (await isTradingDay(d)) return d;
+    d = addDays(d, 1);
+  }
+  return d;
+}
+/** 禁提醒日：手工黑名单 或 重大假日前一交易日（距下一交易日≥4天且间隔内含法定节假日） */
+async function isBlackout(ds) {
+  if (BLACKOUT.dates && BLACKOUT.dates[ds]) return BLACKOUT.dates[ds];
+  const nxt = await nextTradingDay(ds);
+  if (dayDiff(ds, nxt) >= 4) {
+    for (let d = addDays(ds, 1); d < nxt; d = addDays(d, 1)) {
+      if (await holidayType(d) === 2) return `重大假日前一交易日（下一交易日${nxt}）`;
+    }
+  }
+  return null;
+}
+
+/* ---------------- 合约换月（交割月前一月1日切换） ---------------- */
+function parseContract(spec, code) {
+  const digits = code.slice(spec.prefix.length);
+  if (spec.exch === 'czce') return { y: 2020 + +digits[0], m: +digits.slice(1) };
+  return { y: 2000 + +digits.slice(0, 2), m: +digits.slice(2) };
+}
+function fmtContract(spec, y, m) {
+  return spec.exch === 'czce'
+    ? spec.prefix + (y % 10) + pad2(m)
+    : spec.prefix + pad2(y % 100) + pad2(m);
+}
+function nextInCycle(spec, y, m) {
+  const ms = spec.months;
+  const i = ms.indexOf(m);
+  return i >= 0 && i < ms.length - 1 ? { y, m: ms[i + 1] } : { y: y + 1, m: ms[0] };
+}
+const rolloverDate = (y, m) => m === 1 ? `${y - 1}-12-01` : `${y}-${pad2(m - 1)}-01`;
+
+function advanceContracts(today) {
+  let changed = false;
+  for (const spec of POOL) {
+    let c = CONTRACTS[spec.code];
+    if (!c) continue;
+    let guard = 0;
+    while (today >= c.rollover && guard++ < 12) {
+      const cur = parseContract(spec, c.next);
+      const nxt = nextInCycle(spec, cur.y, cur.m);
+      c = CONTRACTS[spec.code] = {
+        main: c.next,
+        next: fmtContract(spec, nxt.y, nxt.m),
+        rollover: rolloverDate(cur.y, cur.m)
+      };
+      changed = true;
+      console.log(`  换月 ${spec.name}: main=${c.main} next=${c.next} rollover=${c.rollover}`);
+    }
+  }
+  if (changed) writeJson(J('config/contracts.json'), CONTRACTS);
+  return changed;
+}
+const contractOf = code => (CONTRACTS[code] && CONTRACTS[code].main) || code;
+
+/* ---------------- 飞书 ---------------- */
+function feishuSign() {
+  if (!FSECRET) return {};
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const s = timestamp + '\n' + FSECRET;
+  const sign = crypto.createHmac('sha256', s).update('').digest('base64');
+  return { timestamp, sign };
+}
+async function feishuSend(card) {
+  const body = JSON.stringify({ msg_type: 'interactive', card, ...feishuSign() });
+  if (!WEBHOOK) {
+    console.log('  [DRY-RUN 飞书]', body.slice(0, 400));
+    return true;
+  }
+  try {
+    const r = await fetch(WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+    const j = await r.json();
+    if (j.code !== 0 && j.StatusCode !== 0) { console.log('  飞书发送失败:', body.slice(0, 120), JSON.stringify(j)); return false; }
+    return true;
+  } catch (e) { console.log('  飞书发送异常:', e.message); return false; }
+}
+const ftext = (content) => ({ tag: 'div', text: { tag: 'lark_md', content } });
+function cardSignal(p) {
+  const dirTxt = p.dir === 'long' ? "<font color='red'>做多 ↑</font>" : "<font color='green'>做空 ↓</font>";
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: 'indigo', title: { tag: 'plain_text', content: `【擒龙手】入场信号 ${p.name} ${p.contract}` } },
+    elements: [
+      ftext(`**品种合约**：${p.name} ${p.contract}\n**开仓方向**：${dirTxt}\n**建议手数**：${p.lots} 手`),
+      ftext(`**参考入场**：${p.ref}（${p.date} 收盘）\n**止损点位**：${p.stop}（1R=${p.R}点≈${Math.round(p.R * p.mult)}元/手）\n**3R点位**：${p.t3}\n**5R点位**：${p.t5}`),
+      ftext(`信号编号 **#${p.id}**｜当前权益 ${p.equity} 元\n操作后请到 GitHub 置顶 Issue 回复：\n**成交 #${p.id}** [实际价] [手数]　或　**未成交 #${p.id}**`),
+      { tag: 'note', elements: [{ tag: 'lark_md', content: `纪律：3跳止损｜1R推保本｜3R平半推保本余仓追5R/反向变色｜单手版3R锁+2R` }] }
+    ]
+  };
+}
+function cardTouch(t, label, px, extra) {
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: 'indigo', title: { tag: 'plain_text', content: `【擒龙手】到位提醒 ${t.name} ${t.contract}` } },
+    elements: [
+      ftext(`**${t.name} ${t.contract} 目前已达到${label}点位 ${px}**\n方向：${t.dir === 'long' ? '多' : '空'}｜入场 ${t.entry}｜${t.lots} 手${extra ? '\n' + extra : ''}`),
+      { tag: 'note', elements: [{ tag: 'lark_md', content: `单号 ${t.id}｜按信号价自动记账，实际不同请到置顶 Issue 回复：平仓 ${t.id} 实际价` }] }
+    ]
+  };
+}
+
+/* ---------------- 账本 / 净值 ---------------- */
+function equityNow(ledger, lastPx = {}) {
+  let eq = ledger.capital;
+  for (const t of ledger.trades) {
+    if (t.status === 'closed') eq += t.pnl;
+    else {
+      eq += t.realized || 0;
+      const lp = lastPx[t.sym];
+      if (lp) eq += (t.dir === 'long' ? lp - t.entry : t.entry - lp) * t.mult * t.lots;
+    }
+  }
+  return Math.round(eq * 100) / 100;
+}
+function computeLots(equity, R, mult, margin1) {
+  const budget = SETTINGS.risk_pct * equity;
+  let lots = Math.max(1, Math.floor(budget / (R * mult)));
+  while (lots > 1 && margin1 * lots > SETTINGS.margin_cap * equity) lots--;
+  return lots;
+}
+function closeTrade(t, px, date, reason) {
+  const sgn = t.dir === 'long' ? 1 : -1;
+  t.pnl = Math.round(((t.realized || 0) + (px - t.entry) * sgn * t.mult * t.lots) * 100) / 100;
+  t.status = 'closed';
+  t.exit_date = date;
+  t.exit_px = px;
+  t.reason = reason;
+}
+
+/** 持仓到位检查：止损/3R/5R/反向变色（3R后启用变色离场） */
+async function checkPositions(ledger, barCache, today) {
+  const notes = [];
+  for (const t of ledger.trades) {
+    if (t.status !== 'open') continue;
+    const bars = barCache.get(t.sym);
+    if (!bars || !bars.length) continue;
+    const B = bars[bars.length - 1];
+    const spec = SPEC[t.sym];
+    const sgn = t.dir === 'long' ? 1 : -1;
+    const hitStop = t.dir === 'long' ? B.l <= t.stop : B.h >= t.stop;
+    const hitT3 = t.dir === 'long' ? B.h >= t.t3 : B.l <= t.t3;
+    const hitT5 = t.dir === 'long' ? B.h >= t.t5 : B.l <= t.t5;
+    const flipColor = t.dir === 'long' ? B.color === 'G' : B.color === 'R';
+
+    if (!t.half_done) {
+      if (hitStop) {  // 保守：同bar同时触及止损与3R按止损计
+        closeTrade(t, t.stop, B.d, '止损');
+        await feishuSend(cardTouch(t, '止损', t.stop, `本单亏损 ${t.pnl} 元`));
+        notes.push(`${t.name} 止损 ${t.pnl}`);
+      } else if (hitT3) {
+        if (t.lots0 === 1) {  // 单手追踪版：3R后止损上移至+2R，余仓追5R/变色
+          t.half_done = true; t.stop = t.entry + 2 * sgn * t.R;
+          await feishuSend(cardTouch(t, '3R', t.t3, '单手追踪：止损已上移至锁盈 +2R（' + t.stop + '），余仓追5R或反向变色'));
+          notes.push(`${t.name} 3R（单手锁盈）`);
+        } else {              // 师姐方案：3R平一半，余仓止损推保本
+          const h = Math.max(1, Math.floor(t.lots / 2));
+          t.realized = Math.round(((t.realized || 0) + 3 * t.R * spec.mult * h) * 100) / 100;
+          t.lots -= h; t.half_done = true; t.stop = t.entry;
+          await feishuSend(cardTouch(t, '3R', t.t3, `已按纪律平 ${h} 手锁定 +${3 * t.R * spec.mult * h} 元，余 ${t.lots} 手止损推保本，追5R/变色`));
+          notes.push(`${t.name} 3R 平半`);
+        }
+      }
+    } else {
+      if (hitStop) {
+        closeTrade(t, t.stop, B.d, t.stop === t.entry ? '保本出' : '锁盈出');
+        await feishuSend(cardTouch(t, t.reason === '保本出' ? '保本(移动止损)' : '锁盈止损', t.stop, `本单合计 ${t.pnl} 元`));
+        notes.push(`${t.name} ${t.reason} ${t.pnl}`);
+      } else if (hitT5) {
+        closeTrade(t, t.t5, B.d, '5R止盈');
+        await feishuSend(cardTouch(t, '5R', t.t5, `本单合计 ${t.pnl} 元`));
+        notes.push(`${t.name} 5R止盈 ${t.pnl}`);
+      } else if (flipColor) {
+        closeTrade(t, B.c, B.d, '反向变色');
+        await feishuSend(cardTouch(t, '反向变色离场', B.c, `本单合计 ${t.pnl} 元`));
+        notes.push(`${t.name} 变色离场 ${t.pnl}`);
+      }
+    }
+  }
+  return notes;
+}
+
+/* ---------------- 净值面板 docs/index.html ---------------- */
+function renderDashboard(ledger, state) {
+  const nav = ledger.nav || [];
+  const lastEq = nav.length ? nav[nav.length - 1].equity : ledger.capital;
+  const pnl = Math.round((lastEq - ledger.capital) * 100) / 100;
+  const ret = (100 * (lastEq - ledger.capital) / ledger.capital).toFixed(1);
+  let peak = ledger.capital, dd = 0;
+  for (const p of nav) { peak = Math.max(peak, p.equity); dd = Math.max(dd, peak - p.equity); }
+  const closed = ledger.trades.filter(t => t.status === 'closed');
+  const wins = closed.filter(t => t.pnl > 0).length;
+  const winRate = closed.length ? (100 * wins / closed.length).toFixed(0) : '-';
+  const opens = ledger.trades.filter(t => t.status === 'open');
+
+  // SVG 权益曲线
+  const W = 920, H = 260, P = 34;
+  let svgPath = '', svgDots = '', ymin = 0, ymax = 0;
+  if (nav.length) {
+    const vs = nav.map(p => p.equity);
+    ymin = Math.min(...vs, ledger.capital); ymax = Math.max(...vs, ledger.capital);
+    if (ymax - ymin < 1) { ymax += 1; ymin -= 1; }
+    const x = i => P + (W - 2 * P) * (nav.length === 1 ? 0.5 : i / (nav.length - 1));
+    const y = v => H - P - (H - 2 * P) * (v - ymin) / (ymax - ymin);
+    svgPath = nav.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.equity).toFixed(1)}`).join(' ');
+    svgDots = nav.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.equity).toFixed(1)}" r="2.2" fill="#c23531"><title>${p.d}  ${p.equity}</title></circle>`).join('');
+  }
+  const y0 = nav.length ? (H - P - (H - 2 * P) * (ledger.capital - ymin) / (ymax - ymin)) : H / 2;
+  const row = (t, i) => {
+    const sgn = t.dir === 'long' ? 1 : -1;
+    const stat = t.status === 'open' ? (t.half_done ? '余仓追踪' : '持仓中') : t.reason;
+    const pc = t.status === 'closed' ? (t.pnl > 0 ? '#c23531' : t.pnl < 0 ? '#1a9e4b' : '#888') : '#888';
+    return `<tr><td>${t.entry_date}</td><td>${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${t.entry}</td><td>${t.stop0}</td><td>${t.t3}</td><td>${t.t5}</td><td>${stat}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
+  };
+  return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>擒龙手 · 云端监控净值面板</title>
+<style>
+body{font-family:-apple-system,"Microsoft YaHei",sans-serif;background:#f5f6f8;color:#222;margin:0;padding:24px}
+h1{font-size:20px;margin:0 0 4px}.sub{color:#888;font-size:12px;margin-bottom:16px}
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;min-width:140px}
+.card b{display:block;font-size:22px;margin-top:4px}.card span{color:#888;font-size:12px}
+.panel{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:18px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{border-bottom:1px solid #eee;padding:6px 8px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th{background:#fafafa;color:#666;font-weight:600}
+.up{color:#c23531}.dn{color:#1a9e4b}
+</style></head><body>
+<h1>擒龙手 · 黄大侠拐点战法 云端监控</h1>
+<div class="sub">启动资金 ¥${ledger.capital.toLocaleString()}｜最近更新 ${state.last_scan || '-'}｜信号=日线全自动扫描，交易=人工执行后反馈记账</div>
+<div class="cards">
+<div class="card"><span>当前权益</span><b>¥${Math.round(lastEq).toLocaleString()}</b></div>
+<div class="card"><span>累计盈亏</span><b class="${pnl >= 0 ? 'up' : 'dn'}">${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}</b></div>
+<div class="card"><span>收益率</span><b class="${pnl >= 0 ? 'up' : 'dn'}">${ret}%</b></div>
+<div class="card"><span>最大回撤</span><b>¥${Math.round(dd).toLocaleString()}</b></div>
+<div class="card"><span>已平仓/胜率</span><b>${closed.length} 笔 / ${winRate}%</b></div>
+<div class="card"><span>当前持仓</span><b>${opens.length} 笔</b></div>
+</div>
+<div class="panel"><b>净值曲线</b><br>
+<svg width="100%" viewBox="0 0 ${W} ${H}" style="margin-top:8px">
+<line x1="${P}" y1="${y0}" x2="${W - P}" y2="${y0}" stroke="#bbb" stroke-dasharray="4 3"/>
+<path d="${svgPath}" fill="none" stroke="#c23531" stroke-width="2"/>
+${svgDots}
+<text x="${W - P}" y="${P - 8}" text-anchor="end" font-size="11" fill="#888">高 ${Math.round(ymax)}</text>
+<text x="${W - P}" y="${H - 6}" text-anchor="end" font-size="11" fill="#888">低 ${Math.round(ymin)}</text>
+</svg></div>
+<div class="panel"><b>交易记录</b>（红涨绿跌，盈亏单位：元）<br>
+<table><thead><tr><th>日期</th><th>品种合约</th><th>方向</th><th>手数</th><th>入场</th><th>止损</th><th>3R</th><th>5R</th><th>状态</th><th>盈亏</th></tr></thead>
+<tbody>${ledger.trades.slice().reverse().map(row).join('') || '<tr><td colspan="10" style="text-align:center;color:#999">暂无成交记录</td></tr>'}</tbody></table></div>
+</body></html>`;
+}
+function rebuildDashboard(ledger, state) {
+  fs.mkdirSync(J('docs'), { recursive: true });
+  fs.writeFileSync(J('docs/index.html'), renderDashboard(ledger, state));
+}
+
+/* ---------------- 模式：scan ---------------- */
+async function modeScan(slot) {
+  const today = todayStr();
+  console.log(`== scan ${slot} @ ${nowStr()} (today=${today}) ==`);
+  if (!(await isTradingDay(today))) { console.log('非交易日，跳过'); return; }
+
+  advanceContracts(today);
+  const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
+  const state = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  const pending = readJson(J('data/pending.json'), { seq: 0, items: [] });
+
+  const blackout = await isBlackout(today);
+  if (blackout) console.log(`⚠ 今日禁提醒：${blackout}`);
+
+  // 权益估算（含浮动，用最新收盘）
+  const barCache = new Map();
+  for (const spec of POOL) {
+    try { barCache.set(spec.code, await fetchDaily(spec.code)); }
+    catch (e) { console.log(`  ${spec.name} 数据失败: ${e.message}`); }
+  }
+  const lastPx = {};
+  for (const [code, bars] of barCache) if (bars.length) lastPx[code] = bars[bars.length - 1].c;
+  const equity = equityNow(ledger, lastPx);
+
+  // 信号扫描
+  let newCnt = 0, skipCnt = { seen: 0, zone3: 0, afford: 0, dup: 0, hold: 0 };
+  for (const spec of POOL) {
+    const bars = barCache.get(spec.code);
+    if (!bars || bars.length < SETTINGS.min_history) { console.log(`  ${spec.name} 数据不足，跳过`); continue; }
+    const { signals } = replayDaily(bars.map(b => ({ ...b })), spec);
+    const lastDate = bars[bars.length - 1].d;
+    const zoneCount = {};
+    for (const s of signals) zoneCount[s.zoneId] = (zoneCount[s.zoneId] || 0) + 1;
+
+    for (const s of signals) {
+      const key = `${spec.code}|${s.date}|${s.dir}|${s.zoneId}`;
+      if (state.seen[key]) continue;
+      state.seen[key] = { date: s.date, alerted: false };
+      if (s.date !== lastDate) continue;                      // 历史信号仅播种
+      if (zoneCount[s.zoneId] > SETTINGS.max_zone_signals) { skipCnt.zone3++; continue; }
+      if (pending.items.some(p => p.sym === spec.code && p.date === s.date && p.dir === s.dir && ['pending', 'reminded'].includes(p.status))) { skipCnt.dup++; continue; }
+      if (ledger.trades.some(t => t.status === 'open' && t.sym === spec.code && t.dir === s.dir)) { skipCnt.hold++; continue; }
+      const margin1 = s.ref * spec.mult * spec.rate;
+      if (margin1 > equity) { skipCnt.afford++; console.log(`  ${spec.name} 保证金${Math.round(margin1)}>权益${Math.round(equity)}，不提醒`); continue; }
+      if (blackout) continue;                                  // 禁提醒日仅记录
+      const lots = computeLots(equity, s.R, spec.mult, margin1);
+      const p = {
+        id: 'S' + s.date.replaceAll('-', '') + '-' + String(++pending.seq).padStart(3, '0'),
+        sym: spec.code, name: spec.name, contract: contractOf(spec.code),
+        dir: s.dir, date: s.date, slot,
+        ref: s.ref, stop: s.stop, R: Math.round(s.R * 100) / 100, t3: s.t3, t5: s.t5,
+        mult: spec.mult, lots, margin1: Math.round(margin1),
+        equity: Math.round(equity),
+        remind_date: slot === 'night' ? await nextTradingDay(today) : today,
+        status: 'pending', created: nowStr()
+      };
+      pending.items.push(p);
+      state.seen[key].alerted = true;
+      newCnt++;
+      console.log(`  ★ 信号 ${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'} ref=${p.ref} 止损=${p.stop} 3R=${p.t3} 5R=${p.t5} lots=${lots} → ${slot} 时段提醒(${p.remind_date})`);
+    }
+  }
+
+  // 持仓到位检查（止损/3R/5R/变色，即时提醒，不受禁提醒限制）
+  const touchNotes = await checkPositions(ledger, barCache, today);
+  for (const n of touchNotes) console.log('  ● ' + n);
+
+  // 净值
+  const eq2 = equityNow(ledger, lastPx);
+  ledger.nav = (ledger.nav || []).filter(p => p.d !== today);
+  ledger.nav.push({ d: today, equity: eq2 });
+  if (ledger.nav.length > 750) ledger.nav = ledger.nav.slice(-750);
+  state.last_scan = nowStr();
+
+  writeJson(J('data/ledger.json'), ledger);
+  writeJson(J('data/state.json'), state);
+  writeJson(J('data/pending.json'), pending);
+  writeJson(J('data/holidays.json'), HOLIDAYS);
+  rebuildDashboard(ledger, state);
+  console.log(`完成：新信号 ${newCnt}，跳过 ${JSON.stringify(skipCnt)}，权益 ${eq2}`);
+}
+
+/* ---------------- 模式：remind ---------------- */
+async function modeRemind(slot) {
+  const today = todayStr();
+  console.log(`== remind ${slot} @ ${nowStr()} (today=${today}) ==`);
+  if (!(await isTradingDay(today))) { console.log('非交易日，跳过'); return; }
+  const pending = readJson(J('data/pending.json'), { seq: 0, items: [] });
+  const blackout = await isBlackout(today);
+  let sent = 0, expired = 0;
+
+  for (const p of pending.items) {
+    if (p.status !== 'pending') continue;
+    if (p.remind_date > today) continue;
+    if (p.remind_date < today || p.slot !== slot) { p.status = 'expired'; expired++; continue; }
+    if (blackout) { p.status = 'expired'; expired++; console.log(`  禁提醒日，信号 ${p.id} 作废：${blackout}`); continue; }
+    const ok = await feishuSend(cardSignal(p));
+    if (ok) { p.status = 'reminded'; p.reminded_at = nowStr(); sent++; console.log(`  → 已提醒 ${p.id} ${p.name} ${p.contract}`); }
+  }
+  // 清理30天前已终结的pending
+  const cutoff = addDays(today, -30);
+  pending.items = pending.items.filter(p => ['pending', 'reminded'].includes(p.status) || (p.date >= cutoff));
+  writeJson(J('data/pending.json'), pending);
+  writeJson(J('data/holidays.json'), HOLIDAYS);
+  console.log(`完成：发送 ${sent}，过期 ${expired}`);
+}
+
+/* ---------------- 模式：feedback（GitHub Issue 评论） ---------------- */
+async function modeFeedback() {
+  const author = process.env.COMMENT_AUTHOR || '';
+  const body = (process.env.COMMENT_BODY || '').trim();
+  const owner = process.env.REPO_OWNER || '';
+  console.log(`== feedback from ${author}: ${body.slice(0, 80)} ==`);
+  if (!owner || author !== owner) { console.log('非仓库所有者评论，忽略'); return; }
+
+  const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
+  const pending = readJson(J('data/pending.json'), { seq: 0, items: [] });
+  const state = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  const today = todayStr();
+  let processed = false;
+
+  const mCJ = body.match(/成交\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)?\s*(\d+)?/);
+  const mWCJ = body.match(/未成交\s*#?(S\d{8}-\d+)?/);
+  const mPC = body.match(/平仓\s*#?(T\d+)?\s*(\d+(?:\.\d+)?)?/);
+
+  if (mWCJ) {
+    const p = mWCJ[1]
+      ? pending.items.find(x => x.id === mWCJ[1])
+      : pending.items.filter(x => ['pending', 'reminded'].includes(x.status)).pop();
+    if (p) { p.status = 'missed'; p.fb = body.slice(0, 100); processed = true; console.log(`  ${p.id} 标记未成交`); }
+    else console.log('  未找到对应信号');
+  } else if (mCJ) {
+    const p = mCJ[1]
+      ? pending.items.find(x => x.id === mCJ[1])
+      : pending.items.filter(x => ['pending', 'reminded'].includes(x.status)).pop();
+    if (!p) console.log('  未找到对应信号');
+    else if (p.status === 'filled') console.log(`  ${p.id} 已登记过成交，忽略`);
+    else {
+      const spec = SPEC[p.sym];
+      const entry = mCJ[2] ? +mCJ[2] : p.ref;
+      const lots = mCJ[3] ? +mCJ[3] : p.lots;
+      const sgn = p.dir === 'long' ? 1 : -1;
+      const R = Math.abs(entry - p.stop);
+      const t = {
+        id: 'T' + String(++ledger.seq).padStart(4, '0'),
+        signal: p.id, sym: p.sym, name: p.name, contract: p.contract,
+        dir: p.dir, entry_date: today, entry, lots, lots0: lots,
+        stop: p.stop, stop0: p.stop, R,
+        t3: entry + 3 * sgn * R, t5: entry + 5 * sgn * R,
+        mult: spec.mult, half_done: false, realized: 0, status: 'open', fb: body.slice(0, 100)
+      };
+      ledger.trades.push(t);
+      p.status = 'filled'; p.trade = t.id;
+      processed = true;
+      console.log(`  ★ 成交登记 ${t.id}：${t.name} ${t.contract} ${t.dir === 'long' ? '多' : '空'} ${lots}手 @${entry} 止损${t.stop} 3R=${t.t3} 5R=${t.t5}`);
+    }
+  } else if (mPC) {
+    const t = mPC[1]
+      ? ledger.trades.find(x => x.id === mPC[1])
+      : ledger.trades.filter(x => x.status === 'open').pop();
+    if (!t || t.status !== 'open') console.log('  未找到持仓中的该单');
+    else {
+      let px = mPC[2] ? +mPC[2] : null;
+      if (!px) { try { const bars = await fetchDaily(t.sym); px = bars[bars.length - 1].c; } catch { px = t.entry; } }
+      closeTrade(t, px, today, '手动平仓');
+      processed = true;
+      console.log(`  平仓登记 ${t.id} @${px} 盈亏 ${t.pnl}`);
+    }
+  } else {
+    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] / 未成交 #信号号 / 平仓 #单号 [价]）');
+  }
+
+  if (processed) {
+    const lastPx = {};
+    for (const t of ledger.trades) if (t.status === 'open') { try { const b = await fetchDaily(t.sym); lastPx[t.sym] = b[b.length - 1].c; } catch { } }
+    const eq = equityNow(ledger, lastPx);
+    ledger.nav = (ledger.nav || []).filter(p => p.d !== today);
+    ledger.nav.push({ d: today, equity: eq });
+    state.last_scan = nowStr();
+    writeJson(J('data/ledger.json'), ledger);
+    writeJson(J('data/pending.json'), pending);
+    writeJson(J('data/state.json'), state);
+    rebuildDashboard(ledger, state);
+    console.log('PROCESSED');
+  }
+}
+
+/* ---------------- 模式：contracts ---------------- */
+async function modeContracts() {
+  const today = todayStr();
+  console.log(`== contracts 维护 @ ${today} ==`);
+  const changed = advanceContracts(today);
+  console.log(changed ? '已更新合约' : '无需换月');
+  for (const spec of POOL) {
+    const c = CONTRACTS[spec.code];
+    if (c) console.log(`  ${spec.name.padEnd(4, '　')} main=${c.main} next=${c.next} rollover=${c.rollover}`);
+  }
+}
+
+/* ---------------- 入口 ---------------- */
+const [mode, arg] = process.argv.slice(2);
+try {
+  if (mode === 'scan') await modeScan(arg || 'noon');
+  else if (mode === 'remind') await modeRemind(arg || 'noon');
+  else if (mode === 'feedback') await modeFeedback();
+  else if (mode === 'nav') {
+    const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
+    const state = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+    rebuildDashboard(ledger, state);
+    console.log('docs/index.html 已重建');
+  }
+  else if (mode === 'contracts') await modeContracts();
+  else console.log('用法: node monitor.mjs scan|remind|feedback|nav|contracts [noon|evening|night|morning]');
+} catch (e) {
+  console.error('运行出错:', e);
+  process.exit(1);
+}
