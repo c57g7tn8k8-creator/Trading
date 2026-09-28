@@ -8,6 +8,7 @@
  *   node monitor.mjs feedback                     解析GitHub Issue评论反馈（读环境变量）
  *   node monitor.mjs nav                          重建 docs/index.html 净值面板
  *   node monitor.mjs contracts                    合约换月维护（到期切换主力）
+ *   node monitor.mjs pool                         月度品种池筛选（每月1日，口径见 settings.pool_screen）
  *
  * 环境变量：
  *   FEISHU_WEBHOOK   飞书群机器人 Webhook（缺失时仅打印不发送，便于本地测试）
@@ -28,6 +29,7 @@ const readJson = (p, dft) => { try { return JSON.parse(fs.readFileSync(p, 'utf8'
 const writeJson = (p, obj) => { fs.mkdirSync(path.dirname(p), { recursive: true }); fs.writeFileSync(p, JSON.stringify(obj, null, 2)); };
 
 const POOL = readJson(J('config/pool.json'), []);
+const CANDIDATES = readJson(J('config/candidates.json'), POOL); // 全市场候选品种全集（月度筛池用）
 const BLACKOUT = readJson(J('config/blackout.json'), { dates: {} });
 const SETTINGS = readJson(J('config/settings.json'), { risk_pct: 0.03, margin_cap: 0.8, max_zone_signals: 3, min_history: 60 });
 let CONTRACTS = readJson(J('config/contracts.json'), {});
@@ -69,7 +71,9 @@ async function fetchDaily(sym) {
   const i = t.indexOf('['), j = t.lastIndexOf(']');
   if (i < 0 || j < 0) return [];
   return JSON.parse(t.slice(i, j + 1)).map(x => ({
-    d: x.d, o: +x.o, h: +x.h, l: +x.l, c: +x.c, v: +(x.v || 0)
+    d: x.d, o: +x.o, h: +x.h, l: +x.l, c: +x.c, v: +(x.v || 0),
+    p: +(x.p || 0),            // 持仓量（月度筛池算沉淀保证金用）
+    s: +(x.s || 0)             // 结算价（缺失时回退收盘价）
   })).filter(b => b.d && isFinite(b.c));
 }
 
@@ -263,12 +267,42 @@ function fmtContract(spec, y, m) {
     ? spec.prefix + (y % 10) + pad2(m)
     : spec.prefix + pad2(y % 100) + pad2(m);
 }
+/** 新浪具体合约代码：一律4位年（郑商所官方3位码 FG701 仅用于展示，新浪接口只认 FG2701） */
+const fetchCode = (spec, y, m) => spec.prefix + pad2(y % 100) + pad2(m);
 function nextInCycle(spec, y, m) {
   const ms = spec.months;
   const i = ms.indexOf(m);
   return i >= 0 && i < ms.length - 1 ? { y, m: ms[i + 1] } : { y: y + 1, m: ms[0] };
 }
 const rolloverDate = (y, m) => m === 1 ? `${y - 1}-12-01` : `${y}-${pad2(m - 1)}-01`;
+
+/** 名义交割日 = 交割月15日（各所最后交易日近似，用于筛池口径） */
+const deliveryDate = (y, m) => `${y}-${pad2(m)}-15`;
+/**
+ * 挑选代表合约：months 周期中"距名义交割日 ≥ minDays 天"的最近一档；
+ * 若最近一档不足 minDays 天（含主力交割<59天的情形），自动顺延下一档。
+ * 返回 { y, m, code, days }
+ */
+function pickContract(spec, today, minDays) {
+  const ms = (spec.months || [1, 5, 9]).slice().sort((a, b) => a - b);
+  let y = +today.slice(0, 4), m0 = +today.slice(5, 7);
+  for (let round = 0; round < 3; round++) {          // 最多向后找3年
+    for (const m of ms) {
+      if (round === 0 && m < m0) continue;           // 今年只找当月及以后
+      const days = dayDiff(today, deliveryDate(y, m));
+      if (days >= minDays) return { y, m, code: fmtContract(spec, y, m), days };
+    }
+    y++; m0 = 1;
+  }
+  const m = ms[0];                                    // 兜底（不应到达）
+  return { y, m, code: fmtContract(spec, y, m), days: dayDiff(today, deliveryDate(y, m)) };
+}
+/** 新品种入池时的合约条目初始化（与 pickContract 同一口径） */
+function initContract(spec, today, minDays = 60) {
+  const c = pickContract(spec, today, minDays);
+  const nxt = nextInCycle(spec, c.y, c.m);
+  return { main: c.code, next: fmtContract(spec, nxt.y, nxt.m), rollover: rolloverDate(c.y, c.m) };
+}
 
 function advanceContracts(today) {
   let changed = false;
@@ -735,6 +769,98 @@ async function modeContracts() {
   }
 }
 
+/* ---------------- 模式：pool（每月1日品种池自动筛选） ----------------
+ * 口径（settings.pool_screen 可调）：
+ *   ① 代表合约 = 距名义交割日(交割月15日) ≥ min_days 天的最近主力档，不足自动顺延下一档
+ *   ② 一手保证金(最新结算价×乘数×保证金率) < margin_max 元
+ *   ③ 20日日均成交量 ≥ vol_min 手
+ *   ④ 20日日均沉淀保证金(持仓×结算×乘数×保证金率) > depo_min_yi 亿
+ * 安全规则：有未平仓持仓或待反馈信号的品种强制留池；数据抓取失败的老成员留池。
+ */
+function cardPool(info) {
+  const c = info.crit;
+  const lines = [
+    `**口径**：距交割≥${c.min_days}天｜保证金<${c.margin_max}元｜20日均量≥${Math.round(c.vol_min / 10000)}万手｜沉淀>${c.depo_min_yi}亿`,
+    ''
+  ];
+  if (info.added.length) lines.push(`🟢 **新增（${info.added.length}）**：${info.added.join('、')}`);
+  if (info.removed.length) lines.push(`🔴 **移除（${info.removed.length}）**：${info.removed.join('、')}`);
+  if (info.retained.length) lines.push(`🟡 **持仓/数据原因保留**：${info.retained.join('、')}`);
+  if (!info.added.length && !info.removed.length) lines.push('本期池子无变动');
+  lines.push('', `**当月品种池（${info.total}个）**：${info.names}`);
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: 'orange', title: { tag: 'plain_text', content: `【擒龙手】品种池月度筛选 ${info.today}` } },
+    elements: [
+      ftext(lines.join('\n')),
+      { tag: 'note', elements: [{ tag: 'lark_md', content: '每月1日自动执行｜口径在 config/settings.json 的 pool_screen 调整' }] }
+    ]
+  };
+}
+async function modePool() {
+  const today = todayStr();
+  console.log(`== pool 月度筛选 @ ${nowStr()} (today=${today}) ==`);
+  const c = Object.assign(
+    { depo_min_yi: 7, vol_min: 150000, margin_max: 10000, min_days: 60 },
+    SETTINGS.pool_screen || {}
+  );
+  const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
+  const pending = readJson(J('data/pending.json'), { seq: 0, items: [] });
+  const keepForHold = new Set();
+  for (const t of ledger.trades) if (t.status === 'open') keepForHold.add(t.sym);
+  for (const p of pending.items) if (['pending', 'reminded'].includes(p.status)) keepForHold.add(p.sym);
+
+  const oldCodes = new Set(POOL.map(s => s.code));
+  const newPool = [], added = [], removed = [], retained = [];
+  let contractsChanged = false;
+
+  for (const spec of CANDIDATES) {
+    let row = null;
+    try {
+      const pick = pickContract(spec, today, c.min_days);
+      const bars = await fetchDaily(fetchCode(spec, pick.y, pick.m));
+      const last20 = bars.slice(-20);
+      if (last20.length < 20) throw new Error('历史不足20根');
+      const av = last20.reduce((a, b) => a + b.v, 0) / last20.length;
+      const dep = last20.reduce((a, b) => a + (b.p || 0) * ((b.s || b.c)) * spec.mult * spec.rate, 0) / last20.length / 1e8;
+      const lastC = bars[bars.length - 1].s || bars[bars.length - 1].c;
+      const margin1 = lastC * spec.mult * spec.rate;
+      row = { spec, pick, av, dep, margin1, pass: av >= c.vol_min && dep > c.depo_min_yi && margin1 < c.margin_max };
+      console.log(`  ${spec.name.padEnd(4, '　')} ${pick.code} 交割${pick.days}天 量${(av / 10000).toFixed(1)}万手 沉淀${dep.toFixed(2)}亿 保证金${Math.round(margin1)} → ${row.pass ? '✓' : '✗'}`);
+    } catch (e) {
+      console.log(`  ${spec.name} 数据失败: ${e.message}`);
+    }
+    const inOld = oldCodes.has(spec.code);
+    const held = keepForHold.has(spec.code);
+    if (row && (row.pass || held)) {
+      const entry = { ...spec, av: Math.round(row.av), dep: +row.dep.toFixed(2), margin1: Math.round(row.margin1), contract: row.pick.code };
+      if (held && !row.pass) { entry.retained = true; retained.push(spec.name); }
+      newPool.push(entry);
+      // 合约条目与筛选口径保持一致（新成员初始化 / 老成员刷新，顺便完成换月校准）
+      const cur = CONTRACTS[spec.code];
+      if (!cur || cur.main !== row.pick.code) {
+        CONTRACTS[spec.code] = initContract(spec, today, c.min_days);
+        contractsChanged = true;
+        if (!inOld) added.push(spec.name);
+      }
+    } else if (!row && inOld) {
+      newPool.push({ ...spec });                       // 数据失败的老成员保留（防网络抖动误删）
+      retained.push(spec.name + '(数据失败)');
+    } else if (row && !row.pass && inOld) {
+      removed.push(`${spec.name}(沉淀${row.dep.toFixed(1)}亿/量${(row.av / 10000).toFixed(1)}万手)`);
+    }
+  }
+
+  writeJson(J('config/pool.json'), newPool);
+  if (contractsChanged) writeJson(J('config/contracts.json'), CONTRACTS);
+  console.log(`完成：池 ${POOL.length}→${newPool.length}，新增[${added}] 移除[${removed}] 保留[${retained}]`);
+
+  await feishuSend(cardPool({
+    today, crit: c, added, removed, retained,
+    total: newPool.length, names: newPool.map(s => s.name).join('、')
+  }));
+}
+
 /* ---------------- 入口 ---------------- */
 const [mode, arg] = process.argv.slice(2);
 try {
@@ -748,7 +874,8 @@ try {
     console.log('docs/index.html 已重建');
   }
   else if (mode === 'contracts') await modeContracts();
-  else console.log('用法: node monitor.mjs scan|remind|feedback|nav|contracts [noon|evening|night|morning]');
+  else if (mode === 'pool') await modePool();
+  else console.log('用法: node monitor.mjs scan|remind|feedback|nav|contracts|pool [noon|evening|night|morning]');
 } catch (e) {
   console.error('运行出错:', e);
   process.exit(1);
