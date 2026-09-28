@@ -6,5 +6,12 @@
   "min_history": 60,
   "fee_mult": 1.0,
   "heartbeat": true,
-  "heartbeat_note": "心跳消息：每个提醒时段(12:00/20:30/8:30)若无入场信号，发一条系统存活确认。设为 false 关闭。"
+  "heartbeat_note": "心跳消息：每个提醒时段(12:00/20:30/8:30)若无入场信号，发一条系统存活确认。设为 false 关闭。",
+  "pool_screen": {
+    "depo_min_yi": 7,
+    "vol_min": 150000,
+    "margin_max": 10000,
+    "min_days": 60
+  },
+  "pool_screen_note": "每月1日自动筛池口径：代表合约=距名义交割日(交割月15日)≥min_days天的最近主力档(不足自动顺延下一档)；一手保证金<margin_max元；20日日均成交量≥vol_min手；20日日均沉淀保证金(持仓×结算×乘数×保证金率)>depo_min_yi亿。有未平仓持仓或待反馈信号的品种强制留池。"
 }

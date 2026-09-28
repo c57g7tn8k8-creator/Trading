@@ -1,24 +1,401 @@
 [
-  {"code":"M0","prefix":"M","exch":"dce","name":"豆粕","mult":10,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":1.5},
-  {"code":"P0","prefix":"P","exch":"dce","name":"棕榈油","mult":10,"tick":2,"rate":0.08,"months":[1,5,9],"fee_fix":2.5},
-  {"code":"I0","prefix":"I","exch":"dce","name":"铁矿石","mult":100,"tick":0.5,"rate":0.11,"months":[1,5,9],"fee_rate":0.0001},
-  {"code":"Y0","prefix":"Y","exch":"dce","name":"豆油","mult":10,"tick":2,"rate":0.07,"months":[1,5,9],"fee_fix":2.5},
-  {"code":"RB0","prefix":"RB","exch":"shfe","name":"螺纹钢","mult":10,"tick":1,"rate":0.07,"months":[1,5,10],"fee_rate":0.0001},
-  {"code":"SA0","prefix":"SA","exch":"czce","name":"纯碱","mult":20,"tick":1,"rate":0.12,"months":[1,5,9],"fee_fix":3.5},
-  {"code":"CF0","prefix":"CF","exch":"czce","name":"棉花","mult":5,"tick":5,"rate":0.07,"months":[1,5,9],"fee_fix":4.3},
-  {"code":"HC0","prefix":"HC","exch":"shfe","name":"热卷","mult":10,"tick":1,"rate":0.07,"months":[1,5,10],"fee_rate":0.0001},
-  {"code":"FG0","prefix":"FG","exch":"czce","name":"玻璃","mult":20,"tick":1,"rate":0.12,"months":[1,5,9],"fee_fix":6},
-  {"code":"TA0","prefix":"TA","exch":"czce","name":"PTA","mult":5,"tick":2,"rate":0.07,"months":[1,5,9],"fee_fix":3},
-  {"code":"SR0","prefix":"SR","exch":"czce","name":"白糖","mult":10,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":3},
-  {"code":"OI0","prefix":"OI","exch":"czce","name":"菜油","mult":10,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":2},
-  {"code":"PP0","prefix":"PP","exch":"dce","name":"聚丙烯","mult":5,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":1},
-  {"code":"V0","prefix":"V","exch":"dce","name":"PVC","mult":5,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":1},
-  {"code":"C0","prefix":"C","exch":"dce","name":"玉米","mult":10,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":1.2},
-  {"code":"MA0","prefix":"MA","exch":"czce","name":"甲醇","mult":10,"tick":1,"rate":0.08,"months":[1,5,9],"fee_fix":2},
-  {"code":"EG0","prefix":"EG","exch":"dce","name":"乙二醇","mult":10,"tick":1,"rate":0.08,"months":[1,5,9],"fee_fix":3},
-  {"code":"BU0","prefix":"BU","exch":"shfe","name":"沥青","mult":10,"tick":1,"rate":0.10,"months":[6,9,12],"fee_rate":0.0001},
-  {"code":"L0","prefix":"L","exch":"dce","name":"塑料","mult":5,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":1},
-  {"code":"A0","prefix":"A","exch":"dce","name":"豆一","mult":10,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":2},
-  {"code":"EB0","prefix":"EB","exch":"dce","name":"苯乙烯","mult":5,"tick":1,"rate":0.08,"months":[1,5,9,10],"fee_fix":3},
-  {"code":"RM0","prefix":"RM","exch":"czce","name":"菜粕","mult":10,"tick":1,"rate":0.07,"months":[1,5,9],"fee_fix":1.5}
+  {
+    "code": "FG0",
+    "prefix": "FG",
+    "exch": "czce",
+    "name": "玻璃",
+    "mult": 20,
+    "tick": 1,
+    "rate": 0.12,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 6,
+    "av": 1394482,
+    "dep": 28.17,
+    "margin1": 2150,
+    "contract": "FG701"
+  },
+  {
+    "code": "SA0",
+    "prefix": "SA",
+    "exch": "czce",
+    "name": "纯碱",
+    "mult": 20,
+    "tick": 1,
+    "rate": 0.12,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 3.5,
+    "av": 1517260,
+    "dep": 31.75,
+    "margin1": 2417,
+    "contract": "SA701"
+  },
+  {
+    "code": "MA0",
+    "prefix": "MA",
+    "exch": "czce",
+    "name": "甲醇",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.08,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 2,
+    "av": 645725,
+    "dep": 13.97,
+    "margin1": 2347,
+    "contract": "MA701"
+  },
+  {
+    "code": "TA0",
+    "prefix": "TA",
+    "exch": "czce",
+    "name": "PTA",
+    "mult": 5,
+    "tick": 2,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 3,
+    "av": 1290289,
+    "dep": 23.97,
+    "margin1": 2188,
+    "contract": "TA701"
+  },
+  {
+    "code": "SR0",
+    "prefix": "SR",
+    "exch": "czce",
+    "name": "白糖",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 3,
+    "av": 435180,
+    "dep": 23.78,
+    "margin1": 3762,
+    "contract": "SR701"
+  },
+  {
+    "code": "CF0",
+    "prefix": "CF",
+    "exch": "czce",
+    "name": "棉花",
+    "mult": 5,
+    "tick": 5,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 4.3,
+    "av": 337651,
+    "dep": 31.2,
+    "margin1": 5612,
+    "contract": "CF701"
+  },
+  {
+    "code": "CJ0",
+    "prefix": "CJ",
+    "exch": "czce",
+    "name": "红枣",
+    "mult": 5,
+    "tick": 5,
+    "rate": 0.1,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 3,
+    "av": 178644,
+    "dep": 8.4,
+    "margin1": 3570,
+    "contract": "CJ701"
+  },
+  {
+    "code": "OI0",
+    "prefix": "OI",
+    "exch": "czce",
+    "name": "菜油",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 2,
+    "av": 214957,
+    "dep": 20.25,
+    "margin1": 7094,
+    "contract": "OI701"
+  },
+  {
+    "code": "RM0",
+    "prefix": "RM",
+    "exch": "czce",
+    "name": "菜粕",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 1.5,
+    "av": 426189,
+    "dep": 9.55,
+    "margin1": 1636,
+    "contract": "RM701"
+  },
+  {
+    "code": "UR0",
+    "prefix": "UR",
+    "exch": "czce",
+    "name": "尿素",
+    "mult": 20,
+    "tick": 1,
+    "rate": 0.08,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 5,
+    "av": 175954,
+    "dep": 7.38,
+    "margin1": 2800,
+    "contract": "UR701"
+  },
+  {
+    "code": "C0",
+    "prefix": "C",
+    "exch": "dce",
+    "name": "玉米",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 1.2,
+    "av": 197156,
+    "dep": 9.54,
+    "margin1": 1546,
+    "contract": "C2701"
+  },
+  {
+    "code": "EG0",
+    "prefix": "EG",
+    "exch": "dce",
+    "name": "乙二醇",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.08,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 3,
+    "av": 354707,
+    "dep": 7.69,
+    "margin1": 3786,
+    "contract": "EG2701"
+  },
+  {
+    "code": "I0",
+    "prefix": "I",
+    "exch": "dce",
+    "name": "铁矿石",
+    "mult": 100,
+    "tick": 0.5,
+    "rate": 0.11,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_rate": 0.0001,
+    "av": 273157,
+    "dep": 46.36,
+    "margin1": 7750,
+    "contract": "I2701"
+  },
+  {
+    "code": "L0",
+    "prefix": "L",
+    "exch": "dce",
+    "name": "塑料",
+    "mult": 5,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 1,
+    "av": 611872,
+    "dep": 12.69,
+    "margin1": 2871,
+    "contract": "L2701"
+  },
+  {
+    "code": "M0",
+    "prefix": "M",
+    "exch": "dce",
+    "name": "豆粕",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 1.5,
+    "av": 1533242,
+    "dep": 65.84,
+    "margin1": 2370,
+    "contract": "M2701"
+  },
+  {
+    "code": "P0",
+    "prefix": "P",
+    "exch": "dce",
+    "name": "棕榈油",
+    "mult": 10,
+    "tick": 2,
+    "rate": 0.08,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 2.5,
+    "av": 584223,
+    "dep": 47.53,
+    "margin1": 7740,
+    "contract": "P2701"
+  },
+  {
+    "code": "PP0",
+    "prefix": "PP",
+    "exch": "dce",
+    "name": "聚丙烯",
+    "mult": 5,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 1,
+    "av": 786336,
+    "dep": 19.22,
+    "margin1": 3009,
+    "contract": "PP2701"
+  },
+  {
+    "code": "V0",
+    "prefix": "V",
+    "exch": "dce",
+    "name": "PVC",
+    "mult": 5,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 1,
+    "av": 1728593,
+    "dep": 19.17,
+    "margin1": 1673,
+    "contract": "V2701"
+  },
+  {
+    "code": "Y0",
+    "prefix": "Y",
+    "exch": "dce",
+    "name": "豆油",
+    "mult": 10,
+    "tick": 2,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 2.5,
+    "av": 371289,
+    "dep": 44.93,
+    "margin1": 6218,
+    "contract": "Y2701"
+  },
+  {
+    "code": "HC0",
+    "prefix": "HC",
+    "exch": "shfe",
+    "name": "热卷",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      10
+    ],
+    "fee_rate": 0.0001,
+    "av": 370703,
+    "dep": 30.25,
+    "margin1": 2297,
+    "contract": "HC2701"
+  },
+  {
+    "code": "RB0",
+    "prefix": "RB",
+    "exch": "shfe",
+    "name": "螺纹钢",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      10
+    ],
+    "fee_rate": 0.0001,
+    "av": 714700,
+    "dep": 33.63,
+    "margin1": 2170,
+    "contract": "RB2701"
+  }
 ]

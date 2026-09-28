@@ -109,5 +109,15 @@
     "main": "RM701",
     "next": "RM705",
     "rollover": "2026-12-01"
+  },
+  "CJ0": {
+    "main": "CJ701",
+    "next": "CJ705",
+    "rollover": "2026-12-01"
+  },
+  "UR0": {
+    "main": "UR701",
+    "next": "UR705",
+    "rollover": "2026-12-01"
   }
 }
