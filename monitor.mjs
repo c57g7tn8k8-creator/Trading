@@ -345,6 +345,21 @@ function cardTouch(t, label, px, extra) {
     ]
   };
 }
+const SLOT_NAME = { noon: '午间', evening: '晚间', night: '早盘' };
+function cardHeartbeat(slot, info) {
+  const lines = [`**${info.today} ${SLOT_NAME[slot] || slot}时段无入场信号**，系统运行正常。`];
+  lines.push(`账户权益 ≈ **${info.equity}** 元｜当前持仓 **${info.opens}** 笔`);
+  if (info.lastScan) lines.push(`最近扫描：${info.lastScan}`);
+  if (info.blackout) lines.push(`⚠ 今日为禁提醒日：${info.blackout}（持仓止损/3R/5R 提醒不受影响）`);
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: 'blue', title: { tag: 'plain_text', content: `【擒龙手】心跳 · ${SLOT_NAME[slot] || slot}时段无信号` } },
+    elements: [
+      ftext(lines.join('\n')),
+      { tag: 'note', elements: [{ tag: 'lark_md', content: '低频策略属正常现象，年均信号仅几十笔。不想收心跳可在 config/settings.json 设 "heartbeat": false' }] }
+    ]
+  };
+}
 
 /* ---------------- 账本 / 净值 ---------------- */
 function equityNow(ledger, lastPx = {}) {
@@ -605,6 +620,18 @@ async function modeRemind(slot) {
     if (blackout) { p.status = 'expired'; expired++; console.log(`  禁提醒日，信号 ${p.id} 作废：${blackout}`); continue; }
     const ok = await feishuSend(cardSignal(p));
     if (ok) { p.status = 'reminded'; p.reminded_at = nowStr(); sent++; console.log(`  → 已提醒 ${p.id} ${p.name} ${p.contract}`); }
+  }
+  // 心跳：本时段无信号提醒时发一条存活确认（可在 settings.json 关闭）
+  if (sent === 0 && SETTINGS.heartbeat !== false) {
+    const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
+    const st = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+    const navLast = (ledger.nav || []).slice(-1)[0];
+    const equity = navLast ? navLast.equity : ledger.capital;
+    const opens = ledger.trades.filter(t => t.status === 'open').length;
+    const ok = await feishuSend(cardHeartbeat(slot, {
+      today, equity, opens, lastScan: st.last_scan, blackout
+    }));
+    if (ok) console.log('  ♥ 心跳已发送（本时段无信号）');
   }
   // 清理30天前已终结的pending
   const cutoff = addDays(today, -30);
