@@ -4,5 +4,7 @@
   "margin_cap": 0.8,
   "max_zone_signals": 3,
   "min_history": 60,
-  "fee_mult": 1.0
+  "fee_mult": 1.0,
+  "heartbeat": true,
+  "heartbeat_note": "心跳消息：每个提醒时段(12:00/20:30/8:30)若无入场信号，发一条系统存活确认。设为 false 关闭。"
 }
