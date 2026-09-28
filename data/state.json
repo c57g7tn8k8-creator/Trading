@@ -1,4 +1,4157 @@
 {
-  "seen": {},
-  "last_scan": null
+  "seen": {
+    "M0|2005-04-07|long|2005-03-22|long|2699": {
+      "date": "2005-04-07",
+      "alerted": false
+    },
+    "M0|2005-04-20|long|2005-03-22|long|2699": {
+      "date": "2005-04-20",
+      "alerted": false
+    },
+    "M0|2006-04-03|short|2006-03-27|short|2296": {
+      "date": "2006-04-03",
+      "alerted": false
+    },
+    "M0|2006-06-05|long|2006-05-22|long|2327": {
+      "date": "2006-06-05",
+      "alerted": false
+    },
+    "M0|2006-08-28|short|2006-08-17|short|2246": {
+      "date": "2006-08-28",
+      "alerted": false
+    },
+    "M0|2006-09-07|short|2006-08-17|short|2246": {
+      "date": "2006-09-07",
+      "alerted": false
+    },
+    "M0|2009-07-07|short|2009-06-26|short|2875": {
+      "date": "2009-07-07",
+      "alerted": false
+    },
+    "M0|2009-11-04|long|2009-10-29|long|2798": {
+      "date": "2009-11-04",
+      "alerted": false
+    },
+    "M0|2010-05-13|long|2010-05-07|long|2886": {
+      "date": "2010-05-13",
+      "alerted": false
+    },
+    "M0|2011-03-08|short|2011-03-02|short|3423": {
+      "date": "2011-03-08",
+      "alerted": false
+    },
+    "M0|2011-04-26|short|2011-04-21|short|3376": {
+      "date": "2011-04-26",
+      "alerted": false
+    },
+    "M0|2011-08-23|long|2011-08-02|long|3373": {
+      "date": "2011-08-23",
+      "alerted": false
+    },
+    "M0|2011-10-31|short|2011-10-14|short|3035": {
+      "date": "2011-10-31",
+      "alerted": false
+    },
+    "M0|2012-11-05|short|2012-10-22|short|3798": {
+      "date": "2012-11-05",
+      "alerted": false
+    },
+    "M0|2013-03-07|long|2013-02-18|long|3360": {
+      "date": "2013-03-07",
+      "alerted": false
+    },
+    "M0|2013-09-24|long|2013-09-17|long|3625": {
+      "date": "2013-09-24",
+      "alerted": false
+    },
+    "M0|2013-12-26|long|2013-12-24|long|3358": {
+      "date": "2013-12-26",
+      "alerted": false
+    },
+    "M0|2014-01-23|short|2014-01-15|short|3344": {
+      "date": "2014-01-23",
+      "alerted": false
+    },
+    "M0|2015-03-11|long|2015-03-04|long|2807": {
+      "date": "2015-03-11",
+      "alerted": false
+    },
+    "M0|2015-03-24|long|2015-03-04|long|2807": {
+      "date": "2015-03-24",
+      "alerted": false
+    },
+    "M0|2015-05-11|short|2015-04-16|short|2719": {
+      "date": "2015-05-11",
+      "alerted": false
+    },
+    "M0|2016-04-11|long|2016-04-01|long|2326": {
+      "date": "2016-04-11",
+      "alerted": false
+    },
+    "M0|2017-08-10|long|2017-07-14|long|2842": {
+      "date": "2017-08-10",
+      "alerted": false
+    },
+    "M0|2018-02-07|long|2018-02-06|long|2762": {
+      "date": "2018-02-07",
+      "alerted": false
+    },
+    "M0|2018-06-05|short|2018-05-23|short|2976": {
+      "date": "2018-06-05",
+      "alerted": false
+    },
+    "M0|2018-07-20|long|2018-07-06|long|3148": {
+      "date": "2018-07-20",
+      "alerted": false
+    },
+    "M0|2018-09-14|short|2018-08-30|short|3077": {
+      "date": "2018-09-14",
+      "alerted": false
+    },
+    "M0|2019-06-25|long|2019-06-10|long|2867": {
+      "date": "2019-06-25",
+      "alerted": false
+    },
+    "M0|2019-07-22|short|2019-07-12|short|2803": {
+      "date": "2019-07-22",
+      "alerted": false
+    },
+    "M0|2020-01-06|short|2019-12-10|short|2785": {
+      "date": "2020-01-06",
+      "alerted": false
+    },
+    "M0|2021-02-10|short|2021-02-09|short|3527": {
+      "date": "2021-02-10",
+      "alerted": false
+    },
+    "M0|2021-03-01|short|2021-02-09|short|3527": {
+      "date": "2021-03-01",
+      "alerted": false
+    },
+    "M0|2021-07-30|long|2021-07-22|long|3642": {
+      "date": "2021-07-30",
+      "alerted": false
+    },
+    "M0|2021-08-10|long|2021-07-22|long|3642": {
+      "date": "2021-08-10",
+      "alerted": false
+    },
+    "M0|2021-08-16|long|2021-07-22|long|3642": {
+      "date": "2021-08-16",
+      "alerted": false
+    },
+    "M0|2022-08-30|short|2022-08-24|short|3872": {
+      "date": "2022-08-30",
+      "alerted": false
+    },
+    "M0|2023-04-07|short|2023-04-03|short|3571": {
+      "date": "2023-04-07",
+      "alerted": false
+    },
+    "M0|2023-04-14|short|2023-04-03|short|3571": {
+      "date": "2023-04-14",
+      "alerted": false
+    },
+    "M0|2024-04-01|long|2024-03-28|long|3226": {
+      "date": "2024-04-01",
+      "alerted": false
+    },
+    "M0|2024-11-01|short|2024-10-30|short|3017": {
+      "date": "2024-11-01",
+      "alerted": false
+    },
+    "M0|2025-03-20|short|2025-03-17|short|2904": {
+      "date": "2025-03-20",
+      "alerted": false
+    },
+    "M0|2025-04-21|long|2025-04-11|long|3053": {
+      "date": "2025-04-21",
+      "alerted": false
+    },
+    "M0|2025-07-17|long|2025-06-24|long|3021": {
+      "date": "2025-07-17",
+      "alerted": false
+    },
+    "M0|2025-09-15|short|2025-09-04|short|3074": {
+      "date": "2025-09-15",
+      "alerted": false
+    },
+    "M0|2025-12-31|short|2025-12-29|short|2801": {
+      "date": "2025-12-31",
+      "alerted": false
+    },
+    "M0|2026-01-14|short|2025-12-29|short|2801": {
+      "date": "2026-01-14",
+      "alerted": false
+    },
+    "M0|2026-02-12|long|2026-02-03|long|2746": {
+      "date": "2026-02-12",
+      "alerted": false
+    },
+    "M0|2026-08-05|long|2026-07-29|long|3098": {
+      "date": "2026-08-05",
+      "alerted": false
+    },
+    "P0|2007-11-26|long|2007-11-16|long|8860": {
+      "date": "2007-11-26",
+      "alerted": false
+    },
+    "P0|2008-02-01|long|2008-01-22|long|9882": {
+      "date": "2008-02-01",
+      "alerted": false
+    },
+    "P0|2008-12-10|long|2008-12-04|long|4612": {
+      "date": "2008-12-10",
+      "alerted": false
+    },
+    "P0|2009-08-20|long|2009-08-17|long|6508": {
+      "date": "2009-08-20",
+      "alerted": false
+    },
+    "P0|2009-08-24|long|2009-08-17|long|6508": {
+      "date": "2009-08-24",
+      "alerted": false
+    },
+    "P0|2009-11-05|long|2009-10-29|long|6088": {
+      "date": "2009-11-05",
+      "alerted": false
+    },
+    "P0|2011-01-19|long|2011-01-12|long|9758": {
+      "date": "2011-01-19",
+      "alerted": false
+    },
+    "P0|2011-03-08|short|2011-03-02|short|9478": {
+      "date": "2011-03-08",
+      "alerted": false
+    },
+    "P0|2011-04-27|short|2011-04-22|short|9280": {
+      "date": "2011-04-27",
+      "alerted": false
+    },
+    "P0|2011-04-29|short|2011-04-22|short|9280": {
+      "date": "2011-04-29",
+      "alerted": false
+    },
+    "P0|2011-07-12|short|2011-07-05|short|8894": {
+      "date": "2011-07-12",
+      "alerted": false
+    },
+    "P0|2011-08-26|short|2011-08-12|short|8766": {
+      "date": "2011-08-26",
+      "alerted": false
+    },
+    "P0|2011-11-01|short|2011-10-24|short|7858": {
+      "date": "2011-11-01",
+      "alerted": false
+    },
+    "P0|2011-11-03|short|2011-10-24|short|7858": {
+      "date": "2011-11-03",
+      "alerted": false
+    },
+    "P0|2011-12-12|short|2011-11-30|short|7880": {
+      "date": "2011-12-12",
+      "alerted": false
+    },
+    "P0|2012-02-02|long|2012-01-13|long|8120": {
+      "date": "2012-02-02",
+      "alerted": false
+    },
+    "P0|2012-07-16|long|2012-07-12|long|8072": {
+      "date": "2012-07-16",
+      "alerted": false
+    },
+    "P0|2012-12-21|long|2012-12-13|long|6676": {
+      "date": "2012-12-21",
+      "alerted": false
+    },
+    "P0|2013-01-24|short|2013-01-16|short|6788": {
+      "date": "2013-01-24",
+      "alerted": false
+    },
+    "P0|2013-09-06|long|2013-08-30|long|5564": {
+      "date": "2013-09-06",
+      "alerted": false
+    },
+    "P0|2014-01-06|short|2013-12-30|short|6066": {
+      "date": "2014-01-06",
+      "alerted": false
+    },
+    "P0|2014-04-02|long|2014-03-17|long|6252": {
+      "date": "2014-04-02",
+      "alerted": false
+    },
+    "P0|2014-04-21|short|2014-04-17|short|6214": {
+      "date": "2014-04-21",
+      "alerted": false
+    },
+    "P0|2014-04-30|short|2014-04-17|short|6214": {
+      "date": "2014-04-30",
+      "alerted": false
+    },
+    "P0|2015-01-14|short|2014-12-30|short|5100": {
+      "date": "2015-01-14",
+      "alerted": false
+    },
+    "P0|2015-04-09|short|2015-03-24|short|4774": {
+      "date": "2015-04-09",
+      "alerted": false
+    },
+    "P0|2015-12-21|long|2015-12-18|long|4554": {
+      "date": "2015-12-21",
+      "alerted": false
+    },
+    "P0|2016-07-22|short|2016-07-13|short|4958": {
+      "date": "2016-07-22",
+      "alerted": false
+    },
+    "P0|2017-06-21|short|2017-06-13|short|5318": {
+      "date": "2017-06-21",
+      "alerted": false
+    },
+    "P0|2017-08-08|long|2017-08-04|long|5302": {
+      "date": "2017-08-08",
+      "alerted": false
+    },
+    "P0|2017-08-21|long|2017-08-04|long|5302": {
+      "date": "2017-08-21",
+      "alerted": false
+    },
+    "P0|2018-04-12|short|2018-04-03|short|5130": {
+      "date": "2018-04-12",
+      "alerted": false
+    },
+    "P0|2018-07-09|short|2018-06-25|short|4732": {
+      "date": "2018-07-09",
+      "alerted": false
+    },
+    "P0|2018-09-04|long|2018-08-24|long|4906": {
+      "date": "2018-09-04",
+      "alerted": false
+    },
+    "P0|2018-10-11|short|2018-09-27|short|4744": {
+      "date": "2018-10-11",
+      "alerted": false
+    },
+    "P0|2018-10-18|short|2018-09-27|short|4744": {
+      "date": "2018-10-18",
+      "alerted": false
+    },
+    "P0|2019-01-02|long|2018-12-25|long|4536": {
+      "date": "2019-01-02",
+      "alerted": false
+    },
+    "P0|2019-10-14|short|2019-10-10|short|4800": {
+      "date": "2019-10-14",
+      "alerted": false
+    },
+    "P0|2020-12-07|long|2020-11-24|long|6626": {
+      "date": "2020-12-07",
+      "alerted": false
+    },
+    "P0|2021-04-09|short|2021-04-06|short|7632": {
+      "date": "2021-04-09",
+      "alerted": false
+    },
+    "P0|2021-06-03|long|2021-05-21|long|7822": {
+      "date": "2021-06-03",
+      "alerted": false
+    },
+    "P0|2022-03-28|long|2022-03-15|long|11388": {
+      "date": "2022-03-28",
+      "alerted": false
+    },
+    "P0|2022-05-13|long|2022-05-09|long|11522": {
+      "date": "2022-05-13",
+      "alerted": false
+    },
+    "P0|2022-05-20|long|2022-05-09|long|11522": {
+      "date": "2022-05-20",
+      "alerted": false
+    },
+    "P0|2022-08-04|short|2022-07-19|short|8078": {
+      "date": "2022-08-04",
+      "alerted": false
+    },
+    "P0|2022-08-22|long|2022-08-19|long|8162": {
+      "date": "2022-08-22",
+      "alerted": false
+    },
+    "P0|2022-08-24|long|2022-08-19|long|8162": {
+      "date": "2022-08-24",
+      "alerted": false
+    },
+    "P0|2023-02-01|short|2023-01-19|short|7886": {
+      "date": "2023-02-01",
+      "alerted": false
+    },
+    "P0|2024-01-02|short|2023-12-12|short|7134": {
+      "date": "2024-01-02",
+      "alerted": false
+    },
+    "P0|2024-07-17|long|2024-07-09|long|7854": {
+      "date": "2024-07-17",
+      "alerted": false
+    },
+    "P0|2024-07-26|long|2024-07-09|long|7854": {
+      "date": "2024-07-26",
+      "alerted": false
+    },
+    "P0|2024-08-02|long|2024-07-09|long|7854": {
+      "date": "2024-08-02",
+      "alerted": false
+    },
+    "P0|2025-03-13|long|2025-02-27|long|9118": {
+      "date": "2025-03-13",
+      "alerted": false
+    },
+    "P0|2025-03-20|long|2025-02-27|long|9118": {
+      "date": "2025-03-20",
+      "alerted": false
+    },
+    "P0|2025-03-31|long|2025-02-27|long|9118": {
+      "date": "2025-03-31",
+      "alerted": false
+    },
+    "P0|2025-07-02|long|2025-06-25|long|8306": {
+      "date": "2025-07-02",
+      "alerted": false
+    },
+    "P0|2025-10-17|short|2025-09-26|short|9264": {
+      "date": "2025-10-17",
+      "alerted": false
+    },
+    "P0|2026-05-21|short|2026-05-20|short|9707": {
+      "date": "2026-05-21",
+      "alerted": false
+    },
+    "P0|2026-07-10|short|2026-06-29|short|9339": {
+      "date": "2026-07-10",
+      "alerted": false
+    },
+    "P0|2026-07-16|short|2026-06-29|short|9339": {
+      "date": "2026-07-16",
+      "alerted": false
+    },
+    "P0|2026-07-22|short|2026-06-29|short|9339": {
+      "date": "2026-07-22",
+      "alerted": false
+    },
+    "P0|2026-08-06|long|2026-08-03|long|9264": {
+      "date": "2026-08-06",
+      "alerted": false
+    },
+    "I0|2013-11-14|short|2013-11-04|short|954": {
+      "date": "2013-11-14",
+      "alerted": false
+    },
+    "I0|2013-12-12|short|2013-11-04|short|954": {
+      "date": "2013-12-12",
+      "alerted": false
+    },
+    "I0|2016-01-18|long|2016-01-06|long|319": {
+      "date": "2016-01-18",
+      "alerted": false
+    },
+    "I0|2016-07-21|long|2016-07-19|long|431": {
+      "date": "2016-07-21",
+      "alerted": false
+    },
+    "I0|2016-07-25|long|2016-07-19|long|431": {
+      "date": "2016-07-25",
+      "alerted": false
+    },
+    "I0|2017-02-07|long|2017-01-23|long|607": {
+      "date": "2017-02-07",
+      "alerted": false
+    },
+    "I0|2017-08-18|long|2017-08-14|long|527.5": {
+      "date": "2017-08-18",
+      "alerted": false
+    },
+    "I0|2017-10-26|short|2017-10-23|short|471": {
+      "date": "2017-10-26",
+      "alerted": false
+    },
+    "I0|2017-12-18|long|2017-12-07|long|521": {
+      "date": "2017-12-18",
+      "alerted": false
+    },
+    "I0|2017-12-29|long|2017-12-07|long|521": {
+      "date": "2017-12-29",
+      "alerted": false
+    },
+    "I0|2018-10-09|long|2018-09-28|long|494": {
+      "date": "2018-10-09",
+      "alerted": false
+    },
+    "I0|2019-03-01|long|2019-02-22|long|610.5": {
+      "date": "2019-03-01",
+      "alerted": false
+    },
+    "I0|2019-03-14|long|2019-02-22|long|610.5": {
+      "date": "2019-03-14",
+      "alerted": false
+    },
+    "I0|2019-03-29|long|2019-02-22|long|610.5": {
+      "date": "2019-03-29",
+      "alerted": false
+    },
+    "I0|2019-10-08|long|2019-09-20|long|633.5": {
+      "date": "2019-10-08",
+      "alerted": false
+    },
+    "I0|2019-12-10|long|2019-12-02|long|638.5": {
+      "date": "2019-12-10",
+      "alerted": false
+    },
+    "I0|2019-12-31|long|2019-12-02|long|638.5": {
+      "date": "2019-12-31",
+      "alerted": false
+    },
+    "I0|2020-03-04|long|2020-02-27|long|645.5": {
+      "date": "2020-03-04",
+      "alerted": false
+    },
+    "I0|2020-04-27|short|2020-04-09|short|588": {
+      "date": "2020-04-27",
+      "alerted": false
+    },
+    "I0|2020-09-09|short|2020-08-28|short|831.5": {
+      "date": "2020-09-09",
+      "alerted": false
+    },
+    "I0|2022-03-16|long|2022-03-10|long|809.5": {
+      "date": "2022-03-16",
+      "alerted": false
+    },
+    "I0|2022-08-30|short|2022-08-24|short|709.5": {
+      "date": "2022-08-30",
+      "alerted": false
+    },
+    "I0|2023-10-24|long|2023-10-23|long|837": {
+      "date": "2023-10-24",
+      "alerted": false
+    },
+    "I0|2024-03-26|short|2024-03-21|short|837": {
+      "date": "2024-03-26",
+      "alerted": false
+    },
+    "I0|2024-09-03|short|2024-08-22|short|744": {
+      "date": "2024-09-03",
+      "alerted": false
+    },
+    "I0|2024-10-28|long|2024-10-17|long|762.5": {
+      "date": "2024-10-28",
+      "alerted": false
+    },
+    "I0|2025-08-05|long|2025-07-25|long|803.5": {
+      "date": "2025-08-05",
+      "alerted": false
+    },
+    "I0|2025-08-12|long|2025-07-25|long|803.5": {
+      "date": "2025-08-12",
+      "alerted": false
+    },
+    "I0|2025-09-01|short|2025-08-28|short|789": {
+      "date": "2025-09-01",
+      "alerted": false
+    },
+    "I0|2025-11-04|short|2025-10-27|short|782": {
+      "date": "2025-11-04",
+      "alerted": false
+    },
+    "Y0|2006-07-03|long|2006-06-06|long|5152": {
+      "date": "2006-07-03",
+      "alerted": false
+    },
+    "Y0|2006-07-07|long|2006-06-06|long|5152": {
+      "date": "2006-07-07",
+      "alerted": false
+    },
+    "Y0|2006-12-12|long|2006-11-24|long|6590": {
+      "date": "2006-12-12",
+      "alerted": false
+    },
+    "Y0|2006-12-22|long|2006-11-24|long|6590": {
+      "date": "2006-12-22",
+      "alerted": false
+    },
+    "Y0|2007-01-19|short|2007-01-15|short|6640": {
+      "date": "2007-01-19",
+      "alerted": false
+    },
+    "Y0|2008-05-22|long|2008-05-21|long|11004": {
+      "date": "2008-05-22",
+      "alerted": false
+    },
+    "Y0|2008-05-27|long|2008-05-21|long|11004": {
+      "date": "2008-05-27",
+      "alerted": false
+    },
+    "Y0|2008-06-06|long|2008-05-21|long|11004": {
+      "date": "2008-06-06",
+      "alerted": false
+    },
+    "Y0|2008-08-28|short|2008-08-20|short|9204": {
+      "date": "2008-08-28",
+      "alerted": false
+    },
+    "Y0|2008-09-02|short|2008-08-20|short|9204": {
+      "date": "2008-09-02",
+      "alerted": false
+    },
+    "Y0|2009-03-12|short|2009-02-26|short|6110": {
+      "date": "2009-03-12",
+      "alerted": false
+    },
+    "Y0|2009-08-25|long|2009-08-19|long|7322": {
+      "date": "2009-08-25",
+      "alerted": false
+    },
+    "Y0|2010-08-30|long|2010-08-19|long|8152": {
+      "date": "2010-08-30",
+      "alerted": false
+    },
+    "Y0|2010-09-03|long|2010-08-19|long|8152": {
+      "date": "2010-09-03",
+      "alerted": false
+    },
+    "Y0|2011-03-09|short|2011-03-01|short|10222": {
+      "date": "2011-03-09",
+      "alerted": false
+    },
+    "Y0|2011-04-21|long|2011-04-14|long|10324": {
+      "date": "2011-04-21",
+      "alerted": false
+    },
+    "Y0|2011-08-01|long|2011-07-29|long|10192": {
+      "date": "2011-08-01",
+      "alerted": false
+    },
+    "Y0|2011-10-31|short|2011-10-24|short|9192": {
+      "date": "2011-10-31",
+      "alerted": false
+    },
+    "Y0|2012-01-30|long|2012-01-16|long|8988": {
+      "date": "2012-01-30",
+      "alerted": false
+    },
+    "Y0|2013-01-04|long|2012-12-20|long|8672": {
+      "date": "2013-01-04",
+      "alerted": false
+    },
+    "Y0|2013-05-15|short|2013-05-07|short|7380": {
+      "date": "2013-05-15",
+      "alerted": false
+    },
+    "Y0|2013-06-04|short|2013-05-07|short|7380": {
+      "date": "2013-06-04",
+      "alerted": false
+    },
+    "Y0|2013-06-24|short|2013-05-07|short|7380": {
+      "date": "2013-06-24",
+      "alerted": false
+    },
+    "Y0|2013-10-30|long|2013-10-25|long|7152": {
+      "date": "2013-10-30",
+      "alerted": false
+    },
+    "Y0|2014-04-02|long|2014-03-17|long|7016": {
+      "date": "2014-04-02",
+      "alerted": false
+    },
+    "Y0|2014-04-16|long|2014-03-17|long|7016": {
+      "date": "2014-04-16",
+      "alerted": false
+    },
+    "Y0|2014-04-29|long|2014-03-17|long|7016": {
+      "date": "2014-04-29",
+      "alerted": false
+    },
+    "Y0|2015-06-01|long|2015-05-19|long|5810": {
+      "date": "2015-06-01",
+      "alerted": false
+    },
+    "Y0|2015-06-23|short|2015-06-18|short|5956": {
+      "date": "2015-06-23",
+      "alerted": false
+    },
+    "Y0|2015-06-30|short|2015-06-18|short|5956": {
+      "date": "2015-06-30",
+      "alerted": false
+    },
+    "Y0|2015-07-06|short|2015-06-18|short|5956": {
+      "date": "2015-07-06",
+      "alerted": false
+    },
+    "Y0|2016-06-28|long|2016-06-16|long|5996": {
+      "date": "2016-06-28",
+      "alerted": false
+    },
+    "Y0|2016-10-10|long|2016-09-29|long|6294": {
+      "date": "2016-10-10",
+      "alerted": false
+    },
+    "Y0|2017-06-22|short|2017-06-09|short|5788": {
+      "date": "2017-06-22",
+      "alerted": false
+    },
+    "Y0|2018-06-08|short|2018-05-30|short|5886": {
+      "date": "2018-06-08",
+      "alerted": false
+    },
+    "Y0|2018-12-11|short|2018-12-03|short|5480": {
+      "date": "2018-12-11",
+      "alerted": false
+    },
+    "Y0|2019-05-23|short|2019-05-08|short|5412": {
+      "date": "2019-05-23",
+      "alerted": false
+    },
+    "Y0|2019-06-12|short|2019-05-08|short|5412": {
+      "date": "2019-06-12",
+      "alerted": false
+    },
+    "Y0|2019-07-12|short|2019-07-08|short|5452": {
+      "date": "2019-07-12",
+      "alerted": false
+    },
+    "Y0|2019-07-18|short|2019-07-08|short|5452": {
+      "date": "2019-07-18",
+      "alerted": false
+    },
+    "Y0|2019-11-21|long|2019-11-15|long|6298": {
+      "date": "2019-11-21",
+      "alerted": false
+    },
+    "Y0|2019-12-06|long|2019-11-15|long|6298": {
+      "date": "2019-12-06",
+      "alerted": false
+    },
+    "Y0|2021-02-03|short|2021-01-27|short|7680": {
+      "date": "2021-02-03",
+      "alerted": false
+    },
+    "Y0|2021-03-24|long|2021-03-18|long|9164": {
+      "date": "2021-03-24",
+      "alerted": false
+    },
+    "Y0|2021-06-03|long|2021-05-21|long|8662": {
+      "date": "2021-06-03",
+      "alerted": false
+    },
+    "Y0|2021-08-09|long|2021-08-02|long|8886": {
+      "date": "2021-08-09",
+      "alerted": false
+    },
+    "Y0|2022-05-13|long|2022-05-06|long|11236": {
+      "date": "2022-05-13",
+      "alerted": false
+    },
+    "Y0|2022-08-24|long|2022-08-19|long|9446": {
+      "date": "2022-08-24",
+      "alerted": false
+    },
+    "Y0|2022-11-03|long|2022-10-25|long|9460": {
+      "date": "2022-11-03",
+      "alerted": false
+    },
+    "Y0|2022-12-09|short|2022-11-25|short|9232": {
+      "date": "2022-12-09",
+      "alerted": false
+    },
+    "Y0|2023-02-08|long|2023-02-02|long|8744": {
+      "date": "2023-02-08",
+      "alerted": false
+    },
+    "Y0|2023-02-17|long|2023-02-02|long|8744": {
+      "date": "2023-02-17",
+      "alerted": false
+    },
+    "Y0|2023-04-14|short|2023-03-29|short|8018": {
+      "date": "2023-04-14",
+      "alerted": false
+    },
+    "Y0|2024-02-26|short|2024-02-20|short|7270": {
+      "date": "2024-02-26",
+      "alerted": false
+    },
+    "Y0|2024-04-01|long|2024-03-25|long|7846": {
+      "date": "2024-04-01",
+      "alerted": false
+    },
+    "Y0|2025-02-20|long|2025-02-12|long|8068": {
+      "date": "2025-02-20",
+      "alerted": false
+    },
+    "Y0|2025-02-28|long|2025-02-12|long|8068": {
+      "date": "2025-02-28",
+      "alerted": false
+    },
+    "Y0|2025-03-07|long|2025-02-12|long|8068": {
+      "date": "2025-03-07",
+      "alerted": false
+    },
+    "Y0|2025-03-13|long|2025-02-12|long|8068": {
+      "date": "2025-03-13",
+      "alerted": false
+    },
+    "Y0|2025-05-14|long|2025-04-30|long|7776": {
+      "date": "2025-05-14",
+      "alerted": false
+    },
+    "Y0|2025-05-20|long|2025-04-30|long|7776": {
+      "date": "2025-05-20",
+      "alerted": false
+    },
+    "Y0|2025-06-11|short|2025-06-09|short|7748": {
+      "date": "2025-06-11",
+      "alerted": false
+    },
+    "Y0|2025-07-14|long|2025-06-25|long|7942": {
+      "date": "2025-07-14",
+      "alerted": false
+    },
+    "Y0|2025-10-23|short|2025-09-26|short|8218": {
+      "date": "2025-10-23",
+      "alerted": false
+    },
+    "Y0|2026-07-24|long|2026-07-22|long|8511": {
+      "date": "2026-07-24",
+      "alerted": false
+    },
+    "RB0|2010-02-26|short|2010-02-10|short|4166": {
+      "date": "2010-02-26",
+      "alerted": false
+    },
+    "RB0|2010-08-31|long|2010-08-23|long|4295": {
+      "date": "2010-08-31",
+      "alerted": false
+    },
+    "RB0|2010-11-24|long|2010-11-17|long|4571": {
+      "date": "2010-11-24",
+      "alerted": false
+    },
+    "RB0|2010-12-30|long|2010-11-17|long|4571": {
+      "date": "2010-12-30",
+      "alerted": false
+    },
+    "RB0|2011-04-22|long|2011-04-15|long|4860": {
+      "date": "2011-04-22",
+      "alerted": false
+    },
+    "RB0|2011-06-13|short|2011-05-30|short|4857": {
+      "date": "2011-06-13",
+      "alerted": false
+    },
+    "RB0|2013-03-28|short|2013-03-26|short|3928": {
+      "date": "2013-03-28",
+      "alerted": false
+    },
+    "RB0|2013-08-02|long|2013-07-29|long|3658": {
+      "date": "2013-08-02",
+      "alerted": false
+    },
+    "RB0|2014-08-11|short|2014-07-29|short|3081": {
+      "date": "2014-08-11",
+      "alerted": false
+    },
+    "RB0|2015-06-04|short|2015-05-26|short|2359": {
+      "date": "2015-06-04",
+      "alerted": false
+    },
+    "RB0|2016-01-15|long|2016-01-12|long|1747": {
+      "date": "2016-01-15",
+      "alerted": false
+    },
+    "RB0|2016-07-28|long|2016-07-19|long|2362": {
+      "date": "2016-07-28",
+      "alerted": false
+    },
+    "RB0|2017-02-10|long|2017-01-20|long|3220": {
+      "date": "2017-02-10",
+      "alerted": false
+    },
+    "RB0|2017-11-21|long|2017-11-16|long|3676": {
+      "date": "2017-11-21",
+      "alerted": false
+    },
+    "RB0|2018-01-12|short|2018-01-10|short|3843": {
+      "date": "2018-01-12",
+      "alerted": false
+    },
+    "RB0|2018-04-16|short|2018-04-02|short|3393": {
+      "date": "2018-04-16",
+      "alerted": false
+    },
+    "RB0|2018-05-30|long|2018-05-09|long|3616": {
+      "date": "2018-05-30",
+      "alerted": false
+    },
+    "RB0|2018-09-11|short|2018-09-07|short|4150": {
+      "date": "2018-09-11",
+      "alerted": false
+    },
+    "RB0|2019-02-22|long|2019-02-14|long|3692": {
+      "date": "2019-02-22",
+      "alerted": false
+    },
+    "RB0|2019-04-29|long|2019-04-18|long|3757": {
+      "date": "2019-04-29",
+      "alerted": false
+    },
+    "RB0|2019-06-13|long|2019-05-28|long|3826": {
+      "date": "2019-06-13",
+      "alerted": false
+    },
+    "RB0|2020-03-04|long|2020-02-28|long|3408": {
+      "date": "2020-03-04",
+      "alerted": false
+    },
+    "RB0|2020-04-27|short|2020-04-10|short|3322": {
+      "date": "2020-04-27",
+      "alerted": false
+    },
+    "RB0|2020-07-06|long|2020-06-10|long|3583": {
+      "date": "2020-07-06",
+      "alerted": false
+    },
+    "RB0|2020-09-04|short|2020-09-03|short|3788": {
+      "date": "2020-09-04",
+      "alerted": false
+    },
+    "RB0|2021-06-18|short|2021-06-03|short|5149": {
+      "date": "2021-06-18",
+      "alerted": false
+    },
+    "RB0|2021-11-26|short|2021-11-25|short|4513": {
+      "date": "2021-11-26",
+      "alerted": false
+    },
+    "RB0|2022-02-21|long|2022-02-18|long|4666": {
+      "date": "2022-02-21",
+      "alerted": false
+    },
+    "RB0|2022-03-17|long|2022-03-14|long|4822": {
+      "date": "2022-03-17",
+      "alerted": false
+    },
+    "RB0|2022-08-26|long|2022-08-17|long|4078": {
+      "date": "2022-08-26",
+      "alerted": false
+    },
+    "RB0|2023-07-14|long|2023-06-26|long|3683": {
+      "date": "2023-07-14",
+      "alerted": false
+    },
+    "RB0|2023-07-18|long|2023-06-26|long|3683": {
+      "date": "2023-07-18",
+      "alerted": false
+    },
+    "RB0|2023-12-07|long|2023-11-28|long|3896": {
+      "date": "2023-12-07",
+      "alerted": false
+    },
+    "RB0|2024-01-31|short|2024-01-23|short|3930": {
+      "date": "2024-01-31",
+      "alerted": false
+    },
+    "RB0|2024-07-05|short|2024-07-02|short|3568": {
+      "date": "2024-07-05",
+      "alerted": false
+    },
+    "RB0|2024-10-28|long|2024-10-17|long|3412": {
+      "date": "2024-10-28",
+      "alerted": false
+    },
+    "RB0|2024-12-05|short|2024-11-29|short|3345": {
+      "date": "2024-12-05",
+      "alerted": false
+    },
+    "RB0|2024-12-19|short|2024-11-29|short|3345": {
+      "date": "2024-12-19",
+      "alerted": false
+    },
+    "RB0|2025-02-25|short|2025-02-20|short|3329": {
+      "date": "2025-02-25",
+      "alerted": false
+    },
+    "RB0|2025-03-03|short|2025-02-20|short|3329": {
+      "date": "2025-03-03",
+      "alerted": false
+    },
+    "RB0|2025-11-04|short|2025-10-23|short|3076": {
+      "date": "2025-11-04",
+      "alerted": false
+    },
+    "RB0|2026-04-17|long|2026-03-23|long|3113": {
+      "date": "2026-04-17",
+      "alerted": false
+    },
+    "RB0|2026-06-17|short|2026-06-01|short|3170": {
+      "date": "2026-06-17",
+      "alerted": false
+    },
+    "SA0|2019-12-30|long|2019-12-17|long|1623": {
+      "date": "2019-12-30",
+      "alerted": false
+    },
+    "SA0|2020-05-12|short|2020-04-20|short|1429": {
+      "date": "2020-05-12",
+      "alerted": false
+    },
+    "SA0|2020-08-19|long|2020-08-13|long|1404": {
+      "date": "2020-08-19",
+      "alerted": false
+    },
+    "SA0|2021-04-13|long|2021-03-23|long|1921": {
+      "date": "2021-04-13",
+      "alerted": false
+    },
+    "SA0|2021-04-16|long|2021-03-23|long|1921": {
+      "date": "2021-04-16",
+      "alerted": false
+    },
+    "SA0|2022-12-12|long|2022-12-06|long|2516": {
+      "date": "2022-12-12",
+      "alerted": false
+    },
+    "SA0|2024-01-30|short|2024-01-22|short|1958": {
+      "date": "2024-01-30",
+      "alerted": false
+    },
+    "SA0|2024-07-08|short|2024-07-01|short|2095": {
+      "date": "2024-07-08",
+      "alerted": false
+    },
+    "SA0|2024-10-23|long|2024-10-17|long|1453": {
+      "date": "2024-10-23",
+      "alerted": false
+    },
+    "SA0|2024-12-18|short|2024-12-12|short|1475": {
+      "date": "2024-12-18",
+      "alerted": false
+    },
+    "SA0|2024-12-27|short|2024-12-12|short|1475": {
+      "date": "2024-12-27",
+      "alerted": false
+    },
+    "SA0|2025-02-17|long|2025-02-05|long|1458": {
+      "date": "2025-02-17",
+      "alerted": false
+    },
+    "SA0|2025-08-06|long|2025-07-29|long|1316": {
+      "date": "2025-08-06",
+      "alerted": false
+    },
+    "SA0|2026-03-24|long|2026-03-19|long|1205": {
+      "date": "2026-03-24",
+      "alerted": false
+    },
+    "SA0|2026-06-04|short|2026-06-01|short|1230": {
+      "date": "2026-06-04",
+      "alerted": false
+    },
+    "CF0|2005-06-28|short|2005-05-30|short|14295": {
+      "date": "2005-06-28",
+      "alerted": false
+    },
+    "CF0|2006-01-04|long|2005-12-22|long|15090": {
+      "date": "2006-01-04",
+      "alerted": false
+    },
+    "CF0|2006-01-23|long|2005-12-22|long|15090": {
+      "date": "2006-01-23",
+      "alerted": false
+    },
+    "CF0|2006-01-25|long|2005-12-22|long|15090": {
+      "date": "2006-01-25",
+      "alerted": false
+    },
+    "CF0|2007-02-08|short|2007-01-26|short|13895": {
+      "date": "2007-02-08",
+      "alerted": false
+    },
+    "CF0|2007-04-06|short|2007-04-03|short|13845": {
+      "date": "2007-04-06",
+      "alerted": false
+    },
+    "CF0|2009-03-11|long|2009-02-19|long|11915": {
+      "date": "2009-03-11",
+      "alerted": false
+    },
+    "CF0|2009-06-29|long|2009-06-19|long|13240": {
+      "date": "2009-06-29",
+      "alerted": false
+    },
+    "CF0|2010-05-05|short|2010-04-29|short|16945": {
+      "date": "2010-05-05",
+      "alerted": false
+    },
+    "CF0|2010-06-21|short|2010-06-10|short|16650": {
+      "date": "2010-06-21",
+      "alerted": false
+    },
+    "CF0|2010-07-05|short|2010-06-10|short|16650": {
+      "date": "2010-07-05",
+      "alerted": false
+    },
+    "CF0|2010-07-27|short|2010-06-10|short|16650": {
+      "date": "2010-07-27",
+      "alerted": false
+    },
+    "CF0|2012-03-02|short|2012-02-29|short|21830": {
+      "date": "2012-03-02",
+      "alerted": false
+    },
+    "CF0|2012-03-08|short|2012-02-29|short|21830": {
+      "date": "2012-03-08",
+      "alerted": false
+    },
+    "CF0|2012-08-30|long|2012-08-27|long|19445": {
+      "date": "2012-08-30",
+      "alerted": false
+    },
+    "CF0|2012-11-28|short|2012-11-27|short|19245": {
+      "date": "2012-11-28",
+      "alerted": false
+    },
+    "CF0|2012-12-11|short|2012-11-27|short|19245": {
+      "date": "2012-12-11",
+      "alerted": false
+    },
+    "CF0|2012-12-26|long|2012-12-20|long|19245": {
+      "date": "2012-12-26",
+      "alerted": false
+    },
+    "CF0|2013-03-04|long|2013-02-06|long|20070": {
+      "date": "2013-03-04",
+      "alerted": false
+    },
+    "CF0|2013-06-04|long|2013-05-16|long|20110": {
+      "date": "2013-06-04",
+      "alerted": false
+    },
+    "CF0|2013-07-26|short|2013-06-25|short|19995": {
+      "date": "2013-07-26",
+      "alerted": false
+    },
+    "CF0|2013-11-15|short|2013-11-01|short|18690": {
+      "date": "2013-11-15",
+      "alerted": false
+    },
+    "CF0|2014-04-22|short|2014-04-08|short|16015": {
+      "date": "2014-04-22",
+      "alerted": false
+    },
+    "CF0|2014-05-06|short|2014-04-08|short|16015": {
+      "date": "2014-05-06",
+      "alerted": false
+    },
+    "CF0|2014-10-30|long|2014-10-24|long|13755": {
+      "date": "2014-10-30",
+      "alerted": false
+    },
+    "CF0|2014-12-25|long|2014-12-17|long|12955": {
+      "date": "2014-12-25",
+      "alerted": false
+    },
+    "CF0|2015-07-10|long|2015-07-08|long|13050": {
+      "date": "2015-07-10",
+      "alerted": false
+    },
+    "CF0|2016-05-12|long|2016-04-28|long|12570": {
+      "date": "2016-05-12",
+      "alerted": false
+    },
+    "CF0|2016-05-17|long|2016-04-28|long|12570": {
+      "date": "2016-05-17",
+      "alerted": false
+    },
+    "CF0|2016-06-07|long|2016-04-28|long|12570": {
+      "date": "2016-06-07",
+      "alerted": false
+    },
+    "CF0|2017-01-16|short|2017-01-05|short|15205": {
+      "date": "2017-01-16",
+      "alerted": false
+    },
+    "CF0|2017-01-20|short|2017-01-05|short|15205": {
+      "date": "2017-01-20",
+      "alerted": false
+    },
+    "CF0|2017-09-01|long|2017-08-17|long|15130": {
+      "date": "2017-09-01",
+      "alerted": false
+    },
+    "CF0|2018-07-23|short|2018-07-10|short|16575": {
+      "date": "2018-07-23",
+      "alerted": false
+    },
+    "CF0|2018-08-29|short|2018-08-21|short|16865": {
+      "date": "2018-08-29",
+      "alerted": false
+    },
+    "CF0|2019-02-20|long|2019-02-13|long|15100": {
+      "date": "2019-02-20",
+      "alerted": false
+    },
+    "CF0|2019-07-29|short|2019-07-26|short|13350": {
+      "date": "2019-07-29",
+      "alerted": false
+    },
+    "CF0|2019-11-13|long|2019-11-11|long|12855": {
+      "date": "2019-11-13",
+      "alerted": false
+    },
+    "CF0|2019-12-04|long|2019-11-11|long|12855": {
+      "date": "2019-12-04",
+      "alerted": false
+    },
+    "CF0|2020-02-18|short|2020-02-17|short|13200": {
+      "date": "2020-02-18",
+      "alerted": false
+    },
+    "CF0|2020-02-24|short|2020-02-17|short|13200": {
+      "date": "2020-02-24",
+      "alerted": false
+    },
+    "CF0|2021-04-13|short|2021-04-07|short|15080": {
+      "date": "2021-04-13",
+      "alerted": false
+    },
+    "CF0|2021-05-21|long|2021-05-14|long|15760": {
+      "date": "2021-05-21",
+      "alerted": false
+    },
+    "CF0|2022-03-15|short|2022-03-08|short|21430": {
+      "date": "2022-03-15",
+      "alerted": false
+    },
+    "CF0|2022-09-02|short|2022-08-16|short|15630": {
+      "date": "2022-09-02",
+      "alerted": false
+    },
+    "CF0|2023-09-27|long|2023-09-08|long|17045": {
+      "date": "2023-09-27",
+      "alerted": false
+    },
+    "CF0|2024-05-31|short|2024-05-20|short|15295": {
+      "date": "2024-05-31",
+      "alerted": false
+    },
+    "CF0|2024-10-24|long|2024-10-11|long|14050": {
+      "date": "2024-10-24",
+      "alerted": false
+    },
+    "CF0|2025-03-18|short|2025-03-13|short|13700": {
+      "date": "2025-03-18",
+      "alerted": false
+    },
+    "CF0|2025-03-24|short|2025-03-13|short|13700": {
+      "date": "2025-03-24",
+      "alerted": false
+    },
+    "CF0|2025-06-09|long|2025-05-27|long|13330": {
+      "date": "2025-06-09",
+      "alerted": false
+    },
+    "CF0|2026-01-22|long|2026-01-12|long|14640": {
+      "date": "2026-01-22",
+      "alerted": false
+    },
+    "CF0|2026-01-28|long|2026-01-12|long|14640": {
+      "date": "2026-01-28",
+      "alerted": false
+    },
+    "CF0|2026-02-11|long|2026-01-12|long|14640": {
+      "date": "2026-02-11",
+      "alerted": false
+    },
+    "CF0|2026-06-05|short|2026-05-27|short|16150": {
+      "date": "2026-06-05",
+      "alerted": false
+    },
+    "HC0|2014-08-06|long|2014-07-18|long|3300": {
+      "date": "2014-08-06",
+      "alerted": false
+    },
+    "HC0|2015-03-02|short|2015-01-29|short|2620": {
+      "date": "2015-03-02",
+      "alerted": false
+    },
+    "HC0|2015-06-05|short|2015-05-26|short|2475": {
+      "date": "2015-06-05",
+      "alerted": false
+    },
+    "HC0|2016-01-18|long|2016-01-08|long|1902": {
+      "date": "2016-01-18",
+      "alerted": false
+    },
+    "HC0|2016-02-03|long|2016-01-08|long|1902": {
+      "date": "2016-02-03",
+      "alerted": false
+    },
+    "HC0|2016-07-26|long|2016-07-19|long|2495": {
+      "date": "2016-07-26",
+      "alerted": false
+    },
+    "HC0|2016-09-27|short|2016-09-23|short|2602": {
+      "date": "2016-09-27",
+      "alerted": false
+    },
+    "HC0|2016-11-22|long|2016-11-21|long|3100": {
+      "date": "2016-11-22",
+      "alerted": false
+    },
+    "HC0|2017-01-24|long|2017-01-20|long|3503": {
+      "date": "2017-01-24",
+      "alerted": false
+    },
+    "HC0|2017-02-10|long|2017-01-20|long|3503": {
+      "date": "2017-02-10",
+      "alerted": false
+    },
+    "HC0|2017-03-21|short|2017-03-15|short|3580": {
+      "date": "2017-03-21",
+      "alerted": false
+    },
+    "HC0|2017-06-12|long|2017-05-26|long|3075": {
+      "date": "2017-06-12",
+      "alerted": false
+    },
+    "HC0|2017-10-10|short|2017-09-27|short|3870": {
+      "date": "2017-10-10",
+      "alerted": false
+    },
+    "HC0|2017-12-04|long|2017-11-20|long|3934": {
+      "date": "2017-12-04",
+      "alerted": false
+    },
+    "HC0|2018-01-19|long|2017-11-20|long|3934": {
+      "date": "2018-01-19",
+      "alerted": false
+    },
+    "HC0|2018-02-26|long|2017-11-20|long|3934": {
+      "date": "2018-02-26",
+      "alerted": false
+    },
+    "HC0|2018-07-02|short|2018-06-29|short|3890": {
+      "date": "2018-07-02",
+      "alerted": false
+    },
+    "HC0|2018-07-05|short|2018-06-29|short|3890": {
+      "date": "2018-07-05",
+      "alerted": false
+    },
+    "HC0|2019-02-18|long|2019-02-14|long|3601": {
+      "date": "2019-02-18",
+      "alerted": false
+    },
+    "HC0|2019-03-12|long|2019-02-14|long|3601": {
+      "date": "2019-03-12",
+      "alerted": false
+    },
+    "HC0|2019-04-30|long|2019-04-12|long|3648": {
+      "date": "2019-04-30",
+      "alerted": false
+    },
+    "HC0|2019-05-28|short|2019-05-17|short|3663": {
+      "date": "2019-05-28",
+      "alerted": false
+    },
+    "HC0|2019-07-15|long|2019-07-04|long|3867": {
+      "date": "2019-07-15",
+      "alerted": false
+    },
+    "HC0|2019-08-26|short|2019-08-14|short|3710": {
+      "date": "2019-08-26",
+      "alerted": false
+    },
+    "HC0|2020-03-03|long|2020-02-28|long|3424": {
+      "date": "2020-03-03",
+      "alerted": false
+    },
+    "HC0|2020-04-24|short|2020-04-09|short|3128": {
+      "date": "2020-04-24",
+      "alerted": false
+    },
+    "HC0|2020-12-31|long|2020-12-28|long|4473": {
+      "date": "2020-12-31",
+      "alerted": false
+    },
+    "HC0|2021-01-06|long|2020-12-28|long|4473": {
+      "date": "2021-01-06",
+      "alerted": false
+    },
+    "HC0|2021-01-28|short|2021-01-28|short|4534": {
+      "date": "2021-01-28",
+      "alerted": false
+    },
+    "HC0|2021-06-16|short|2021-06-04|short|5535": {
+      "date": "2021-06-16",
+      "alerted": false
+    },
+    "HC0|2021-09-22|long|2021-09-15|long|5686": {
+      "date": "2021-09-22",
+      "alerted": false
+    },
+    "HC0|2021-10-13|short|2021-10-08|short|5750": {
+      "date": "2021-10-13",
+      "alerted": false
+    },
+    "HC0|2021-10-18|short|2021-10-08|short|5750": {
+      "date": "2021-10-18",
+      "alerted": false
+    },
+    "HC0|2021-10-20|short|2021-10-08|short|5750": {
+      "date": "2021-10-20",
+      "alerted": false
+    },
+    "HC0|2022-02-21|long|2022-02-18|long|4790": {
+      "date": "2022-02-21",
+      "alerted": false
+    },
+    "HC0|2022-03-01|long|2022-02-18|long|4790": {
+      "date": "2022-03-01",
+      "alerted": false
+    },
+    "HC0|2022-08-30|short|2022-08-24|short|3970": {
+      "date": "2022-08-30",
+      "alerted": false
+    },
+    "HC0|2023-07-14|long|2023-06-26|long|3782": {
+      "date": "2023-07-14",
+      "alerted": false
+    },
+    "HC0|2024-01-31|short|2024-01-22|short|4045": {
+      "date": "2024-01-31",
+      "alerted": false
+    },
+    "HC0|2024-10-25|long|2024-10-17|long|3521": {
+      "date": "2024-10-25",
+      "alerted": false
+    },
+    "HC0|2024-12-06|short|2024-11-22|short|3508": {
+      "date": "2024-12-06",
+      "alerted": false
+    },
+    "HC0|2024-12-18|short|2024-11-22|short|3508": {
+      "date": "2024-12-18",
+      "alerted": false
+    },
+    "HC0|2025-02-25|short|2025-02-20|short|3445": {
+      "date": "2025-02-25",
+      "alerted": false
+    },
+    "HC0|2025-09-24|short|2025-09-08|short|3346": {
+      "date": "2025-09-24",
+      "alerted": false
+    },
+    "HC0|2025-11-18|long|2025-11-04|long|3285": {
+      "date": "2025-11-18",
+      "alerted": false
+    },
+    "HC0|2026-01-05|short|2025-12-23|short|3294": {
+      "date": "2026-01-05",
+      "alerted": false
+    },
+    "HC0|2026-01-22|short|2025-12-23|short|3294": {
+      "date": "2026-01-22",
+      "alerted": false
+    },
+    "HC0|2026-01-28|short|2025-12-23|short|3294": {
+      "date": "2026-01-28",
+      "alerted": false
+    },
+    "HC0|2026-02-02|short|2025-12-23|short|3294": {
+      "date": "2026-02-02",
+      "alerted": false
+    },
+    "FG0|2013-06-05|long|2013-05-27|long|1421": {
+      "date": "2013-06-05",
+      "alerted": false
+    },
+    "FG0|2013-07-08|short|2013-07-02|short|1392": {
+      "date": "2013-07-08",
+      "alerted": false
+    },
+    "FG0|2013-07-15|short|2013-07-02|short|1392": {
+      "date": "2013-07-15",
+      "alerted": false
+    },
+    "FG0|2013-11-11|short|2013-10-11|short|1326": {
+      "date": "2013-11-11",
+      "alerted": false
+    },
+    "FG0|2014-03-26|short|2014-03-17|short|1235": {
+      "date": "2014-03-26",
+      "alerted": false
+    },
+    "FG0|2014-11-05|short|2014-10-22|short|1026": {
+      "date": "2014-11-05",
+      "alerted": false
+    },
+    "FG0|2014-12-22|short|2014-11-28|short|882": {
+      "date": "2014-12-22",
+      "alerted": false
+    },
+    "FG0|2015-05-29|long|2015-05-08|long|932": {
+      "date": "2015-05-29",
+      "alerted": false
+    },
+    "FG0|2015-08-19|long|2015-08-18|long|887": {
+      "date": "2015-08-19",
+      "alerted": false
+    },
+    "FG0|2015-11-24|long|2015-11-06|long|868": {
+      "date": "2015-11-24",
+      "alerted": false
+    },
+    "FG0|2016-05-30|long|2016-04-27|long|1004": {
+      "date": "2016-05-30",
+      "alerted": false
+    },
+    "FG0|2016-06-21|long|2016-04-27|long|1004": {
+      "date": "2016-06-21",
+      "alerted": false
+    },
+    "FG0|2016-12-08|long|2016-12-02|long|1202": {
+      "date": "2016-12-08",
+      "alerted": false
+    },
+    "FG0|2017-12-19|long|2017-11-24|long|1467": {
+      "date": "2017-12-19",
+      "alerted": false
+    },
+    "FG0|2018-01-08|long|2017-11-24|long|1467": {
+      "date": "2018-01-08",
+      "alerted": false
+    },
+    "FG0|2018-01-19|long|2017-11-24|long|1467": {
+      "date": "2018-01-19",
+      "alerted": false
+    },
+    "FG0|2018-01-29|long|2017-11-24|long|1467": {
+      "date": "2018-01-29",
+      "alerted": false
+    },
+    "FG0|2018-02-05|long|2017-11-24|long|1467": {
+      "date": "2018-02-05",
+      "alerted": false
+    },
+    "FG0|2018-03-08|short|2018-02-22|short|1465": {
+      "date": "2018-03-08",
+      "alerted": false
+    },
+    "FG0|2019-01-04|long|2018-12-13|long|1293": {
+      "date": "2019-01-04",
+      "alerted": false
+    },
+    "FG0|2019-04-03|short|2019-03-22|short|1288": {
+      "date": "2019-04-03",
+      "alerted": false
+    },
+    "FG0|2019-04-09|short|2019-03-22|short|1288": {
+      "date": "2019-04-09",
+      "alerted": false
+    },
+    "FG0|2019-09-27|long|2019-09-19|long|1444": {
+      "date": "2019-09-27",
+      "alerted": false
+    },
+    "FG0|2020-10-27|long|2020-10-15|long|1725": {
+      "date": "2020-10-27",
+      "alerted": false
+    },
+    "FG0|2021-03-17|long|2021-03-10|long|2004": {
+      "date": "2021-03-17",
+      "alerted": false
+    },
+    "FG0|2022-03-14|short|2022-03-02|short|1959": {
+      "date": "2022-03-14",
+      "alerted": false
+    },
+    "FG0|2022-04-19|long|2022-04-07|long|2034": {
+      "date": "2022-04-19",
+      "alerted": false
+    },
+    "FG0|2022-06-10|short|2022-06-08|short|1841": {
+      "date": "2022-06-10",
+      "alerted": false
+    },
+    "FG0|2022-11-18|short|2022-11-07|short|1400": {
+      "date": "2022-11-18",
+      "alerted": false
+    },
+    "FG0|2023-03-23|long|2023-03-17|long|1543": {
+      "date": "2023-03-23",
+      "alerted": false
+    },
+    "FG0|2023-08-31|long|2023-08-10|long|1776": {
+      "date": "2023-08-31",
+      "alerted": false
+    },
+    "FG0|2023-09-22|long|2023-08-10|long|1776": {
+      "date": "2023-09-22",
+      "alerted": false
+    },
+    "FG0|2024-02-01|short|2024-01-22|short|1779": {
+      "date": "2024-02-01",
+      "alerted": false
+    },
+    "FG0|2024-12-04|short|2024-11-29|short|1255": {
+      "date": "2024-12-04",
+      "alerted": false
+    },
+    "FG0|2025-08-13|long|2025-07-31|long|1139": {
+      "date": "2025-08-13",
+      "alerted": false
+    },
+    "FG0|2025-09-08|long|2025-07-31|long|1139": {
+      "date": "2025-09-08",
+      "alerted": false
+    },
+    "FG0|2026-02-11|short|2026-01-26|short|1073": {
+      "date": "2026-02-11",
+      "alerted": false
+    },
+    "TA0|2007-06-22|short|2007-06-14|short|8660": {
+      "date": "2007-06-22",
+      "alerted": false
+    },
+    "TA0|2007-09-11|short|2007-08-21|short|8094": {
+      "date": "2007-09-11",
+      "alerted": false
+    },
+    "TA0|2007-09-24|short|2007-08-21|short|8094": {
+      "date": "2007-09-24",
+      "alerted": false
+    },
+    "TA0|2007-12-18|short|2007-12-11|short|7428": {
+      "date": "2007-12-18",
+      "alerted": false
+    },
+    "TA0|2008-07-02|long|2008-06-24|long|9480": {
+      "date": "2008-07-02",
+      "alerted": false
+    },
+    "TA0|2008-08-05|short|2008-08-01|short|9250": {
+      "date": "2008-08-05",
+      "alerted": false
+    },
+    "TA0|2009-01-07|long|2008-12-29|long|5318": {
+      "date": "2009-01-07",
+      "alerted": false
+    },
+    "TA0|2009-12-02|long|2009-11-30|long|7792": {
+      "date": "2009-12-02",
+      "alerted": false
+    },
+    "TA0|2010-02-11|long|2010-01-22|long|8422": {
+      "date": "2010-02-11",
+      "alerted": false
+    },
+    "TA0|2010-03-09|long|2010-01-22|long|8422": {
+      "date": "2010-03-09",
+      "alerted": false
+    },
+    "TA0|2010-03-25|long|2010-01-22|long|8422": {
+      "date": "2010-03-25",
+      "alerted": false
+    },
+    "TA0|2011-03-02|long|2011-02-21|long|11832": {
+      "date": "2011-03-02",
+      "alerted": false
+    },
+    "TA0|2011-12-22|long|2011-12-13|long|8302": {
+      "date": "2011-12-22",
+      "alerted": false
+    },
+    "TA0|2012-09-06|short|2012-09-03|short|7648": {
+      "date": "2012-09-06",
+      "alerted": false
+    },
+    "TA0|2012-10-09|long|2012-09-19|long|7876": {
+      "date": "2012-10-09",
+      "alerted": false
+    },
+    "TA0|2012-10-24|long|2012-09-19|long|7876": {
+      "date": "2012-10-24",
+      "alerted": false
+    },
+    "TA0|2012-11-01|long|2012-09-19|long|7876": {
+      "date": "2012-11-01",
+      "alerted": false
+    },
+    "TA0|2012-11-26|long|2012-09-19|long|7876": {
+      "date": "2012-11-26",
+      "alerted": false
+    },
+    "TA0|2013-04-15|short|2013-04-08|short|7918": {
+      "date": "2013-04-15",
+      "alerted": false
+    },
+    "TA0|2013-07-03|long|2013-06-21|long|7850": {
+      "date": "2013-07-03",
+      "alerted": false
+    },
+    "TA0|2013-07-29|short|2013-07-15|short|7836": {
+      "date": "2013-07-29",
+      "alerted": false
+    },
+    "TA0|2015-03-25|short|2015-03-24|short|4748": {
+      "date": "2015-03-25",
+      "alerted": false
+    },
+    "TA0|2015-03-27|short|2015-03-24|short|4748": {
+      "date": "2015-03-27",
+      "alerted": false
+    },
+    "TA0|2015-06-12|short|2015-06-03|short|5218": {
+      "date": "2015-06-12",
+      "alerted": false
+    },
+    "TA0|2015-09-07|short|2015-08-31|short|4514": {
+      "date": "2015-09-07",
+      "alerted": false
+    },
+    "TA0|2016-11-09|long|2016-11-03|long|4806": {
+      "date": "2016-11-09",
+      "alerted": false
+    },
+    "TA0|2017-08-09|long|2017-07-20|long|5364": {
+      "date": "2017-08-09",
+      "alerted": false
+    },
+    "TA0|2017-08-22|long|2017-07-20|long|5364": {
+      "date": "2017-08-22",
+      "alerted": false
+    },
+    "TA0|2017-09-20|long|2017-07-20|long|5364": {
+      "date": "2017-09-20",
+      "alerted": false
+    },
+    "TA0|2017-09-22|long|2017-07-20|long|5364": {
+      "date": "2017-09-22",
+      "alerted": false
+    },
+    "TA0|2017-10-30|long|2017-07-20|long|5364": {
+      "date": "2017-10-30",
+      "alerted": false
+    },
+    "TA0|2017-11-06|long|2017-07-20|long|5364": {
+      "date": "2017-11-06",
+      "alerted": false
+    },
+    "TA0|2018-10-17|short|2018-09-25|short|7254": {
+      "date": "2018-10-17",
+      "alerted": false
+    },
+    "TA0|2020-02-24|short|2020-02-10|short|4446": {
+      "date": "2020-02-24",
+      "alerted": false
+    },
+    "TA0|2020-06-17|long|2020-06-11|long|3708": {
+      "date": "2020-06-17",
+      "alerted": false
+    },
+    "TA0|2020-08-03|short|2020-07-27|short|3592": {
+      "date": "2020-08-03",
+      "alerted": false
+    },
+    "TA0|2020-10-26|short|2020-10-14|short|3502": {
+      "date": "2020-10-26",
+      "alerted": false
+    },
+    "TA0|2021-01-29|long|2021-01-18|long|4002": {
+      "date": "2021-01-29",
+      "alerted": false
+    },
+    "TA0|2021-06-15|long|2021-06-07|long|4682": {
+      "date": "2021-06-15",
+      "alerted": false
+    },
+    "TA0|2021-12-20|short|2021-12-08|short|4636": {
+      "date": "2021-12-20",
+      "alerted": false
+    },
+    "TA0|2022-08-05|short|2022-07-22|short|5668": {
+      "date": "2022-08-05",
+      "alerted": false
+    },
+    "TA0|2022-08-10|short|2022-07-22|short|5668": {
+      "date": "2022-08-10",
+      "alerted": false
+    },
+    "TA0|2022-08-31|short|2022-07-22|short|5668": {
+      "date": "2022-08-31",
+      "alerted": false
+    },
+    "TA0|2022-09-02|short|2022-07-22|short|5668": {
+      "date": "2022-09-02",
+      "alerted": false
+    },
+    "TA0|2022-09-08|short|2022-07-22|short|5668": {
+      "date": "2022-09-08",
+      "alerted": false
+    },
+    "TA0|2022-09-19|short|2022-07-22|short|5668": {
+      "date": "2022-09-19",
+      "alerted": false
+    },
+    "TA0|2023-06-14|long|2023-06-08|long|5460": {
+      "date": "2023-06-14",
+      "alerted": false
+    },
+    "TA0|2023-11-08|short|2023-10-30|short|5898": {
+      "date": "2023-11-08",
+      "alerted": false
+    },
+    "TA0|2023-12-13|short|2023-12-12|short|5786": {
+      "date": "2023-12-13",
+      "alerted": false
+    },
+    "TA0|2024-01-19|long|2024-01-08|long|5838": {
+      "date": "2024-01-19",
+      "alerted": false
+    },
+    "TA0|2024-06-12|long|2024-06-04|long|5902": {
+      "date": "2024-06-12",
+      "alerted": false
+    },
+    "TA0|2024-06-19|long|2024-06-04|long|5902": {
+      "date": "2024-06-19",
+      "alerted": false
+    },
+    "TA0|2025-01-02|long|2024-12-20|long|4934": {
+      "date": "2025-01-02",
+      "alerted": false
+    },
+    "TA0|2025-04-03|short|2025-03-17|short|4840": {
+      "date": "2025-04-03",
+      "alerted": false
+    },
+    "TA0|2026-06-04|short|2026-05-28|short|6066": {
+      "date": "2026-06-04",
+      "alerted": false
+    },
+    "TA0|2026-06-15|short|2026-05-28|short|6066": {
+      "date": "2026-06-15",
+      "alerted": false
+    },
+    "SR0|2006-02-21|long|2006-02-09|long|5704": {
+      "date": "2006-02-21",
+      "alerted": false
+    },
+    "SR0|2006-10-13|long|2006-09-22|long|3420": {
+      "date": "2006-10-13",
+      "alerted": false
+    },
+    "SR0|2007-05-10|short|2007-05-08|short|3776": {
+      "date": "2007-05-10",
+      "alerted": false
+    },
+    "SR0|2007-05-16|short|2007-05-08|short|3776": {
+      "date": "2007-05-16",
+      "alerted": false
+    },
+    "SR0|2007-08-20|long|2007-08-14|long|3743": {
+      "date": "2007-08-20",
+      "alerted": false
+    },
+    "SR0|2007-08-30|long|2007-08-14|long|3743": {
+      "date": "2007-08-30",
+      "alerted": false
+    },
+    "SR0|2007-09-17|long|2007-08-14|long|3743": {
+      "date": "2007-09-17",
+      "alerted": false
+    },
+    "SR0|2007-12-10|short|2007-11-26|short|4023": {
+      "date": "2007-12-10",
+      "alerted": false
+    },
+    "SR0|2008-11-18|long|2008-11-13|long|3086": {
+      "date": "2008-11-18",
+      "alerted": false
+    },
+    "SR0|2009-09-17|long|2009-08-19|long|4771": {
+      "date": "2009-09-17",
+      "alerted": false
+    },
+    "SR0|2011-06-30|long|2011-06-27|long|6690": {
+      "date": "2011-06-30",
+      "alerted": false
+    },
+    "SR0|2012-08-13|short|2012-08-09|short|5453": {
+      "date": "2012-08-13",
+      "alerted": false
+    },
+    "SR0|2012-09-21|short|2012-09-18|short|5517": {
+      "date": "2012-09-21",
+      "alerted": false
+    },
+    "SR0|2012-11-15|long|2012-10-26|long|5330": {
+      "date": "2012-11-15",
+      "alerted": false
+    },
+    "SR0|2012-11-30|long|2012-10-26|long|5330": {
+      "date": "2012-11-30",
+      "alerted": false
+    },
+    "SR0|2013-08-27|long|2013-08-22|long|4995": {
+      "date": "2013-08-27",
+      "alerted": false
+    },
+    "SR0|2013-09-04|long|2013-08-22|long|4995": {
+      "date": "2013-09-04",
+      "alerted": false
+    },
+    "SR0|2014-05-28|short|2014-05-15|short|4880": {
+      "date": "2014-05-28",
+      "alerted": false
+    },
+    "SR0|2014-06-04|short|2014-05-15|short|4880": {
+      "date": "2014-06-04",
+      "alerted": false
+    },
+    "SR0|2014-07-24|short|2014-07-21|short|4845": {
+      "date": "2014-07-24",
+      "alerted": false
+    },
+    "SR0|2014-11-10|long|2014-10-28|long|4631": {
+      "date": "2014-11-10",
+      "alerted": false
+    },
+    "SR0|2014-12-16|short|2014-12-11|short|4696": {
+      "date": "2014-12-16",
+      "alerted": false
+    },
+    "SR0|2015-08-24|short|2015-08-13|short|5195": {
+      "date": "2015-08-24",
+      "alerted": false
+    },
+    "SR0|2015-12-14|long|2015-12-01|long|5489": {
+      "date": "2015-12-14",
+      "alerted": false
+    },
+    "SR0|2016-04-06|long|2016-04-05|long|5540": {
+      "date": "2016-04-06",
+      "alerted": false
+    },
+    "SR0|2016-04-13|long|2016-04-05|long|5540": {
+      "date": "2016-04-13",
+      "alerted": false
+    },
+    "SR0|2016-05-09|short|2016-05-06|short|5655": {
+      "date": "2016-05-09",
+      "alerted": false
+    },
+    "SR0|2016-05-17|short|2016-05-06|short|5655": {
+      "date": "2016-05-17",
+      "alerted": false
+    },
+    "SR0|2016-06-02|short|2016-05-06|short|5655": {
+      "date": "2016-06-02",
+      "alerted": false
+    },
+    "SR0|2017-01-06|short|2016-12-29|short|6777": {
+      "date": "2017-01-06",
+      "alerted": false
+    },
+    "SR0|2017-01-17|short|2016-12-29|short|6777": {
+      "date": "2017-01-17",
+      "alerted": false
+    },
+    "SR0|2017-02-15|short|2016-12-29|short|6777": {
+      "date": "2017-02-15",
+      "alerted": false
+    },
+    "SR0|2017-03-07|short|2016-12-29|short|6777": {
+      "date": "2017-03-07",
+      "alerted": false
+    },
+    "SR0|2017-05-25|short|2017-05-18|short|6752": {
+      "date": "2017-05-25",
+      "alerted": false
+    },
+    "SR0|2017-11-27|long|2017-11-17|long|6396": {
+      "date": "2017-11-27",
+      "alerted": false
+    },
+    "SR0|2019-02-18|long|2019-02-14|long|5075": {
+      "date": "2019-02-18",
+      "alerted": false
+    },
+    "SR0|2019-09-04|long|2019-08-19|long|5427": {
+      "date": "2019-09-04",
+      "alerted": false
+    },
+    "SR0|2019-09-26|long|2019-08-19|long|5427": {
+      "date": "2019-09-26",
+      "alerted": false
+    },
+    "SR0|2019-10-28|long|2019-08-19|long|5427": {
+      "date": "2019-10-28",
+      "alerted": false
+    },
+    "SR0|2020-02-07|long|2020-01-20|long|5793": {
+      "date": "2020-02-07",
+      "alerted": false
+    },
+    "SR0|2020-07-03|long|2020-06-12|long|5011": {
+      "date": "2020-07-03",
+      "alerted": false
+    },
+    "SR0|2020-08-11|short|2020-08-11|short|5143": {
+      "date": "2020-08-11",
+      "alerted": false
+    },
+    "SR0|2020-08-17|short|2020-08-11|short|5143": {
+      "date": "2020-08-17",
+      "alerted": false
+    },
+    "SR0|2021-04-13|short|2021-04-06|short|5371": {
+      "date": "2021-04-13",
+      "alerted": false
+    },
+    "SR0|2021-06-03|long|2021-05-18|long|5609": {
+      "date": "2021-06-03",
+      "alerted": false
+    },
+    "SR0|2021-07-19|long|2021-07-08|long|5565": {
+      "date": "2021-07-19",
+      "alerted": false
+    },
+    "SR0|2021-08-06|long|2021-07-08|long|5565": {
+      "date": "2021-08-06",
+      "alerted": false
+    },
+    "SR0|2022-03-01|short|2022-02-09|short|5734": {
+      "date": "2022-03-01",
+      "alerted": false
+    },
+    "SR0|2022-03-28|long|2022-03-16|long|5780": {
+      "date": "2022-03-28",
+      "alerted": false
+    },
+    "SR0|2022-04-06|long|2022-03-16|long|5780": {
+      "date": "2022-04-06",
+      "alerted": false
+    },
+    "SR0|2022-07-21|short|2022-07-11|short|5794": {
+      "date": "2022-07-21",
+      "alerted": false
+    },
+    "SR0|2023-06-26|short|2023-06-07|short|6824": {
+      "date": "2023-06-26",
+      "alerted": false
+    },
+    "SR0|2023-10-31|short|2023-10-30|short|6846": {
+      "date": "2023-10-31",
+      "alerted": false
+    },
+    "SR0|2024-01-10|short|2023-12-22|short|6215": {
+      "date": "2024-01-10",
+      "alerted": false
+    },
+    "SR0|2024-05-15|short|2024-05-06|short|6205": {
+      "date": "2024-05-15",
+      "alerted": false
+    },
+    "SR0|2024-10-24|long|2024-10-11|long|5853": {
+      "date": "2024-10-24",
+      "alerted": false
+    },
+    "SR0|2024-11-01|long|2024-10-11|long|5853": {
+      "date": "2024-11-01",
+      "alerted": false
+    },
+    "SR0|2024-11-18|short|2024-11-08|short|5848": {
+      "date": "2024-11-18",
+      "alerted": false
+    },
+    "SR0|2025-01-06|short|2024-12-25|short|5953": {
+      "date": "2025-01-06",
+      "alerted": false
+    },
+    "SR0|2025-03-12|long|2025-02-28|long|5941": {
+      "date": "2025-03-12",
+      "alerted": false
+    },
+    "SR0|2025-08-26|short|2025-08-13|short|5612": {
+      "date": "2025-08-26",
+      "alerted": false
+    },
+    "SR0|2026-02-03|short|2026-01-30|short|5266": {
+      "date": "2026-02-03",
+      "alerted": false
+    },
+    "SR0|2026-06-04|short|2026-05-29|short|5408": {
+      "date": "2026-06-04",
+      "alerted": false
+    },
+    "OI0|2008-08-28|short|2008-08-20|short|9736": {
+      "date": "2008-08-28",
+      "alerted": false
+    },
+    "OI0|2008-09-02|short|2008-08-20|short|9736": {
+      "date": "2008-09-02",
+      "alerted": false
+    },
+    "OI0|2009-02-03|long|2009-01-21|long|6528": {
+      "date": "2009-02-03",
+      "alerted": false
+    },
+    "OI0|2009-04-01|long|2009-03-26|long|6820": {
+      "date": "2009-04-01",
+      "alerted": false
+    },
+    "OI0|2010-02-12|short|2010-02-08|short|7978": {
+      "date": "2010-02-12",
+      "alerted": false
+    },
+    "OI0|2010-03-22|long|2010-03-15|long|8048": {
+      "date": "2010-03-22",
+      "alerted": false
+    },
+    "OI0|2010-07-09|long|2010-06-25|long|8242": {
+      "date": "2010-07-09",
+      "alerted": false
+    },
+    "OI0|2011-03-08|short|2011-03-02|short|10444": {
+      "date": "2011-03-08",
+      "alerted": false
+    },
+    "OI0|2011-07-27|long|2011-07-19|long|10558": {
+      "date": "2011-07-27",
+      "alerted": false
+    },
+    "OI0|2011-08-01|long|2011-07-19|long|10558": {
+      "date": "2011-08-01",
+      "alerted": false
+    },
+    "OI0|2011-10-31|short|2011-10-14|short|9974": {
+      "date": "2011-10-31",
+      "alerted": false
+    },
+    "OI0|2011-11-21|short|2011-10-14|short|9974": {
+      "date": "2011-11-21",
+      "alerted": false
+    },
+    "OI0|2012-02-02|long|2012-01-16|long|9470": {
+      "date": "2012-02-02",
+      "alerted": false
+    },
+    "OI0|2012-12-25|long|2012-12-19|long|9836": {
+      "date": "2012-12-25",
+      "alerted": false
+    },
+    "OI0|2013-01-04|long|2012-12-19|long|9836": {
+      "date": "2013-01-04",
+      "alerted": false
+    },
+    "OI0|2013-01-09|long|2012-12-19|long|9836": {
+      "date": "2013-01-09",
+      "alerted": false
+    },
+    "OI0|2013-08-23|short|2013-08-14|short|7760": {
+      "date": "2013-08-23",
+      "alerted": false
+    },
+    "OI0|2013-08-30|short|2013-08-14|short|7760": {
+      "date": "2013-08-30",
+      "alerted": false
+    },
+    "OI0|2013-09-04|short|2013-08-14|short|7760": {
+      "date": "2013-09-04",
+      "alerted": false
+    },
+    "OI0|2014-01-28|short|2014-01-20|short|6946": {
+      "date": "2014-01-28",
+      "alerted": false
+    },
+    "OI0|2014-11-24|long|2014-11-19|long|6056": {
+      "date": "2014-11-24",
+      "alerted": false
+    },
+    "OI0|2014-12-29|long|2014-11-19|long|6056": {
+      "date": "2014-12-29",
+      "alerted": false
+    },
+    "OI0|2015-06-02|long|2015-05-19|long|6062": {
+      "date": "2015-06-02",
+      "alerted": false
+    },
+    "OI0|2015-06-16|long|2015-05-19|long|6062": {
+      "date": "2015-06-16",
+      "alerted": false
+    },
+    "OI0|2015-06-24|long|2015-05-19|long|6062": {
+      "date": "2015-06-24",
+      "alerted": false
+    },
+    "OI0|2015-08-14|short|2015-08-13|short|5888": {
+      "date": "2015-08-14",
+      "alerted": false
+    },
+    "OI0|2015-08-19|short|2015-08-13|short|5888": {
+      "date": "2015-08-19",
+      "alerted": false
+    },
+    "OI0|2016-01-07|short|2015-12-24|short|5682": {
+      "date": "2016-01-07",
+      "alerted": false
+    },
+    "OI0|2016-08-11|short|2016-08-04|short|6300": {
+      "date": "2016-08-11",
+      "alerted": false
+    },
+    "OI0|2016-10-11|long|2016-09-29|long|6304": {
+      "date": "2016-10-11",
+      "alerted": false
+    },
+    "OI0|2017-01-26|short|2017-01-12|short|7160": {
+      "date": "2017-01-26",
+      "alerted": false
+    },
+    "OI0|2017-02-14|short|2017-01-12|short|7160": {
+      "date": "2017-02-14",
+      "alerted": false
+    },
+    "OI0|2017-06-27|long|2017-06-22|long|6286": {
+      "date": "2017-06-27",
+      "alerted": false
+    },
+    "OI0|2017-11-29|short|2017-11-27|short|6910": {
+      "date": "2017-11-29",
+      "alerted": false
+    },
+    "OI0|2018-07-12|short|2018-07-02|short|6536": {
+      "date": "2018-07-12",
+      "alerted": false
+    },
+    "OI0|2018-09-05|long|2018-08-27|long|6715": {
+      "date": "2018-09-05",
+      "alerted": false
+    },
+    "OI0|2019-01-11|short|2019-01-03|short|6506": {
+      "date": "2019-01-11",
+      "alerted": false
+    },
+    "OI0|2019-10-14|short|2019-10-10|short|7280": {
+      "date": "2019-10-14",
+      "alerted": false
+    },
+    "OI0|2020-02-20|short|2020-02-06|short|7380": {
+      "date": "2020-02-20",
+      "alerted": false
+    },
+    "OI0|2020-10-09|long|2020-09-24|long|8980": {
+      "date": "2020-10-09",
+      "alerted": false
+    },
+    "OI0|2020-10-21|long|2020-09-24|long|8980": {
+      "date": "2020-10-21",
+      "alerted": false
+    },
+    "OI0|2021-04-19|short|2021-04-07|short|10645": {
+      "date": "2021-04-19",
+      "alerted": false
+    },
+    "OI0|2021-06-15|short|2021-05-28|short|10440": {
+      "date": "2021-06-15",
+      "alerted": false
+    },
+    "OI0|2022-01-04|short|2021-12-24|short|12219": {
+      "date": "2022-01-04",
+      "alerted": false
+    },
+    "OI0|2022-03-25|long|2022-03-17|long|12328": {
+      "date": "2022-03-25",
+      "alerted": false
+    },
+    "OI0|2022-05-13|long|2022-05-09|long|13488": {
+      "date": "2022-05-13",
+      "alerted": false
+    },
+    "OI0|2022-05-24|long|2022-05-09|long|13488": {
+      "date": "2022-05-24",
+      "alerted": false
+    },
+    "OI0|2022-11-02|long|2022-10-31|long|10850": {
+      "date": "2022-11-02",
+      "alerted": false
+    },
+    "OI0|2023-10-20|short|2023-09-28|short|8774": {
+      "date": "2023-10-20",
+      "alerted": false
+    },
+    "OI0|2024-02-26|short|2024-02-20|short|7740": {
+      "date": "2024-02-26",
+      "alerted": false
+    },
+    "OI0|2024-04-09|long|2024-03-25|long|8331": {
+      "date": "2024-04-09",
+      "alerted": false
+    },
+    "OI0|2024-04-23|long|2024-03-25|long|8331": {
+      "date": "2024-04-23",
+      "alerted": false
+    },
+    "OI0|2024-07-19|long|2024-07-10|long|8554": {
+      "date": "2024-07-19",
+      "alerted": false
+    },
+    "OI0|2024-10-23|long|2024-10-15|long|9368": {
+      "date": "2024-10-23",
+      "alerted": false
+    },
+    "OI0|2024-11-01|long|2024-10-15|long|9368": {
+      "date": "2024-11-01",
+      "alerted": false
+    },
+    "OI0|2024-12-18|short|2024-12-10|short|8919": {
+      "date": "2024-12-18",
+      "alerted": false
+    },
+    "OI0|2025-07-02|long|2025-06-26|long|9442": {
+      "date": "2025-07-02",
+      "alerted": false
+    },
+    "OI0|2025-09-08|long|2025-09-01|long|9715": {
+      "date": "2025-09-08",
+      "alerted": false
+    },
+    "OI0|2026-01-08|short|2025-12-24|short|8904": {
+      "date": "2026-01-08",
+      "alerted": false
+    },
+    "OI0|2026-04-24|long|2026-04-08|long|9642": {
+      "date": "2026-04-24",
+      "alerted": false
+    },
+    "OI0|2026-05-20|long|2026-04-08|long|9642": {
+      "date": "2026-05-20",
+      "alerted": false
+    },
+    "OI0|2026-05-28|long|2026-04-08|long|9642": {
+      "date": "2026-05-28",
+      "alerted": false
+    },
+    "OI0|2026-08-04|long|2026-07-29|long|9866": {
+      "date": "2026-08-04",
+      "alerted": false
+    },
+    "PP0|2014-05-06|long|2014-04-25|long|10838": {
+      "date": "2014-05-06",
+      "alerted": false
+    },
+    "PP0|2014-05-22|long|2014-04-25|long|10838": {
+      "date": "2014-05-22",
+      "alerted": false
+    },
+    "PP0|2014-08-29|short|2014-08-18|short|10540": {
+      "date": "2014-08-29",
+      "alerted": false
+    },
+    "PP0|2014-09-09|short|2014-08-18|short|10540": {
+      "date": "2014-09-09",
+      "alerted": false
+    },
+    "PP0|2014-11-07|long|2014-11-05|long|9804": {
+      "date": "2014-11-07",
+      "alerted": false
+    },
+    "PP0|2015-01-05|short|2014-12-18|short|7861": {
+      "date": "2015-01-05",
+      "alerted": false
+    },
+    "PP0|2015-03-13|long|2015-03-06|long|8173": {
+      "date": "2015-03-13",
+      "alerted": false
+    },
+    "PP0|2015-03-17|long|2015-03-06|long|8173": {
+      "date": "2015-03-17",
+      "alerted": false
+    },
+    "PP0|2015-03-25|long|2015-03-06|long|8173": {
+      "date": "2015-03-25",
+      "alerted": false
+    },
+    "PP0|2015-08-18|short|2015-08-10|short|7620": {
+      "date": "2015-08-18",
+      "alerted": false
+    },
+    "PP0|2017-11-20|long|2017-11-15|long|9027": {
+      "date": "2017-11-20",
+      "alerted": false
+    },
+    "PP0|2017-12-05|long|2017-11-15|long|9027": {
+      "date": "2017-12-05",
+      "alerted": false
+    },
+    "PP0|2017-12-11|long|2017-11-15|long|9027": {
+      "date": "2017-12-11",
+      "alerted": false
+    },
+    "PP0|2017-12-19|long|2017-11-15|long|9027": {
+      "date": "2017-12-19",
+      "alerted": false
+    },
+    "PP0|2018-04-27|long|2018-04-16|long|8949": {
+      "date": "2018-04-27",
+      "alerted": false
+    },
+    "PP0|2018-07-06|short|2018-06-29|short|9147": {
+      "date": "2018-07-06",
+      "alerted": false
+    },
+    "PP0|2018-12-06|short|2018-12-03|short|8807": {
+      "date": "2018-12-06",
+      "alerted": false
+    },
+    "PP0|2019-01-30|long|2019-01-29|long|8696": {
+      "date": "2019-01-30",
+      "alerted": false
+    },
+    "PP0|2019-02-20|long|2019-01-29|long|8696": {
+      "date": "2019-02-20",
+      "alerted": false
+    },
+    "PP0|2019-10-14|long|2019-09-20|long|8192": {
+      "date": "2019-10-14",
+      "alerted": false
+    },
+    "PP0|2020-01-16|short|2019-12-27|short|7591": {
+      "date": "2020-01-16",
+      "alerted": false
+    },
+    "PP0|2020-04-23|long|2020-04-21|long|6603": {
+      "date": "2020-04-23",
+      "alerted": false
+    },
+    "PP0|2020-05-15|long|2020-04-21|long|6603": {
+      "date": "2020-05-15",
+      "alerted": false
+    },
+    "PP0|2020-08-18|long|2020-08-11|long|7633": {
+      "date": "2020-08-18",
+      "alerted": false
+    },
+    "PP0|2020-08-25|long|2020-08-11|long|7633": {
+      "date": "2020-08-25",
+      "alerted": false
+    },
+    "PP0|2021-07-19|long|2021-07-15|long|8362": {
+      "date": "2021-07-19",
+      "alerted": false
+    },
+    "PP0|2022-02-25|long|2022-02-10|long|8565": {
+      "date": "2022-02-25",
+      "alerted": false
+    },
+    "PP0|2022-08-05|short|2022-07-28|short|7990": {
+      "date": "2022-08-05",
+      "alerted": false
+    },
+    "PP0|2022-11-08|short|2022-11-04|short|7648": {
+      "date": "2022-11-08",
+      "alerted": false
+    },
+    "PP0|2022-11-10|short|2022-11-04|short|7648": {
+      "date": "2022-11-10",
+      "alerted": false
+    },
+    "PP0|2022-11-29|long|2022-11-18|long|7657": {
+      "date": "2022-11-29",
+      "alerted": false
+    },
+    "PP0|2023-02-27|short|2023-02-21|short|7920": {
+      "date": "2023-02-27",
+      "alerted": false
+    },
+    "PP0|2023-12-14|short|2023-12-08|short|7433": {
+      "date": "2023-12-14",
+      "alerted": false
+    },
+    "PP0|2024-03-11|long|2024-03-06|long|7417": {
+      "date": "2024-03-11",
+      "alerted": false
+    },
+    "PP0|2024-03-14|long|2024-03-06|long|7417": {
+      "date": "2024-03-14",
+      "alerted": false
+    },
+    "PP0|2024-06-20|long|2024-06-04|long|7712": {
+      "date": "2024-06-20",
+      "alerted": false
+    },
+    "PP0|2024-06-25|long|2024-06-04|long|7712": {
+      "date": "2024-06-25",
+      "alerted": false
+    },
+    "PP0|2024-09-03|short|2024-08-26|short|7594": {
+      "date": "2024-09-03",
+      "alerted": false
+    },
+    "PP0|2025-01-06|short|2024-12-31|short|7450": {
+      "date": "2025-01-06",
+      "alerted": false
+    },
+    "PP0|2025-08-12|long|2025-08-01|long|7106": {
+      "date": "2025-08-12",
+      "alerted": false
+    },
+    "PP0|2026-06-04|long|2026-05-25|long|8685": {
+      "date": "2026-06-04",
+      "alerted": false
+    },
+    "V0|2009-06-26|long|2009-06-12|long|6930": {
+      "date": "2009-06-26",
+      "alerted": false
+    },
+    "V0|2009-06-30|long|2009-06-12|long|6930": {
+      "date": "2009-06-30",
+      "alerted": false
+    },
+    "V0|2009-12-01|long|2009-11-27|long|7035": {
+      "date": "2009-12-01",
+      "alerted": false
+    },
+    "V0|2010-03-04|short|2010-02-11|short|7525": {
+      "date": "2010-03-04",
+      "alerted": false
+    },
+    "V0|2010-06-01|short|2010-05-21|short|7395": {
+      "date": "2010-06-01",
+      "alerted": false
+    },
+    "V0|2010-08-25|long|2010-08-23|long|7410": {
+      "date": "2010-08-25",
+      "alerted": false
+    },
+    "V0|2011-02-01|long|2011-01-07|long|8375": {
+      "date": "2011-02-01",
+      "alerted": false
+    },
+    "V0|2011-06-10|short|2011-05-26|short|7985": {
+      "date": "2011-06-10",
+      "alerted": false
+    },
+    "V0|2011-09-01|short|2011-08-12|short|7940": {
+      "date": "2011-09-01",
+      "alerted": false
+    },
+    "V0|2012-01-17|long|2012-01-13|long|6930": {
+      "date": "2012-01-17",
+      "alerted": false
+    },
+    "V0|2012-08-09|long|2012-07-24|long|6400": {
+      "date": "2012-08-09",
+      "alerted": false
+    },
+    "V0|2012-08-17|long|2012-07-24|long|6400": {
+      "date": "2012-08-17",
+      "alerted": false
+    },
+    "V0|2012-09-10|long|2012-07-24|long|6400": {
+      "date": "2012-09-10",
+      "alerted": false
+    },
+    "V0|2013-04-16|short|2013-03-20|short|6480": {
+      "date": "2013-04-16",
+      "alerted": false
+    },
+    "V0|2013-05-21|long|2013-05-15|long|6615": {
+      "date": "2013-05-21",
+      "alerted": false
+    },
+    "V0|2013-08-02|long|2013-07-25|long|6805": {
+      "date": "2013-08-02",
+      "alerted": false
+    },
+    "V0|2014-01-17|short|2014-01-15|short|6415": {
+      "date": "2014-01-17",
+      "alerted": false
+    },
+    "V0|2014-05-26|short|2014-05-14|short|6110": {
+      "date": "2014-05-26",
+      "alerted": false
+    },
+    "V0|2014-06-04|short|2014-05-14|short|6110": {
+      "date": "2014-06-04",
+      "alerted": false
+    },
+    "V0|2014-08-04|short|2014-07-29|short|6060": {
+      "date": "2014-08-04",
+      "alerted": false
+    },
+    "V0|2015-03-17|long|2015-03-11|long|5250": {
+      "date": "2015-03-17",
+      "alerted": false
+    },
+    "V0|2016-05-26|short|2016-05-18|short|5110": {
+      "date": "2016-05-26",
+      "alerted": false
+    },
+    "V0|2017-03-08|short|2017-03-06|short|6610": {
+      "date": "2017-03-08",
+      "alerted": false
+    },
+    "V0|2017-03-21|short|2017-03-06|short|6610": {
+      "date": "2017-03-21",
+      "alerted": false
+    },
+    "V0|2017-06-12|long|2017-05-26|long|5945": {
+      "date": "2017-06-12",
+      "alerted": false
+    },
+    "V0|2017-10-31|short|2017-10-23|short|6530": {
+      "date": "2017-10-31",
+      "alerted": false
+    },
+    "V0|2017-11-09|short|2017-10-23|short|6530": {
+      "date": "2017-11-09",
+      "alerted": false
+    },
+    "V0|2017-12-26|long|2017-12-15|long|6585": {
+      "date": "2017-12-26",
+      "alerted": false
+    },
+    "V0|2017-12-29|long|2017-12-15|long|6585": {
+      "date": "2017-12-29",
+      "alerted": false
+    },
+    "V0|2018-03-06|short|2018-02-26|short|6640": {
+      "date": "2018-03-06",
+      "alerted": false
+    },
+    "V0|2018-07-03|long|2018-06-15|long|6880": {
+      "date": "2018-07-03",
+      "alerted": false
+    },
+    "V0|2018-07-11|long|2018-06-15|long|6880": {
+      "date": "2018-07-11",
+      "alerted": false
+    },
+    "V0|2019-01-03|short|2018-12-14|short|6325": {
+      "date": "2019-01-03",
+      "alerted": false
+    },
+    "V0|2019-01-09|short|2018-12-14|short|6325": {
+      "date": "2019-01-09",
+      "alerted": false
+    },
+    "V0|2020-01-14|short|2020-01-06|short|6545": {
+      "date": "2020-01-14",
+      "alerted": false
+    },
+    "V0|2020-10-27|long|2020-10-21|long|6745": {
+      "date": "2020-10-27",
+      "alerted": false
+    },
+    "V0|2021-06-17|short|2021-06-01|short|8760": {
+      "date": "2021-06-17",
+      "alerted": false
+    },
+    "V0|2021-08-09|long|2021-07-27|long|9060": {
+      "date": "2021-08-09",
+      "alerted": false
+    },
+    "V0|2021-11-30|short|2021-11-10|short|8778": {
+      "date": "2021-11-30",
+      "alerted": false
+    },
+    "V0|2022-01-13|long|2022-01-10|long|8337": {
+      "date": "2022-01-13",
+      "alerted": false
+    },
+    "V0|2022-08-12|short|2022-07-20|short|6505": {
+      "date": "2022-08-12",
+      "alerted": false
+    },
+    "V0|2022-09-15|short|2022-07-20|short|6505": {
+      "date": "2022-09-15",
+      "alerted": false
+    },
+    "V0|2023-01-06|long|2022-12-23|long|6208": {
+      "date": "2023-01-06",
+      "alerted": false
+    },
+    "V0|2023-04-06|short|2023-03-29|short|6258": {
+      "date": "2023-04-06",
+      "alerted": false
+    },
+    "V0|2023-04-10|short|2023-03-29|short|6258": {
+      "date": "2023-04-10",
+      "alerted": false
+    },
+    "V0|2023-08-18|long|2023-08-03|long|6201": {
+      "date": "2023-08-18",
+      "alerted": false
+    },
+    "V0|2023-11-16|long|2023-11-13|long|6054": {
+      "date": "2023-11-16",
+      "alerted": false
+    },
+    "V0|2024-01-31|short|2024-01-16|short|5874": {
+      "date": "2024-01-31",
+      "alerted": false
+    },
+    "V0|2024-03-12|long|2024-03-07|long|5893": {
+      "date": "2024-03-12",
+      "alerted": false
+    },
+    "V0|2024-03-15|long|2024-03-07|long|5893": {
+      "date": "2024-03-15",
+      "alerted": false
+    },
+    "V0|2024-10-28|long|2024-10-17|long|5507": {
+      "date": "2024-10-28",
+      "alerted": false
+    },
+    "V0|2025-01-07|short|2024-12-24|short|5361": {
+      "date": "2025-01-07",
+      "alerted": false
+    },
+    "V0|2025-02-12|long|2025-01-24|long|5150": {
+      "date": "2025-02-12",
+      "alerted": false
+    },
+    "V0|2025-02-14|long|2025-01-24|long|5150": {
+      "date": "2025-02-14",
+      "alerted": false
+    },
+    "V0|2025-04-02|short|2025-03-24|short|5057": {
+      "date": "2025-04-02",
+      "alerted": false
+    },
+    "V0|2025-09-24|short|2025-09-16|short|4933": {
+      "date": "2025-09-24",
+      "alerted": false
+    },
+    "V0|2025-09-26|short|2025-09-16|short|4933": {
+      "date": "2025-09-26",
+      "alerted": false
+    },
+    "V0|2026-01-23|long|2026-01-12|long|4825": {
+      "date": "2026-01-23",
+      "alerted": false
+    },
+    "V0|2026-05-08|short|2026-04-20|short|5158": {
+      "date": "2026-05-08",
+      "alerted": false
+    },
+    "V0|2026-08-14|short|2026-08-10|short|4548": {
+      "date": "2026-08-14",
+      "alerted": false
+    },
+    "C0|2005-07-18|short|2005-07-11|short|1298": {
+      "date": "2005-07-18",
+      "alerted": false
+    },
+    "C0|2005-11-01|short|2005-10-28|short|1234": {
+      "date": "2005-11-01",
+      "alerted": false
+    },
+    "C0|2005-11-30|long|2005-11-22|long|1256": {
+      "date": "2005-11-30",
+      "alerted": false
+    },
+    "C0|2006-03-28|short|2006-03-27|short|1438": {
+      "date": "2006-03-28",
+      "alerted": false
+    },
+    "C0|2006-04-11|short|2006-03-27|short|1438": {
+      "date": "2006-04-11",
+      "alerted": false
+    },
+    "C0|2007-09-28|long|2007-09-19|long|1660": {
+      "date": "2007-09-28",
+      "alerted": false
+    },
+    "C0|2007-10-16|long|2007-09-19|long|1660": {
+      "date": "2007-10-16",
+      "alerted": false
+    },
+    "C0|2007-10-19|long|2007-09-19|long|1660": {
+      "date": "2007-10-19",
+      "alerted": false
+    },
+    "C0|2010-04-19|long|2010-04-08|long|1928": {
+      "date": "2010-04-19",
+      "alerted": false
+    },
+    "C0|2011-04-28|short|2011-04-11|short|2418": {
+      "date": "2011-04-28",
+      "alerted": false
+    },
+    "C0|2013-02-26|short|2013-01-29|short|2424": {
+      "date": "2013-02-26",
+      "alerted": false
+    },
+    "C0|2014-03-03|long|2014-01-17|long|2356": {
+      "date": "2014-03-03",
+      "alerted": false
+    },
+    "C0|2014-04-21|short|2014-04-08|short|2352": {
+      "date": "2014-04-21",
+      "alerted": false
+    },
+    "C0|2014-07-09|long|2014-06-09|long|2374": {
+      "date": "2014-07-09",
+      "alerted": false
+    },
+    "C0|2014-12-05|long|2014-11-21|long|2409": {
+      "date": "2014-12-05",
+      "alerted": false
+    },
+    "C0|2015-03-23|long|2015-03-16|long|2549": {
+      "date": "2015-03-23",
+      "alerted": false
+    },
+    "C0|2015-05-25|short|2015-05-04|short|2501": {
+      "date": "2015-05-25",
+      "alerted": false
+    },
+    "C0|2015-12-10|long|2015-11-20|long|1836": {
+      "date": "2015-12-10",
+      "alerted": false
+    },
+    "C0|2017-01-09|short|2016-12-28|short|1533": {
+      "date": "2017-01-09",
+      "alerted": false
+    },
+    "C0|2017-02-21|long|2017-02-15|long|1572": {
+      "date": "2017-02-21",
+      "alerted": false
+    },
+    "C0|2017-05-09|short|2017-04-21|short|1629": {
+      "date": "2017-05-09",
+      "alerted": false
+    },
+    "C0|2017-05-15|short|2017-04-21|short|1629": {
+      "date": "2017-05-15",
+      "alerted": false
+    },
+    "C0|2017-05-22|short|2017-04-21|short|1629": {
+      "date": "2017-05-22",
+      "alerted": false
+    },
+    "C0|2017-09-08|short|2017-09-06|short|1717": {
+      "date": "2017-09-08",
+      "alerted": false
+    },
+    "C0|2019-01-07|short|2018-12-27|short|1860": {
+      "date": "2019-01-07",
+      "alerted": false
+    },
+    "C0|2019-03-27|long|2019-03-22|long|1821": {
+      "date": "2019-03-27",
+      "alerted": false
+    },
+    "C0|2019-08-05|short|2019-07-18|short|1929": {
+      "date": "2019-08-05",
+      "alerted": false
+    },
+    "C0|2019-08-12|short|2019-07-18|short|1929": {
+      "date": "2019-08-12",
+      "alerted": false
+    },
+    "C0|2019-11-08|long|2019-11-07|long|1853": {
+      "date": "2019-11-08",
+      "alerted": false
+    },
+    "C0|2019-12-23|long|2019-12-17|long|1888": {
+      "date": "2019-12-23",
+      "alerted": false
+    },
+    "C0|2021-02-08|short|2021-02-04|short|2785": {
+      "date": "2021-02-08",
+      "alerted": false
+    },
+    "C0|2021-03-03|short|2021-02-04|short|2785": {
+      "date": "2021-03-03",
+      "alerted": false
+    },
+    "C0|2021-06-15|short|2021-06-03|short|2724": {
+      "date": "2021-06-15",
+      "alerted": false
+    },
+    "C0|2021-12-02|long|2021-11-24|long|2637": {
+      "date": "2021-12-02",
+      "alerted": false
+    },
+    "C0|2021-12-07|long|2021-11-24|long|2637": {
+      "date": "2021-12-07",
+      "alerted": false
+    },
+    "C0|2022-01-06|short|2022-01-05|short|2703": {
+      "date": "2022-01-06",
+      "alerted": false
+    },
+    "C0|2022-06-22|short|2022-06-20|short|2913": {
+      "date": "2022-06-22",
+      "alerted": false
+    },
+    "C0|2022-08-23|long|2022-08-18|long|2699": {
+      "date": "2022-08-23",
+      "alerted": false
+    },
+    "C0|2023-06-15|long|2023-06-12|long|2631": {
+      "date": "2023-06-15",
+      "alerted": false
+    },
+    "C0|2023-09-05|short|2023-08-23|short|2669": {
+      "date": "2023-09-05",
+      "alerted": false
+    },
+    "C0|2024-04-11|short|2024-03-29|short|2415": {
+      "date": "2024-04-11",
+      "alerted": false
+    },
+    "C0|2025-06-06|long|2025-05-19|long|2333": {
+      "date": "2025-06-06",
+      "alerted": false
+    },
+    "C0|2026-02-10|long|2026-01-29|long|2271": {
+      "date": "2026-02-10",
+      "alerted": false
+    },
+    "MA0|2015-03-25|long|2015-03-18|long|2346": {
+      "date": "2015-03-25",
+      "alerted": false
+    },
+    "MA0|2015-04-13|long|2015-03-18|long|2346": {
+      "date": "2015-04-13",
+      "alerted": false
+    },
+    "MA0|2015-06-11|short|2015-05-26|short|2485": {
+      "date": "2015-06-11",
+      "alerted": false
+    },
+    "MA0|2016-01-18|long|2016-01-13|long|1704": {
+      "date": "2016-01-18",
+      "alerted": false
+    },
+    "MA0|2016-06-13|short|2016-05-26|short|1849": {
+      "date": "2016-06-13",
+      "alerted": false
+    },
+    "MA0|2016-06-24|short|2016-05-26|short|1849": {
+      "date": "2016-06-24",
+      "alerted": false
+    },
+    "MA0|2016-07-14|long|2016-07-07|long|1913": {
+      "date": "2016-07-14",
+      "alerted": false
+    },
+    "MA0|2017-06-30|long|2017-06-26|long|2297": {
+      "date": "2017-06-30",
+      "alerted": false
+    },
+    "MA0|2017-10-30|short|2017-10-17|short|2679": {
+      "date": "2017-10-30",
+      "alerted": false
+    },
+    "MA0|2018-01-16|short|2018-01-04|short|2940": {
+      "date": "2018-01-16",
+      "alerted": false
+    },
+    "MA0|2018-04-20|short|2018-04-18|short|2682": {
+      "date": "2018-04-20",
+      "alerted": false
+    },
+    "MA0|2018-04-26|short|2018-04-18|short|2682": {
+      "date": "2018-04-26",
+      "alerted": false
+    },
+    "MA0|2018-06-07|long|2018-05-21|long|2818": {
+      "date": "2018-06-07",
+      "alerted": false
+    },
+    "MA0|2018-12-21|short|2018-12-07|short|2513": {
+      "date": "2018-12-21",
+      "alerted": false
+    },
+    "MA0|2019-02-22|long|2019-02-15|long|2496": {
+      "date": "2019-02-22",
+      "alerted": false
+    },
+    "MA0|2020-06-19|long|2020-06-11|long|1733": {
+      "date": "2020-06-19",
+      "alerted": false
+    },
+    "MA0|2020-10-28|long|2020-10-26|long|2046": {
+      "date": "2020-10-28",
+      "alerted": false
+    },
+    "MA0|2020-11-04|long|2020-10-26|long|2046": {
+      "date": "2020-11-04",
+      "alerted": false
+    },
+    "MA0|2021-02-10|short|2021-02-05|short|2329": {
+      "date": "2021-02-10",
+      "alerted": false
+    },
+    "MA0|2021-05-26|long|2021-05-20|long|2619": {
+      "date": "2021-05-26",
+      "alerted": false
+    },
+    "MA0|2021-07-29|long|2021-07-26|long|2686": {
+      "date": "2021-07-29",
+      "alerted": false
+    },
+    "MA0|2021-11-30|short|2021-11-23|short|2677": {
+      "date": "2021-11-30",
+      "alerted": false
+    },
+    "MA0|2021-12-02|short|2021-11-23|short|2677": {
+      "date": "2021-12-02",
+      "alerted": false
+    },
+    "MA0|2021-12-15|short|2021-11-23|short|2677": {
+      "date": "2021-12-15",
+      "alerted": false
+    },
+    "MA0|2021-12-20|short|2021-11-23|short|2677": {
+      "date": "2021-12-20",
+      "alerted": false
+    },
+    "MA0|2022-04-22|short|2022-04-15|short|2905": {
+      "date": "2022-04-22",
+      "alerted": false
+    },
+    "MA0|2022-08-23|long|2022-08-05|long|2483": {
+      "date": "2022-08-23",
+      "alerted": false
+    },
+    "MA0|2022-11-17|short|2022-11-03|short|2582": {
+      "date": "2022-11-17",
+      "alerted": false
+    },
+    "MA0|2022-11-21|short|2022-11-03|short|2582": {
+      "date": "2022-11-21",
+      "alerted": false
+    },
+    "MA0|2022-12-05|short|2022-11-03|short|2582": {
+      "date": "2022-12-05",
+      "alerted": false
+    },
+    "MA0|2023-03-03|short|2023-02-22|short|2605": {
+      "date": "2023-03-03",
+      "alerted": false
+    },
+    "MA0|2023-12-06|short|2023-11-28|short|2428": {
+      "date": "2023-12-06",
+      "alerted": false
+    },
+    "MA0|2023-12-11|short|2023-11-28|short|2428": {
+      "date": "2023-12-11",
+      "alerted": false
+    },
+    "MA0|2024-04-29|long|2024-04-24|long|2505": {
+      "date": "2024-04-29",
+      "alerted": false
+    },
+    "MA0|2024-12-10|long|2024-11-28|long|2563": {
+      "date": "2024-12-10",
+      "alerted": false
+    },
+    "MA0|2025-02-13|short|2025-02-10|short|2607": {
+      "date": "2025-02-13",
+      "alerted": false
+    },
+    "MA0|2025-09-12|short|2025-09-05|short|2397": {
+      "date": "2025-09-12",
+      "alerted": false
+    },
+    "MA0|2026-01-23|long|2026-01-20|long|2211": {
+      "date": "2026-01-23",
+      "alerted": false
+    },
+    "EG0|2019-01-18|short|2019-01-07|short|5181": {
+      "date": "2019-01-18",
+      "alerted": false
+    },
+    "EG0|2019-01-29|short|2019-01-07|short|5181": {
+      "date": "2019-01-29",
+      "alerted": false
+    },
+    "EG0|2019-02-13|short|2019-01-07|short|5181": {
+      "date": "2019-02-13",
+      "alerted": false
+    },
+    "EG0|2019-05-13|short|2019-05-09|short|4737": {
+      "date": "2019-05-13",
+      "alerted": false
+    },
+    "EG0|2019-08-12|long|2019-08-02|long|4430": {
+      "date": "2019-08-12",
+      "alerted": false
+    },
+    "EG0|2020-02-26|short|2020-02-18|short|4474": {
+      "date": "2020-02-26",
+      "alerted": false
+    },
+    "EG0|2020-12-04|long|2020-12-03|long|3780": {
+      "date": "2020-12-04",
+      "alerted": false
+    },
+    "EG0|2021-04-09|short|2021-03-25|short|5145": {
+      "date": "2021-04-09",
+      "alerted": false
+    },
+    "EG0|2021-05-26|long|2021-05-20|long|4817": {
+      "date": "2021-05-26",
+      "alerted": false
+    },
+    "EG0|2022-08-03|short|2022-07-29|short|4418": {
+      "date": "2022-08-03",
+      "alerted": false
+    },
+    "EG0|2022-11-21|short|2022-11-04|short|3921": {
+      "date": "2022-11-21",
+      "alerted": false
+    },
+    "EG0|2022-11-28|short|2022-11-04|short|3921": {
+      "date": "2022-11-28",
+      "alerted": false
+    },
+    "EG0|2023-04-07|short|2023-03-29|short|4155": {
+      "date": "2023-04-07",
+      "alerted": false
+    },
+    "EG0|2023-04-14|short|2023-03-29|short|4155": {
+      "date": "2023-04-14",
+      "alerted": false
+    },
+    "EG0|2023-05-05|long|2023-04-27|long|4183": {
+      "date": "2023-05-05",
+      "alerted": false
+    },
+    "EG0|2024-03-13|short|2024-03-11|short|4606": {
+      "date": "2024-03-13",
+      "alerted": false
+    },
+    "EG0|2024-11-06|short|2024-11-05|short|4626": {
+      "date": "2024-11-06",
+      "alerted": false
+    },
+    "EG0|2024-11-12|short|2024-11-05|short|4626": {
+      "date": "2024-11-12",
+      "alerted": false
+    },
+    "EG0|2024-11-25|short|2024-11-05|short|4626": {
+      "date": "2024-11-25",
+      "alerted": false
+    },
+    "EG0|2024-11-28|short|2024-11-05|short|4626": {
+      "date": "2024-11-28",
+      "alerted": false
+    },
+    "EG0|2025-08-12|long|2025-08-01|long|4406": {
+      "date": "2025-08-12",
+      "alerted": false
+    },
+    "EG0|2025-08-19|long|2025-08-01|long|4406": {
+      "date": "2025-08-19",
+      "alerted": false
+    },
+    "EG0|2025-10-30|short|2025-10-27|short|4119": {
+      "date": "2025-10-30",
+      "alerted": false
+    },
+    "EG0|2026-02-03|short|2026-01-26|short|3997": {
+      "date": "2026-02-03",
+      "alerted": false
+    },
+    "EG0|2026-06-09|short|2026-06-02|short|4545": {
+      "date": "2026-06-09",
+      "alerted": false
+    },
+    "EG0|2026-06-15|short|2026-06-02|short|4545": {
+      "date": "2026-06-15",
+      "alerted": false
+    },
+    "EG0|2026-08-11|long|2026-08-04|long|4831": {
+      "date": "2026-08-11",
+      "alerted": false
+    },
+    "BU0|2013-12-17|short|2013-11-22|short|4340": {
+      "date": "2013-12-17",
+      "alerted": false
+    },
+    "BU0|2014-07-23|short|2014-05-19|short|4290": {
+      "date": "2014-07-23",
+      "alerted": false
+    },
+    "BU0|2014-07-31|short|2014-05-19|short|4290": {
+      "date": "2014-07-31",
+      "alerted": false
+    },
+    "BU0|2014-10-09|short|2014-10-09|short|4234": {
+      "date": "2014-10-09",
+      "alerted": false
+    },
+    "BU0|2015-05-05|long|2015-04-21|long|3292": {
+      "date": "2015-05-05",
+      "alerted": false
+    },
+    "BU0|2015-06-12|short|2015-06-02|short|3100": {
+      "date": "2015-06-12",
+      "alerted": false
+    },
+    "BU0|2016-05-17|long|2016-05-03|long|2024": {
+      "date": "2016-05-17",
+      "alerted": false
+    },
+    "BU0|2016-07-14|long|2016-07-07|long|1948": {
+      "date": "2016-07-14",
+      "alerted": false
+    },
+    "BU0|2016-07-21|long|2016-07-07|long|1948": {
+      "date": "2016-07-21",
+      "alerted": false
+    },
+    "BU0|2016-11-09|long|2016-11-07|long|1750": {
+      "date": "2016-11-09",
+      "alerted": false
+    },
+    "BU0|2017-04-11|short|2017-03-30|short|2624": {
+      "date": "2017-04-11",
+      "alerted": false
+    },
+    "BU0|2018-03-05|short|2018-02-26|short|2786": {
+      "date": "2018-03-05",
+      "alerted": false
+    },
+    "BU0|2018-07-20|long|2018-07-17|long|3234": {
+      "date": "2018-07-20",
+      "alerted": false
+    },
+    "BU0|2019-08-27|short|2019-08-12|short|3116": {
+      "date": "2019-08-27",
+      "alerted": false
+    },
+    "BU0|2019-12-10|long|2019-12-04|long|2918": {
+      "date": "2019-12-10",
+      "alerted": false
+    },
+    "BU0|2020-02-27|short|2020-02-07|short|2960": {
+      "date": "2020-02-27",
+      "alerted": false
+    },
+    "BU0|2020-06-16|long|2020-06-11|long|2580": {
+      "date": "2020-06-16",
+      "alerted": false
+    },
+    "BU0|2020-09-03|short|2020-09-01|short|2734": {
+      "date": "2020-09-03",
+      "alerted": false
+    },
+    "BU0|2020-11-20|short|2020-11-11|short|2270": {
+      "date": "2020-11-20",
+      "alerted": false
+    },
+    "BU0|2021-01-27|long|2021-01-25|long|2662": {
+      "date": "2021-01-27",
+      "alerted": false
+    },
+    "BU0|2021-06-15|long|2021-05-21|long|3126": {
+      "date": "2021-06-15",
+      "alerted": false
+    },
+    "BU0|2021-08-05|short|2021-07-28|short|3208": {
+      "date": "2021-08-05",
+      "alerted": false
+    },
+    "BU0|2021-08-09|short|2021-07-28|short|3208": {
+      "date": "2021-08-09",
+      "alerted": false
+    },
+    "BU0|2021-11-04|short|2021-10-27|short|3190": {
+      "date": "2021-11-04",
+      "alerted": false
+    },
+    "BU0|2022-02-23|long|2022-02-10|long|3606": {
+      "date": "2022-02-23",
+      "alerted": false
+    },
+    "BU0|2022-03-02|long|2022-02-10|long|3606": {
+      "date": "2022-03-02",
+      "alerted": false
+    },
+    "BU0|2023-01-12|long|2023-01-10|long|3717": {
+      "date": "2023-01-12",
+      "alerted": false
+    },
+    "BU0|2023-08-31|long|2023-08-29|long|3698": {
+      "date": "2023-08-31",
+      "alerted": false
+    },
+    "BU0|2023-11-08|short|2023-10-26|short|3642": {
+      "date": "2023-11-08",
+      "alerted": false
+    },
+    "BU0|2023-12-07|long|2023-12-05|long|3605": {
+      "date": "2023-12-07",
+      "alerted": false
+    },
+    "BU0|2024-08-06|short|2024-08-01|short|3608": {
+      "date": "2024-08-06",
+      "alerted": false
+    },
+    "BU0|2024-10-23|long|2024-10-21|long|3212": {
+      "date": "2024-10-23",
+      "alerted": false
+    },
+    "BU0|2024-11-01|long|2024-10-21|long|3212": {
+      "date": "2024-11-01",
+      "alerted": false
+    },
+    "BU0|2024-11-19|long|2024-10-21|long|3212": {
+      "date": "2024-11-19",
+      "alerted": false
+    },
+    "BU0|2025-05-08|short|2025-04-15|short|3331": {
+      "date": "2025-05-08",
+      "alerted": false
+    },
+    "BU0|2025-06-09|long|2025-05-27|long|3493": {
+      "date": "2025-06-09",
+      "alerted": false
+    },
+    "BU0|2025-06-12|long|2025-05-27|long|3493": {
+      "date": "2025-06-12",
+      "alerted": false
+    },
+    "BU0|2025-08-27|short|2025-08-25|short|3500": {
+      "date": "2025-08-27",
+      "alerted": false
+    },
+    "BU0|2025-09-04|short|2025-08-25|short|3500": {
+      "date": "2025-09-04",
+      "alerted": false
+    },
+    "BU0|2026-08-04|long|2026-07-29|long|4070": {
+      "date": "2026-08-04",
+      "alerted": false
+    },
+    "BU0|2026-08-12|long|2026-07-29|long|4070": {
+      "date": "2026-08-12",
+      "alerted": false
+    },
+    "L0|2007-10-08|long|2007-09-26|long|12465": {
+      "date": "2007-10-08",
+      "alerted": false
+    },
+    "L0|2008-01-02|short|2007-12-27|short|13665": {
+      "date": "2008-01-02",
+      "alerted": false
+    },
+    "L0|2008-01-25|long|2008-01-18|long|13860": {
+      "date": "2008-01-25",
+      "alerted": false
+    },
+    "L0|2008-02-04|long|2008-01-18|long|13860": {
+      "date": "2008-02-04",
+      "alerted": false
+    },
+    "L0|2008-07-04|short|2008-06-27|short|15530": {
+      "date": "2008-07-04",
+      "alerted": false
+    },
+    "L0|2009-04-16|long|2009-04-14|long|9060": {
+      "date": "2009-04-16",
+      "alerted": false
+    },
+    "L0|2009-05-05|long|2009-04-14|long|9060": {
+      "date": "2009-05-05",
+      "alerted": false
+    },
+    "L0|2010-01-25|short|2010-01-21|short|12205": {
+      "date": "2010-01-25",
+      "alerted": false
+    },
+    "L0|2011-03-31|short|2011-03-21|short|11565": {
+      "date": "2011-03-31",
+      "alerted": false
+    },
+    "L0|2011-04-22|long|2011-04-19|long|11755": {
+      "date": "2011-04-22",
+      "alerted": false
+    },
+    "L0|2011-12-12|short|2011-12-01|short|9685": {
+      "date": "2011-12-12",
+      "alerted": false
+    },
+    "L0|2012-02-22|long|2012-02-10|long|10265": {
+      "date": "2012-02-22",
+      "alerted": false
+    },
+    "L0|2012-08-30|long|2012-08-22|long|10020": {
+      "date": "2012-08-30",
+      "alerted": false
+    },
+    "L0|2013-03-25|short|2013-03-19|short|10655": {
+      "date": "2013-03-25",
+      "alerted": false
+    },
+    "L0|2013-09-27|long|2013-09-16|long|10780": {
+      "date": "2013-09-27",
+      "alerted": false
+    },
+    "L0|2014-01-02|short|2013-12-27|short|11185": {
+      "date": "2014-01-02",
+      "alerted": false
+    },
+    "L0|2015-01-08|short|2014-12-15|short|8250": {
+      "date": "2015-01-08",
+      "alerted": false
+    },
+    "L0|2015-03-12|long|2015-03-06|long|9285": {
+      "date": "2015-03-12",
+      "alerted": false
+    },
+    "L0|2015-03-24|long|2015-03-06|long|9285": {
+      "date": "2015-03-24",
+      "alerted": false
+    },
+    "L0|2015-06-23|short|2015-05-26|short|9645": {
+      "date": "2015-06-23",
+      "alerted": false
+    },
+    "L0|2015-08-18|short|2015-08-07|short|8490": {
+      "date": "2015-08-18",
+      "alerted": false
+    },
+    "L0|2016-01-18|long|2016-01-11|long|7810": {
+      "date": "2016-01-18",
+      "alerted": false
+    },
+    "L0|2016-05-03|short|2016-04-25|short|8645": {
+      "date": "2016-05-03",
+      "alerted": false
+    },
+    "L0|2016-09-12|short|2016-09-08|short|8880": {
+      "date": "2016-09-12",
+      "alerted": false
+    },
+    "L0|2016-12-27|long|2016-12-15|long|10250": {
+      "date": "2016-12-27",
+      "alerted": false
+    },
+    "L0|2017-01-02|long|2016-12-15|long|10250": {
+      "date": "2017-01-02",
+      "alerted": false
+    },
+    "L0|2017-07-05|short|2017-06-28|short|8920": {
+      "date": "2017-07-05",
+      "alerted": false
+    },
+    "L0|2017-11-22|long|2017-11-15|long|9715": {
+      "date": "2017-11-22",
+      "alerted": false
+    },
+    "L0|2018-03-06|short|2018-02-26|short|9630": {
+      "date": "2018-03-06",
+      "alerted": false
+    },
+    "L0|2018-06-14|short|2018-06-08|short|9340": {
+      "date": "2018-06-14",
+      "alerted": false
+    },
+    "L0|2018-12-11|short|2018-11-30|short|8315": {
+      "date": "2018-12-11",
+      "alerted": false
+    },
+    "L0|2018-12-28|long|2018-12-25|long|8485": {
+      "date": "2018-12-28",
+      "alerted": false
+    },
+    "L0|2019-01-04|long|2018-12-25|long|8485": {
+      "date": "2019-01-04",
+      "alerted": false
+    },
+    "L0|2019-02-28|short|2019-02-20|short|8700": {
+      "date": "2019-02-28",
+      "alerted": false
+    },
+    "L0|2019-12-13|long|2019-12-11|long|7225": {
+      "date": "2019-12-13",
+      "alerted": false
+    },
+    "L0|2020-02-27|short|2020-02-19|short|6960": {
+      "date": "2020-02-27",
+      "alerted": false
+    },
+    "L0|2020-03-09|short|2020-02-19|short|6960": {
+      "date": "2020-03-09",
+      "alerted": false
+    },
+    "L0|2020-10-19|short|2020-10-12|short|7370": {
+      "date": "2020-10-19",
+      "alerted": false
+    },
+    "L0|2021-05-14|short|2021-04-29|short|8225": {
+      "date": "2021-05-14",
+      "alerted": false
+    },
+    "L0|2021-11-15|short|2021-11-08|short|8980": {
+      "date": "2021-11-15",
+      "alerted": false
+    },
+    "L0|2021-11-26|short|2021-11-08|short|8980": {
+      "date": "2021-11-26",
+      "alerted": false
+    },
+    "L0|2022-03-02|long|2022-02-10|long|9023": {
+      "date": "2022-03-02",
+      "alerted": false
+    },
+    "L0|2022-08-04|short|2022-07-29|short|8083": {
+      "date": "2022-08-04",
+      "alerted": false
+    },
+    "L0|2022-09-29|long|2022-09-16|long|8075": {
+      "date": "2022-09-29",
+      "alerted": false
+    },
+    "L0|2022-11-10|short|2022-11-04|short|7820": {
+      "date": "2022-11-10",
+      "alerted": false
+    },
+    "L0|2023-04-10|short|2023-03-28|short|8095": {
+      "date": "2023-04-10",
+      "alerted": false
+    },
+    "L0|2023-06-12|short|2023-05-30|short|7737": {
+      "date": "2023-06-12",
+      "alerted": false
+    },
+    "L0|2023-11-16|long|2023-11-13|long|8118": {
+      "date": "2023-11-16",
+      "alerted": false
+    },
+    "L0|2024-02-19|long|2024-02-01|long|8215": {
+      "date": "2024-02-19",
+      "alerted": false
+    },
+    "L0|2024-02-23|long|2024-02-01|long|8215": {
+      "date": "2024-02-23",
+      "alerted": false
+    },
+    "L0|2024-02-27|long|2024-02-01|long|8215": {
+      "date": "2024-02-27",
+      "alerted": false
+    },
+    "L0|2024-03-15|long|2024-02-01|long|8215": {
+      "date": "2024-03-15",
+      "alerted": false
+    },
+    "L0|2024-09-02|short|2024-08-26|short|8117": {
+      "date": "2024-09-02",
+      "alerted": false
+    },
+    "L0|2024-10-28|long|2024-10-15|long|8206": {
+      "date": "2024-10-28",
+      "alerted": false
+    },
+    "L0|2024-11-04|long|2024-10-15|long|8206": {
+      "date": "2024-11-04",
+      "alerted": false
+    },
+    "L0|2025-05-23|short|2025-05-14|short|7205": {
+      "date": "2025-05-23",
+      "alerted": false
+    },
+    "L0|2026-06-10|short|2026-06-02|short|8043": {
+      "date": "2026-06-10",
+      "alerted": false
+    },
+    "L0|2026-06-12|short|2026-06-02|short|8043": {
+      "date": "2026-06-12",
+      "alerted": false
+    },
+    "L0|2026-08-11|long|2026-08-06|long|7573": {
+      "date": "2026-08-11",
+      "alerted": false
+    },
+    "A0|2005-04-06|long|2005-03-21|long|2886": {
+      "date": "2005-04-06",
+      "alerted": false
+    },
+    "A0|2006-01-04|long|2005-12-30|long|2703": {
+      "date": "2006-01-04",
+      "alerted": false
+    },
+    "A0|2006-07-28|long|2006-07-24|long|3609": {
+      "date": "2006-07-28",
+      "alerted": false
+    },
+    "A0|2006-08-03|long|2006-07-24|long|3609": {
+      "date": "2006-08-03",
+      "alerted": false
+    },
+    "A0|2006-08-09|long|2006-07-24|long|3609": {
+      "date": "2006-08-09",
+      "alerted": false
+    },
+    "A0|2006-08-22|long|2006-07-24|long|3609": {
+      "date": "2006-08-22",
+      "alerted": false
+    },
+    "A0|2006-09-20|short|2006-09-04|short|2559": {
+      "date": "2006-09-20",
+      "alerted": false
+    },
+    "A0|2006-10-24|short|2006-09-04|short|2559": {
+      "date": "2006-10-24",
+      "alerted": false
+    },
+    "A0|2006-11-30|long|2006-11-17|long|2932": {
+      "date": "2006-11-30",
+      "alerted": false
+    },
+    "A0|2006-12-18|long|2006-11-17|long|2932": {
+      "date": "2006-12-18",
+      "alerted": false
+    },
+    "A0|2006-12-25|long|2006-11-17|long|2932": {
+      "date": "2006-12-25",
+      "alerted": false
+    },
+    "A0|2007-02-26|long|2007-02-15|long|2875": {
+      "date": "2007-02-26",
+      "alerted": false
+    },
+    "A0|2008-04-25|short|2008-04-10|short|4016": {
+      "date": "2008-04-25",
+      "alerted": false
+    },
+    "A0|2008-05-07|short|2008-04-10|short|4016": {
+      "date": "2008-05-07",
+      "alerted": false
+    },
+    "A0|2008-07-16|short|2008-04-10|short|4016": {
+      "date": "2008-07-16",
+      "alerted": false
+    },
+    "A0|2008-11-06|short|2008-10-21|short|3335": {
+      "date": "2008-11-06",
+      "alerted": false
+    },
+    "A0|2008-11-11|short|2008-10-21|short|3335": {
+      "date": "2008-11-11",
+      "alerted": false
+    },
+    "A0|2008-11-21|short|2008-10-21|short|3335": {
+      "date": "2008-11-21",
+      "alerted": false
+    },
+    "A0|2009-02-25|long|2009-02-17|long|3456": {
+      "date": "2009-02-25",
+      "alerted": false
+    },
+    "A0|2009-03-09|long|2009-02-17|long|3456": {
+      "date": "2009-03-09",
+      "alerted": false
+    },
+    "A0|2009-03-12|long|2009-02-17|long|3456": {
+      "date": "2009-03-12",
+      "alerted": false
+    },
+    "A0|2009-07-01|long|2009-06-09|long|3701": {
+      "date": "2009-07-01",
+      "alerted": false
+    },
+    "A0|2009-08-25|long|2009-08-17|long|3754": {
+      "date": "2009-08-25",
+      "alerted": false
+    },
+    "A0|2009-11-03|long|2009-10-28|long|3696": {
+      "date": "2009-11-03",
+      "alerted": false
+    },
+    "A0|2011-03-08|short|2011-03-01|short|4463": {
+      "date": "2011-03-08",
+      "alerted": false
+    },
+    "A0|2011-08-18|long|2011-08-09|long|4472": {
+      "date": "2011-08-18",
+      "alerted": false
+    },
+    "A0|2011-08-22|long|2011-08-09|long|4472": {
+      "date": "2011-08-22",
+      "alerted": false
+    },
+    "A0|2011-11-10|short|2011-10-12|short|4295": {
+      "date": "2011-11-10",
+      "alerted": false
+    },
+    "A0|2012-12-04|short|2012-11-23|short|4784": {
+      "date": "2012-12-04",
+      "alerted": false
+    },
+    "A0|2012-12-12|short|2012-11-23|short|4784": {
+      "date": "2012-12-12",
+      "alerted": false
+    },
+    "A0|2012-12-21|short|2012-11-23|short|4784": {
+      "date": "2012-12-21",
+      "alerted": false
+    },
+    "A0|2013-04-10|long|2013-03-29|long|4805": {
+      "date": "2013-04-10",
+      "alerted": false
+    },
+    "A0|2013-05-10|long|2013-03-29|long|4805": {
+      "date": "2013-05-10",
+      "alerted": false
+    },
+    "A0|2013-05-17|long|2013-03-29|long|4805": {
+      "date": "2013-05-17",
+      "alerted": false
+    },
+    "A0|2013-07-19|short|2013-07-03|short|4608": {
+      "date": "2013-07-19",
+      "alerted": false
+    },
+    "A0|2013-07-24|short|2013-07-03|short|4608": {
+      "date": "2013-07-24",
+      "alerted": false
+    },
+    "A0|2013-11-19|short|2013-11-01|short|4482": {
+      "date": "2013-11-19",
+      "alerted": false
+    },
+    "A0|2014-05-13|long|2014-05-06|long|4449": {
+      "date": "2014-05-13",
+      "alerted": false
+    },
+    "A0|2014-08-26|long|2014-08-20|long|4539": {
+      "date": "2014-08-26",
+      "alerted": false
+    },
+    "A0|2014-09-12|long|2014-08-20|long|4539": {
+      "date": "2014-09-12",
+      "alerted": false
+    },
+    "A0|2014-11-17|short|2014-10-21|short|4480": {
+      "date": "2014-11-17",
+      "alerted": false
+    },
+    "A0|2016-03-31|short|2016-03-22|short|3470": {
+      "date": "2016-03-31",
+      "alerted": false
+    },
+    "A0|2016-05-12|long|2016-05-06|long|3574": {
+      "date": "2016-05-12",
+      "alerted": false
+    },
+    "A0|2016-05-16|long|2016-05-06|long|3574": {
+      "date": "2016-05-16",
+      "alerted": false
+    },
+    "A0|2016-05-27|long|2016-05-06|long|3574": {
+      "date": "2016-05-27",
+      "alerted": false
+    },
+    "A0|2016-09-28|short|2016-09-08|short|3640": {
+      "date": "2016-09-28",
+      "alerted": false
+    },
+    "A0|2016-10-21|long|2016-10-13|long|3624": {
+      "date": "2016-10-21",
+      "alerted": false
+    },
+    "A0|2017-06-06|long|2017-05-31|long|3811": {
+      "date": "2017-06-06",
+      "alerted": false
+    },
+    "A0|2018-03-16|long|2018-03-09|long|3665": {
+      "date": "2018-03-16",
+      "alerted": false
+    },
+    "A0|2018-06-06|short|2018-05-28|short|3689": {
+      "date": "2018-06-06",
+      "alerted": false
+    },
+    "A0|2019-01-22|long|2019-01-16|long|3371": {
+      "date": "2019-01-22",
+      "alerted": false
+    },
+    "A0|2019-10-23|short|2019-10-10|short|3413": {
+      "date": "2019-10-23",
+      "alerted": false
+    },
+    "A0|2019-11-15|short|2019-10-10|short|3413": {
+      "date": "2019-11-15",
+      "alerted": false
+    },
+    "A0|2019-11-22|short|2019-10-10|short|3413": {
+      "date": "2019-11-22",
+      "alerted": false
+    },
+    "A0|2020-06-05|short|2020-05-25|short|4463": {
+      "date": "2020-06-05",
+      "alerted": false
+    },
+    "A0|2020-08-06|short|2020-07-30|short|4720": {
+      "date": "2020-08-06",
+      "alerted": false
+    },
+    "A0|2020-08-12|short|2020-07-30|short|4720": {
+      "date": "2020-08-12",
+      "alerted": false
+    },
+    "A0|2020-12-22|long|2020-12-08|long|5452": {
+      "date": "2020-12-22",
+      "alerted": false
+    },
+    "A0|2021-06-08|short|2021-06-03|short|5876": {
+      "date": "2021-06-08",
+      "alerted": false
+    },
+    "A0|2021-08-13|short|2021-08-03|short|5786": {
+      "date": "2021-08-13",
+      "alerted": false
+    },
+    "A0|2021-08-20|short|2021-08-03|short|5786": {
+      "date": "2021-08-20",
+      "alerted": false
+    },
+    "A0|2021-09-03|long|2021-09-01|long|5709": {
+      "date": "2021-09-03",
+      "alerted": false
+    },
+    "A0|2023-05-29|short|2023-05-09|short|5108": {
+      "date": "2023-05-29",
+      "alerted": false
+    },
+    "A0|2023-06-08|short|2023-05-09|short|5108": {
+      "date": "2023-06-08",
+      "alerted": false
+    },
+    "A0|2023-06-12|short|2023-05-09|short|5108": {
+      "date": "2023-06-12",
+      "alerted": false
+    },
+    "A0|2024-02-19|short|2024-02-01|short|4755": {
+      "date": "2024-02-19",
+      "alerted": false
+    },
+    "A0|2024-05-10|short|2024-05-07|short|4702": {
+      "date": "2024-05-10",
+      "alerted": false
+    },
+    "A0|2024-08-13|short|2024-07-24|short|4553": {
+      "date": "2024-08-13",
+      "alerted": false
+    },
+    "A0|2025-02-14|long|2025-02-11|long|4044": {
+      "date": "2025-02-14",
+      "alerted": false
+    },
+    "A0|2026-07-29|short|2026-07-24|short|4762": {
+      "date": "2026-07-29",
+      "alerted": false
+    },
+    "A0|2026-09-04|long|2026-08-28|long|4943": {
+      "date": "2026-09-04",
+      "alerted": false
+    },
+    "EB0|2020-01-06|long|2019-12-12|long|7246": {
+      "date": "2020-01-06",
+      "alerted": false
+    },
+    "EB0|2020-01-08|long|2019-12-12|long|7246": {
+      "date": "2020-01-08",
+      "alerted": false
+    },
+    "EB0|2020-01-10|long|2019-12-12|long|7246": {
+      "date": "2020-01-10",
+      "alerted": false
+    },
+    "EB0|2020-02-26|short|2020-02-19|short|7022": {
+      "date": "2020-02-26",
+      "alerted": false
+    },
+    "EB0|2020-07-31|short|2020-07-23|short|5699": {
+      "date": "2020-07-31",
+      "alerted": false
+    },
+    "EB0|2020-09-10|long|2020-09-07|long|5696": {
+      "date": "2020-09-10",
+      "alerted": false
+    },
+    "EB0|2020-11-30|long|2020-11-19|long|7660": {
+      "date": "2020-11-30",
+      "alerted": false
+    },
+    "EB0|2021-07-23|long|2021-07-20|long|8940": {
+      "date": "2021-07-23",
+      "alerted": false
+    },
+    "EB0|2021-09-28|long|2021-09-23|long|9005": {
+      "date": "2021-09-28",
+      "alerted": false
+    },
+    "EB0|2021-09-30|long|2021-09-23|long|9005": {
+      "date": "2021-09-30",
+      "alerted": false
+    },
+    "EB0|2021-12-20|short|2021-12-02|short|7798": {
+      "date": "2021-12-20",
+      "alerted": false
+    },
+    "EB0|2023-01-11|long|2023-01-11|long|8158": {
+      "date": "2023-01-11",
+      "alerted": false
+    },
+    "EB0|2023-11-07|short|2023-10-20|short|8686": {
+      "date": "2023-11-07",
+      "alerted": false
+    },
+    "EB0|2023-11-22|short|2023-10-20|short|8686": {
+      "date": "2023-11-22",
+      "alerted": false
+    },
+    "EB0|2024-01-12|long|2023-12-29|long|8420": {
+      "date": "2024-01-12",
+      "alerted": false
+    },
+    "EB0|2024-07-10|short|2024-07-01|short|9478": {
+      "date": "2024-07-10",
+      "alerted": false
+    },
+    "EB0|2024-07-12|short|2024-07-01|short|9478": {
+      "date": "2024-07-12",
+      "alerted": false
+    },
+    "EB0|2024-09-04|short|2024-08-27|short|9217": {
+      "date": "2024-09-04",
+      "alerted": false
+    },
+    "EB0|2025-07-10|long|2025-06-24|long|7395": {
+      "date": "2025-07-10",
+      "alerted": false
+    },
+    "EB0|2025-07-22|long|2025-06-24|long|7395": {
+      "date": "2025-07-22",
+      "alerted": false
+    },
+    "EB0|2026-02-26|long|2026-02-13|long|7337": {
+      "date": "2026-02-26",
+      "alerted": false
+    },
+    "EB0|2026-03-02|long|2026-02-13|long|7337": {
+      "date": "2026-03-02",
+      "alerted": false
+    },
+    "EB0|2026-05-07|short|2026-04-23|short|9733": {
+      "date": "2026-05-07",
+      "alerted": false
+    },
+    "EB0|2026-08-17|long|2026-07-28|long|8331": {
+      "date": "2026-08-17",
+      "alerted": false
+    },
+    "RM0|2013-01-31|long|2013-01-28|long|2486": {
+      "date": "2013-01-31",
+      "alerted": false
+    },
+    "RM0|2013-02-04|long|2013-01-28|long|2486": {
+      "date": "2013-02-04",
+      "alerted": false
+    },
+    "RM0|2013-02-21|long|2013-01-28|long|2486": {
+      "date": "2013-02-21",
+      "alerted": false
+    },
+    "RM0|2013-09-25|long|2013-08-30|long|2426": {
+      "date": "2013-09-25",
+      "alerted": false
+    },
+    "RM0|2013-11-08|short|2013-11-05|short|2436": {
+      "date": "2013-11-08",
+      "alerted": false
+    },
+    "RM0|2013-11-15|short|2013-11-05|short|2436": {
+      "date": "2013-11-15",
+      "alerted": false
+    },
+    "RM0|2014-06-12|long|2014-06-06|long|2989": {
+      "date": "2014-06-12",
+      "alerted": false
+    },
+    "RM0|2014-06-23|long|2014-06-06|long|2989": {
+      "date": "2014-06-23",
+      "alerted": false
+    },
+    "RM0|2014-06-30|long|2014-06-06|long|2989": {
+      "date": "2014-06-30",
+      "alerted": false
+    },
+    "RM0|2014-11-28|long|2014-11-05|long|2256": {
+      "date": "2014-11-28",
+      "alerted": false
+    },
+    "RM0|2014-12-08|long|2014-11-05|long|2256": {
+      "date": "2014-12-08",
+      "alerted": false
+    },
+    "RM0|2014-12-31|short|2014-12-29|short|2256": {
+      "date": "2014-12-31",
+      "alerted": false
+    },
+    "RM0|2015-03-11|long|2015-03-05|long|2226": {
+      "date": "2015-03-11",
+      "alerted": false
+    },
+    "RM0|2015-03-24|long|2015-03-05|long|2226": {
+      "date": "2015-03-24",
+      "alerted": false
+    },
+    "RM0|2015-04-01|long|2015-03-05|long|2226": {
+      "date": "2015-04-01",
+      "alerted": false
+    },
+    "RM0|2015-06-11|short|2015-06-03|short|2108": {
+      "date": "2015-06-11",
+      "alerted": false
+    },
+    "RM0|2015-08-17|short|2015-08-11|short|2125": {
+      "date": "2015-08-17",
+      "alerted": false
+    },
+    "RM0|2016-03-16|short|2016-03-03|short|1874": {
+      "date": "2016-03-16",
+      "alerted": false
+    },
+    "RM0|2016-04-11|long|2016-03-30|long|1978": {
+      "date": "2016-04-11",
+      "alerted": false
+    },
+    "RM0|2016-12-12|long|2016-12-09|long|2396": {
+      "date": "2016-12-12",
+      "alerted": false
+    },
+    "RM0|2017-06-23|short|2017-06-05|short|2228": {
+      "date": "2017-06-23",
+      "alerted": false
+    },
+    "RM0|2017-11-10|short|2017-11-09|short|2231": {
+      "date": "2017-11-10",
+      "alerted": false
+    },
+    "RM0|2018-06-04|short|2018-05-23|short|2470": {
+      "date": "2018-06-04",
+      "alerted": false
+    },
+    "RM0|2018-07-17|long|2018-07-05|long|2523": {
+      "date": "2018-07-17",
+      "alerted": false
+    },
+    "RM0|2018-07-20|long|2018-07-05|long|2523": {
+      "date": "2018-07-20",
+      "alerted": false
+    },
+    "RM0|2019-04-02|long|2019-03-14|long|2161": {
+      "date": "2019-04-02",
+      "alerted": false
+    },
+    "RM0|2019-04-15|long|2019-03-14|long|2161": {
+      "date": "2019-04-15",
+      "alerted": false
+    },
+    "RM0|2019-06-13|long|2019-06-10|long|2454": {
+      "date": "2019-06-13",
+      "alerted": false
+    },
+    "RM0|2019-06-21|long|2019-06-10|long|2454": {
+      "date": "2019-06-21",
+      "alerted": false
+    },
+    "RM0|2020-02-27|long|2020-02-24|long|2277": {
+      "date": "2020-02-27",
+      "alerted": false
+    },
+    "RM0|2020-04-29|short|2020-04-24|short|2374": {
+      "date": "2020-04-29",
+      "alerted": false
+    },
+    "RM0|2020-05-08|short|2020-04-24|short|2374": {
+      "date": "2020-05-08",
+      "alerted": false
+    },
+    "RM0|2020-11-02|short|2020-10-20|short|2544": {
+      "date": "2020-11-02",
+      "alerted": false
+    },
+    "RM0|2020-11-16|short|2020-10-20|short|2544": {
+      "date": "2020-11-16",
+      "alerted": false
+    },
+    "RM0|2021-02-09|long|2021-01-20|long|3036": {
+      "date": "2021-02-09",
+      "alerted": false
+    },
+    "RM0|2021-06-04|short|2021-06-01|short|2992": {
+      "date": "2021-06-04",
+      "alerted": false
+    },
+    "RM0|2021-12-06|long|2021-11-23|long|2686": {
+      "date": "2021-12-06",
+      "alerted": false
+    },
+    "RM0|2022-08-19|long|2022-08-18|long|2785": {
+      "date": "2022-08-19",
+      "alerted": false
+    },
+    "RM0|2023-08-03|long|2023-07-24|long|3667": {
+      "date": "2023-08-03",
+      "alerted": false
+    },
+    "RM0|2024-04-09|long|2024-03-27|long|2622": {
+      "date": "2024-04-09",
+      "alerted": false
+    },
+    "RM0|2024-07-04|short|2024-06-28|short|2644": {
+      "date": "2024-07-04",
+      "alerted": false
+    },
+    "RM0|2024-11-15|short|2024-10-25|short|2426": {
+      "date": "2024-11-15",
+      "alerted": false
+    },
+    "RM0|2025-01-14|long|2025-01-07|long|2333": {
+      "date": "2025-01-14",
+      "alerted": false
+    },
+    "RM0|2025-04-24|long|2025-04-11|long|2667": {
+      "date": "2025-04-24",
+      "alerted": false
+    },
+    "RM0|2025-07-11|long|2025-06-24|long|2641": {
+      "date": "2025-07-11",
+      "alerted": false
+    },
+    "RM0|2025-09-15|short|2025-08-14|short|2688": {
+      "date": "2025-09-15",
+      "alerted": false
+    },
+    "RM0|2026-02-03|short|2026-01-23|short|2253": {
+      "date": "2026-02-03",
+      "alerted": false
+    },
+    "RM0|2026-09-16|long|2026-09-10|long|2332": {
+      "date": "2026-09-16",
+      "alerted": false
+    }
+  },
+  "last_scan": "2026-09-28 11:44"
 }
