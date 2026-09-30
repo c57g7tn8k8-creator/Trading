@@ -6,7 +6,7 @@
   "min_history": 60,
   "fee_mult": 1.0,
   "heartbeat": true,
-  "heartbeat_note": "心跳消息：每个提醒时段(12:00/20:30/8:30)若无入场信号，发一条系统存活确认。设为 false 关闭。",
+  "heartbeat_note": "心跳消息：每个提醒时段(11:45/20:00/8:00)若无入场信号，发一条系统存活确认。设为 false 关闭。",
   "pool_screen": {
     "depo_min_yi": 7,
     "vol_min": 150000,
