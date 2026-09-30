@@ -17,6 +17,7 @@
  *   FORCE_TRADING_DAY=1  跳过交易日判定（本地调试用）
  *   COMMENT_AUTHOR / COMMENT_BODY  feedback 模式读取
  *   REPO_OWNER       仓库 owner 登录名（仅其评论生效）
+ *   NO_WAIT_SCAN=1   remind 跳过"等待扫描完成"的防竞态轮询（本地调试用）
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -241,6 +242,15 @@ async function nextTradingDay(ds) {
   for (let k = 0; k < 20; k++) {
     if (await isTradingDay(d)) return d;
     d = addDays(d, 1);
+  }
+  return d;
+}
+/** 上一交易日（ morning 提醒时段等待前一夜盘扫描时使用） */
+async function prevTradingDay(ds) {
+  let d = addDays(ds, -1);
+  for (let k = 0; k < 20; k++) {
+    if (await isTradingDay(d)) return d;
+    d = addDays(d, -1);
   }
   return d;
 }
@@ -629,6 +639,7 @@ async function modeScan(slot) {
   ledger.nav.push({ d: today, equity: eq2 });
   if (ledger.nav.length > 750) ledger.nav = ledger.nav.slice(-750);
   state.last_scan = nowStr();
+  state.last_scan_slot = slot;   // 供 remind 防竞态等待识别本时段扫描是否已完成
 
   writeJson(J('data/ledger.json'), ledger);
   writeJson(J('data/state.json'), state);
@@ -639,10 +650,54 @@ async function modeScan(slot) {
 }
 
 /* ---------------- 模式：remind ---------------- */
+/* ---------------- 模式：remind ---------------- */
+/**
+ * 防竞态等待：GitHub 定时任务有 5~20 分钟延迟，提醒任务可能先于扫描任务运行。
+ * 这里通过 raw.githubusercontent.com 轮询远端 state.json（绕过本地 checkout 的旧快照），
+ * 确认本时段对应的扫描已完成后再处理提醒；确认后同步拉取最新数据文件，避免漏推信号。
+ * 仅在 Actions 环境（有 GITHUB_REPOSITORY）生效；本地运行或设 NO_WAIT_SCAN=1 跳过。
+ */
+const REMIND_EXPECT_SCAN = { noon: 'noon', evening: 'evening', morning: 'night' };
+async function waitScanDone(slot, today) {
+  const repo = process.env.GITHUB_REPOSITORY;
+  if (!repo || process.env.NO_WAIT_SCAN) return;
+  const expectSlot = REMIND_EXPECT_SCAN[slot];
+  if (!expectSlot) return;
+  const expectDate = slot === 'morning' ? await prevTradingDay(today) : today;
+  const rawBase = `https://raw.githubusercontent.com/${repo}/main`;
+  const deadline = Date.now() + 12 * 60 * 1000;   // 最多等 12 分钟
+  let attempt = 0;
+  while (Date.now() < deadline) {
+    attempt++;
+    try {
+      const r = await fetch(`${rawBase}/data/state.json?_=${Date.now()}`, { headers: { 'User-Agent': 'qls-monitor' } });
+      if (r.ok) {
+        const st = await r.json();
+        const scanDay = String(st.last_scan || '').slice(0, 10);
+        if (st.last_scan_slot === expectSlot && scanDay === expectDate) {
+          if (attempt > 1) console.log(`  扫描已完成（第 ${attempt} 次探测）`);
+          // 拉取扫描刚提交的最新数据，覆盖 checkout 时的旧快照
+          for (const f of ['data/pending.json', 'data/state.json', 'data/ledger.json']) {
+            try {
+              const rf = await fetch(`${rawBase}/${f}?_=${Date.now()}`, { headers: { 'User-Agent': 'qls-monitor' } });
+              if (rf.ok) writeJson(J(f), await rf.json());
+            } catch { /* 单文件同步失败不致命 */ }
+          }
+          return;
+        }
+      }
+    } catch { /* 网络抖动，继续等 */ }
+    if (attempt === 1) console.log(`  等待 ${expectDate} ${expectSlot} 扫描完成（GitHub 延迟容忍，最长12分钟）...`);
+    await new Promise(rs => setTimeout(rs, 45 * 1000));
+  }
+  console.log('  ⚠ 等待扫描超时，按现有数据继续——若本应有机信号未推送，请检查"盘中扫描"工作流是否失败');
+}
+
 async function modeRemind(slot) {
   const today = todayStr();
   console.log(`== remind ${slot} @ ${nowStr()} (today=${today}) ==`);
   if (!(await isTradingDay(today))) { console.log('非交易日，跳过'); return; }
+  await waitScanDone(slot, today);
   const pending = readJson(J('data/pending.json'), { seq: 0, items: [] });
   const blackout = await isBlackout(today);
   let sent = 0, expired = 0;
