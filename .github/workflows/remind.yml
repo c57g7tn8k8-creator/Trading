@@ -1,11 +1,13 @@
 name: 信号提醒推送
 
-# 北京时间 12:00 / 20:30 / 次日08:30 = UTC 04:00 / 12:30 / 00:30
+# 北京时间 11:45 / 20:00 / 次日08:00 = UTC 03:45 / 12:00 / 00:00
+# （较原 12:00/20:30/08:30 提前，抵消 GitHub 定时任务 5~20 分钟延迟；
+#   引擎内含防竞态等待：若扫描尚未完成会先轮询等待，不会漏推信号）
 on:
   schedule:
-    - cron: '0 4 * * *'     # 12:00 推送 11:31 时段信号
-    - cron: '30 12 * * *'   # 20:30 推送 15:01 时段信号
-    - cron: '30 0 * * *'    # 08:30 推送前一交易日 23:01 时段信号
+    - cron: '45 3 * * *'    # 11:45 推送 11:31 时段信号
+    - cron: '0 12 * * *'    # 20:00 推送 15:01 时段信号
+    - cron: '0 0 * * *'     # 08:00 推送前一交易日 23:01 时段信号
   workflow_dispatch:
     inputs:
       slot:
@@ -29,19 +31,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: 确定提醒时段
+      - name: 确定提醒时段（按时间窗口判定，容忍任务延迟漂移）
         id: slot
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             S="${{ github.event.inputs.slot }}"
           else
-            H=$(date -u +%H)
-            case $H in
-              04) S=noon ;;
-              12) S=evening ;;
-              00) S=morning ;;
-              *)  S=noon ;;
-            esac
+            T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
+            # 计划时刻(UTC分钟)：morning=0, noon=225(03:45), evening=720(12:00)
+            # 取相邻计划时刻中点为窗口边界，延迟落入哪段就按哪段处理
+            if [ $T -ge 112 ] && [ $T -lt 472 ]; then
+              S=noon
+            elif [ $T -ge 472 ] && [ $T -lt 1080 ]; then
+              S=evening
+            else
+              S=morning
+            fi
           fi
           echo "slot=$S" >> "$GITHUB_OUTPUT"
 

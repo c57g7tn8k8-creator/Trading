@@ -29,19 +29,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: 确定扫描时段
+      - name: 确定扫描时段（按时间窗口判定，容忍任务延迟漂移）
         id: slot
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             S="${{ github.event.inputs.slot }}"
           else
-            H=$(date -u +%H)
-            case $H in
-              03) S=noon ;;
-              07) S=evening ;;
-              15) S=night ;;
-              *)  S=noon ;;
-            esac
+            T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
+            # 计划时刻(UTC分钟)：noon=211(03:31), evening=421(07:01), night=901(15:01)
+            # 取相邻计划时刻中点为窗口边界，延迟落入哪段就按哪段处理
+            if [ $T -ge 316 ] && [ $T -lt 661 ]; then
+              S=evening
+            elif [ $T -ge 661 ] && [ $T -lt 1276 ]; then
+              S=night
+            else
+              S=noon
+            fi
           fi
           echo "slot=$S" >> "$GITHUB_OUTPUT"
 
