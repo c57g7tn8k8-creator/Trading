@@ -1,0 +1,33 @@
+name: 年度交易日历刷新
+
+# 每年12月30日 10:00 北京时间 = UTC 02:00
+# 抓取次年官方法定节假日数据，整文件覆盖 config/holidays_static.json（仅保留次年，前一年数据自动删除）。
+# 若次年官方数据尚未发布或抓取失败，保留现有文件不做改动——可稍后在此页面手动 Run workflow 重跑。
+on:
+  schedule:
+    - cron: '0 2 30 12 *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  calendar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 刷新次年交易日历
+        run: node monitor.mjs calendar
+
+      - name: 提交变更
+        run: |
+          git config user.name "qls-bot"
+          git config user.email "qls-bot@users.noreply.github.com"
+          git add config/holidays_static.json data/holidays.json
+          git diff --cached --quiet || git commit -m "calendar refresh $(date -u +'%F')"
+          git push
