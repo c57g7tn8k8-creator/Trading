@@ -215,17 +215,42 @@ function replayDaily(daily, spec) {
   return { signals, bars: daily };
 }
 
-/* ---------------- 交易日历（timor.tech + 本地缓存，失败兜底周一至周五） ---------------- */
+/* ---------------- 交易日历（静态日历优先 → timor.tech + 本地缓存 → 兜底周一至周五） ----------------
+ * 2026-10 教训：GitHub Actions（海外节点）访问 timor.tech（国内接口）不稳定，
+ * API 失败后兜底逻辑会把"工作日遇法定节假日"（如10月1日周四/2日周五）误判为交易日并发出心跳。
+ * 故引入 config/holidays_static.json 静态年度日历作为最高优先级，覆盖期内完全不依赖网络。 */
 let HOLIDAYS = readJson(J('data/holidays.json'), {});
+const STATIC_CAL = readJson(J('config/holidays_static.json'), null);
 async function holidayType(ds) {
+  // ① 静态日历（覆盖期内的权威来源）
+  if (STATIC_CAL && ds >= STATIC_CAL.from && ds <= STATIC_CAL.to) {
+    const wd0 = weekday(ds);
+    const staticVerdict = (STATIC_CAL.holidays && STATIC_CAL.holidays[ds]) ? 2
+      : ((wd0 === 0 || wd0 === 6) ? 1 : 0);
+    const predicted = STATIC_CAL.predicted_from && ds >= STATIC_CAL.predicted_from;
+    if (!predicted) return staticVerdict;                    // 官方数据区：直接采用
+    // 预测区（2027年，正式安排发布前）：在线API单向佐证——仅当API明确返回节假日时采信，
+    // 否则以静态预测为准（API未收录次年安排前会对节假日误报工作日，不可信）
+    try {
+      const t = await httpGet('https://timor.tech/api/holiday/info/' + ds, 10000);
+      const j = JSON.parse(t);
+      if (j && j.type && j.type.type === 2) return 2;
+    } catch { /* 网络失败，用静态预测 */ }
+    return staticVerdict;
+  }
+  // ② 本地缓存（仅保存 API 权威结果）
   if (HOLIDAYS[ds] !== undefined) return HOLIDAYS[ds];
+  // ③ 在线 API
   let type = null;
   try {
     const t = await httpGet('https://timor.tech/api/holiday/info/' + ds, 10000);
     const j = JSON.parse(t);
     if (j && j.type && typeof j.type.type === 'number') type = j.type.type; // 0工作日 1周末 2节假日 3调休
   } catch { /* 网络失败 */ }
-  if (type === null) type = (weekday(ds) >= 1 && weekday(ds) <= 5) ? 0 : 1; // 兜底
+  if (type === null) {
+    // ④ 兜底：周一至周五视为工作日。【不写缓存】——兜底不是权威结果，持久化会污染后续运行
+    return (weekday(ds) >= 1 && weekday(ds) <= 5) ? 0 : 1;
+  }
   HOLIDAYS[ds] = type;
   return type;
 }
@@ -916,6 +941,65 @@ async function modePool() {
   }));
 }
 
+/* ---------------- 模式：calendar（每年12月30日自动刷新次年交易日历） ----------------
+ * 抓取次年官方法定节假日数据，整文件覆盖 config/holidays_static.json（仅保留次年，
+ * 前一年数据随之删除，保持仓库轻便）。安全规则：
+ *  ① 仅 12 月执行（国务院次年安排通常 11~12 月已发布）；FORCE_CALENDAR=1 可强制（调试）
+ *  ② 抓取失败或次年官方数据未发布（条目过少）→ 保留现有文件，不做任何改动
+ *  ③ 覆盖后顺手清理 data/holidays.json 缓存中次年之前的旧条目
+ */
+async function modeCalendar() {
+  const today = todayStr();
+  const [y, m] = today.split('-').map(Number);
+  console.log(`== calendar 年度日历刷新 @ ${today} ==`);
+  if (m !== 12 && process.env.FORCE_CALENDAR !== '1') {
+    console.log('非12月，跳过（正式刷新由每年12月30日的工作流触发）');
+    return;
+  }
+  const nextY = y + 1;
+  let j = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      const t = await httpGet(`https://timor.tech/api/holiday/year/${nextY}`, 20000);
+      j = JSON.parse(t);
+      break;
+    } catch (e) {
+      console.log(`第${attempt}次抓取失败：${e.message || e}`);
+      if (attempt < 3) await new Promise(rs => setTimeout(rs, 5000));
+    }
+  }
+  if (!j || !j.holiday) {
+    console.log(`无法获取${nextY}年节假日数据，保留现有日历文件（可稍后手动重跑本工作流）`);
+    return;
+  }
+  const holidays = {};
+  for (const [md, v] of Object.entries(j.holiday)) {
+    if (v && v.holiday === true) holidays[`${nextY}-${md}`] = v.name;
+  }
+  const count = Object.keys(holidays).length;
+  if (count < 10) {
+    console.log(`${nextY}年官方数据尚未发布（仅${count}条），保留现有日历文件（可稍后手动重跑本工作流）`);
+    return;
+  }
+  const out = {
+    note: `静态法定节假日日历（${nextY}年官方数据，每年12月30日由 calendar 工作流自动抓取覆盖；仅保留当年+次年滚动窗口）。期货规则：周六日一律休市(含调休补班日)，法定节假日休市。`,
+    from: `${nextY}-01-01`,
+    to: `${nextY}-12-31`,
+    generated: today,
+    holidays
+  };
+  writeJson(J('config/holidays_static.json'), out);
+  console.log(`已覆盖为${nextY}年官方日历：${count}天节假日（前一年数据已删除）`);
+  // 清理缓存中次年之前的旧条目
+  const cachePath = J('data/holidays.json');
+  const cache = readJson(cachePath, {});
+  const kept = Object.fromEntries(Object.entries(cache).filter(([d]) => d >= `${nextY}-01-01`));
+  if (Object.keys(kept).length !== Object.keys(cache).length) {
+    writeJson(cachePath, kept);
+    console.log(`缓存已清理：${Object.keys(cache).length} → ${Object.keys(kept).length} 条`);
+  }
+}
+
 /* ---------------- 入口 ---------------- */
 const [mode, arg] = process.argv.slice(2);
 try {
@@ -930,7 +1014,8 @@ try {
   }
   else if (mode === 'contracts') await modeContracts();
   else if (mode === 'pool') await modePool();
-  else console.log('用法: node monitor.mjs scan|remind|feedback|nav|contracts|pool [noon|evening|night|morning]');
+  else if (mode === 'calendar') await modeCalendar();
+  else console.log('用法: node monitor.mjs scan|remind|feedback|nav|contracts|pool|calendar [noon|evening|night|morning]');
 } catch (e) {
   console.error('运行出错:', e);
   process.exit(1);
