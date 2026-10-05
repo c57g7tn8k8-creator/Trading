@@ -1,6 +1,6 @@
 name: 月度维护
 
-# 每月1日 10:00 北京时间 = UTC 02:00：合约换月校准 + 面板重建
+# 每月1日 10:00 北京时间 = UTC 02:00：品种池月度筛选 + 合约换月校准 + 面板重建
 on:
   schedule:
     - cron: '0 2 1 * *'
@@ -19,8 +19,12 @@ jobs:
         with:
           node-version: 22
 
-      - name: 合约换月维护
+      - name: 品种池月度筛选 + 合约换月维护
+        env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
         run: |
+          node monitor.mjs pool
           node monitor.mjs contracts
           node monitor.mjs nav
 
