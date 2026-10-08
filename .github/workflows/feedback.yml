@@ -1,6 +1,6 @@
 name: 交易反馈处理
 
-# 在置顶 Issue 中评论指令即触发：成交 / 未成交 / 平仓
+# 在置顶 Issue 中评论指令即触发：成交 / 未入场(未成交) / 平仓，处理后飞书发确认卡
 on:
   issue_comment:
     types: [created]
@@ -23,6 +23,8 @@ jobs:
       - name: 解析反馈并记账
         id: fb
         env:
+          FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
+          FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
           COMMENT_AUTHOR: ${{ github.event.comment.user.login }}
           COMMENT_BODY: ${{ github.event.comment.body }}
           REPO_OWNER: ${{ github.repository_owner }}
