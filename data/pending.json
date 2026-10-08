@@ -1,4 +1,27 @@
 {
-  "seq": 0,
-  "items": []
+  "seq": 1,
+  "items": [
+    {
+      "id": "S20261008-001",
+      "sym": "UR0",
+      "name": "尿素",
+      "contract": "UR701",
+      "dir": "short",
+      "date": "2026-10-08",
+      "slot": "noon",
+      "ref": 1768,
+      "stop": 1781,
+      "R": 13,
+      "t3": 1729,
+      "t5": 1703,
+      "void_px": 1745,
+      "mult": 20,
+      "lots": 1,
+      "margin1": 2829,
+      "equity": 5000,
+      "remind_date": "2026-10-08",
+      "status": "pending",
+      "created": "2026-10-08 23:19"
+    }
+  ]
 }
