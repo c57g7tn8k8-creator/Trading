@@ -78,6 +78,28 @@ async function fetchDaily(sym) {
   })).filter(b => b.d && isFinite(b.c));
 }
 
+/** 新浪期货主力连续3分钟K线（约最近1023根，用于ATR止损宽度） */
+async function fetch3min(sym) {
+  const url = 'https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20t=/InnerFuturesNewService.getFewMinLine?symbol=' + sym + '&type=3';
+  const t = await httpGet(url);
+  const i = t.indexOf('['), j = t.lastIndexOf(']');
+  if (i < 0 || j < 0) return [];
+  return JSON.parse(t.slice(i, j + 1)).map(x => ({ d: x.d, o: +x.o, h: +x.h, l: +x.l, c: +x.c }))
+    .filter(b => b.d && isFinite(b.c));
+}
+
+/** 末尾ATR(n)：用于信号止损宽度（V2优化：区极值±0.5×ATR14，回测PF 1.29→1.46） */
+function atrLast(bars, n = 14) {
+  if (!bars || bars.length < 2) return 0;
+  let s = 0, cnt = 0;
+  for (let k = Math.max(1, bars.length - n); k < bars.length; k++) {
+    s += Math.max(bars[k].h - bars[k].l,
+      Math.abs(bars[k].h - bars[k - 1].c), Math.abs(bars[k].l - bars[k - 1].c));
+    cnt++;
+  }
+  return cnt ? s / cnt : 0;
+}
+
 /* ---------------- 指标：EMA 三色K ---------------- */
 function ema(vals, n) {
   const a = 2 / (n + 1); const out = []; let e = vals[0];
@@ -96,7 +118,8 @@ function addColor(bars) {
 
 /* ---------------- 日线信号状态机（移植自回测引擎，日线适配版） ----------------
  * 三色K定趋势 → 首K锚定/收盘破锚确认 → 回调创新低计数 → K2触发线
- * → 日线破触发线激活操作区 → 日线新鲜转色=入场信号
+ * → 日线破触发线 = 操作区激活 = K3信号（每区一次，激活即提醒）
+ * 提醒后由用户在下时段用3分钟K线新鲜转色入场；创新高/低作废
  * 含：创新高作废补丁、只做第一次回调(zoneUsed)、每区最多3次信号(外层限制)
  */
 function replayDaily(daily, spec) {
@@ -175,37 +198,37 @@ function replayDaily(daily, spec) {
     // 4) 触发：本bar破K2极值 → 激活操作区（K2形成当日不可能自破，天然滞后一根）
     if (trig && !zone && !zoneUsed && (trend === 'long' || trend === 'short')) {
       if (trend === 'long' && B.l < trig) {
-        zone = { dir: 'long', seg: B.l, born: B.d, trigPx: trig };
+        zone = { dir: 'long', seg: B.l, born: B.d, trigPx: trig, justBorn: true };
         zoneUsed = true; trig = null;
       } else if (trend === 'short' && B.h > trig) {
-        zone = { dir: 'short', seg: B.h, born: B.d, trigPx: trig };
+        zone = { dir: 'short', seg: B.h, born: B.d, trigPx: trig, justBorn: true };
         zoneUsed = true; trig = null;
       }
     }
 
-    // 5) 操作区内：作废判定 + 新鲜转色入场信号
+    // 5) 操作区内：作废判定 + 激活即信号（每区一次）+ 跟踪极值
     if (zone) {
       if (trend !== zone.dir) zone = null;
       else if (zone.dir === 'long' && base && B.h > base.px) zone = null;   // 创新高作废
       else if (zone.dir === 'short' && base && B.l < base.px) zone = null;
       else {
         zone.seg = zone.dir === 'long' ? Math.min(zone.seg, B.l) : Math.max(zone.seg, B.h);
-        const prev = daily[i - 1];
-        const fresh = zone.dir === 'long'
-          ? (B.color === 'R' && prev.color !== 'R')
-          : (B.color === 'G' && prev.color !== 'G');
-        if (fresh) {
-          const entry = B.c;
+        if (zone.justBorn) {
+          // 操作区激活 = K3信号：提醒用户"下一时段起盯3分钟K线新鲜转色入场"
+          // （先通过作废判定再发信号，保证信号发出时操作区仍有效）
+          zone.justBorn = false;
+          const ref = B.c;
           const stop = zone.dir === 'long' ? zone.seg - 3 * tick : zone.seg + 3 * tick;
-          const R = zone.dir === 'long' ? entry - stop : stop - entry;
+          const R = zone.dir === 'long' ? ref - stop : stop - ref;
           if (R > 0) {
             signals.push({
-              date: B.d, dir: zone.dir,
+              date: B.d, dir: zone.dir, kind: 'activate',
               zoneId: `${zone.born}|${zone.dir}|${zone.trigPx}`,
-              ref: entry, stop, R,
-              t3: zone.dir === 'long' ? entry + 3 * R : entry - 3 * R,
-              t5: zone.dir === 'long' ? entry + 5 * R : entry - 5 * R,
-              seg: zone.seg
+              ref, stop, R,
+              t3: zone.dir === 'long' ? ref + 3 * R : ref - 3 * R,
+              t5: zone.dir === 'long' ? ref + 5 * R : ref - 5 * R,
+              seg: zone.seg,
+              voidPx: base ? base.px : null   // 作废基准：多头创新高/空头创新低即失效
             });
           }
         }
@@ -391,17 +414,35 @@ async function feishuSend(card) {
   } catch (e) { console.log('  飞书发送异常:', e.message); return false; }
 }
 const ftext = (content) => ({ tag: 'div', text: { tag: 'lark_md', content } });
-function cardSignal(p) {
+function cardSignal(p, expiry) {
   const dirTxt = p.dir === 'long' ? "<font color='red'>做多 ↑</font>" : "<font color='green'>做空 ↓</font>";
+  const colorTxt = p.dir === 'long' ? '转红(R)' : '转绿(G)';
   return {
     config: { wide_screen_mode: true },
-    header: { template: 'indigo', title: { tag: 'plain_text', content: `【擒龙手】入场信号 ${p.name} ${p.contract}` } },
+    header: { template: 'indigo', title: { tag: 'plain_text', content: `【擒龙手】K3操作区激活 ${p.name} ${p.contract}` } },
     elements: [
       ftext(`**品种合约**：${p.name} ${p.contract}\n**开仓方向**：${dirTxt}\n**建议手数**：${p.lots} 手`),
-      ftext(`**参考入场**：${p.ref}（${p.date} 收盘）\n**止损点位**：${p.stop}（1R=${p.R}点≈${Math.round(p.R * p.mult)}元/手）\n**3R点位**：${p.t3}\n**5R点位**：${p.t5}`),
-      ftext(`信号编号 **#${p.id}**｜当前权益 ${p.equity} 元\n操作后请到 GitHub 置顶 Issue 回复：\n**成交 #${p.id}** [实际价] [手数]　或　**未成交 #${p.id}**`),
-      { tag: 'note', elements: [{ tag: 'lark_md', content: `纪律：3跳止损｜1R推保本｜3R平半推保本余仓追5R/反向变色｜单手版3R锁+2R` }] }
+      ftext(`**参考价**：${p.ref}（${p.date} 触发时价）\n**止损点位**：${p.stop}（操作区极值±0.5×ATR14，1R=${p.R}点≈${Math.round(p.R * p.mult)}元/手）\n**3R点位**：${p.t3}\n**5R点位**：${p.t5}`),
+      ftext(`**操作**：从下一交易时段起盯3分钟K线——出现新鲜${colorTxt}即可入场；一直未转色、或收到"设置作废"通知，则放弃\n信号编号 **#${p.id}**｜反馈有效期至 **${expiry || '?'} 15:00**\n入场后到 GitHub 置顶 Issue 回复：\n**成交 #${p.id}** [实际价] [手数]　或　**未入场 #${p.id}**`),
+      { tag: 'note', elements: [{ tag: 'lark_md', content: `纪律：ATR止损｜3R平半推保本余仓追5R/反向变色｜单手版3R锁+2R｜多个信号并存时回复务必带 #编号` }] }
     ]
+  };
+}
+function cardVoid(p) {
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: 'orange', title: { tag: 'plain_text', content: `【擒龙手】设置作废 ${p.name} ${p.contract}` } },
+    elements: [
+      ftext(`信号 **#${p.id}**（${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'}）操作区已失效：价格${p.dir === 'long' ? '创新高' : '创新低'}突破基准 **${p.void_px}**。\n**请勿再按此信号入场**；若已入场，按原止损纪律执行不受影响。`),
+      { tag: 'note', elements: [{ tag: 'lark_md', content: '该信号已关闭，之后的成交/未入场回复不再受理' }] }
+    ]
+  };
+}
+function cardFbAck(title, lines, template) {
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: template || 'green', title: { tag: 'plain_text', content: title } },
+    elements: [ftext(lines.join('\n'))]
   };
 }
 function cardTouch(t, label, px, extra) {
@@ -607,6 +648,7 @@ async function modeScan(slot) {
 
   // 权益估算（含浮动，用最新收盘）
   const barCache = new Map();
+  const min3Cache = new Map();   // 3分钟K线缓存（仅新信号触发时按需拉取，算ATR止损）
   for (const spec of POOL) {
     try { barCache.set(spec.code, await fetchDaily(spec.code)); }
     catch (e) { console.log(`  ${spec.name} 数据失败: ${e.message}`); }
@@ -636,12 +678,34 @@ async function modeScan(slot) {
       const margin1 = s.ref * spec.mult * spec.rate;
       if (margin1 > equity) { skipCnt.afford++; console.log(`  ${spec.name} 保证金${Math.round(margin1)}>权益${Math.round(equity)}，不提醒`); continue; }
       if (blackout) continue;                                  // 禁提醒日仅记录
-      const lots = computeLots(equity, s.R, spec.mult, margin1);
+      // V2优化：止损宽度 = 区极值 ± 0.5×ATR14(3分钟)，随品种波动率自适应（原固定±3跳，回测PF 1.29→1.46）
+      // 失败回退：拉不到3分钟数据则沿用日线状态机的±3跳止损
+      const atrMult = SETTINGS.stop_atr_mult ?? 0.5;
+      let stop = s.stop, R = s.R, t3 = s.t3, t5 = s.t5, stopNote = '3跳';
+      if (atrMult > 0) {
+        try {
+          if (!min3Cache.has(spec.code)) min3Cache.set(spec.code, await fetch3min(spec.code));
+          const a = atrLast(min3Cache.get(spec.code));
+          if (a > 0) {
+            const pad = atrMult * a;
+            const st = s.dir === 'long' ? s.seg - pad : s.seg + pad;
+            const r2 = s.dir === 'long' ? s.ref - st : st - s.ref;
+            if (r2 > 0) {
+              stop = Math.round(st * 100) / 100; R = r2;
+              t3 = Math.round((s.dir === 'long' ? s.ref + 3 * r2 : s.ref - 3 * r2) * 100) / 100;
+              t5 = Math.round((s.dir === 'long' ? s.ref + 5 * r2 : s.ref - 5 * r2) * 100) / 100;
+              stopNote = `0.5×ATR14=${(Math.round(pad * 100) / 100)}`;
+            }
+          }
+        } catch { /* 网络异常时回退3跳 */ }
+      }
+      const lots = computeLots(equity, R, spec.mult, margin1);
       const p = {
         id: 'S' + s.date.replaceAll('-', '') + '-' + String(++pending.seq).padStart(3, '0'),
         sym: spec.code, name: spec.name, contract: contractOf(spec.code),
         dir: s.dir, date: s.date, slot,
-        ref: s.ref, stop: s.stop, R: Math.round(s.R * 100) / 100, t3: s.t3, t5: s.t5,
+        ref: s.ref, stop, R: Math.round(R * 100) / 100, t3, t5,
+        void_px: s.voidPx ?? null,                    // 作废基准：多头创新高/空头创新低即失效
         mult: spec.mult, lots, margin1: Math.round(margin1),
         equity: Math.round(equity),
         remind_date: slot === 'night' ? await nextTradingDay(today) : today,
@@ -650,13 +714,34 @@ async function modeScan(slot) {
       pending.items.push(p);
       state.seen[key].alerted = true;
       newCnt++;
-      console.log(`  ★ 信号 ${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'} ref=${p.ref} 止损=${p.stop} 3R=${p.t3} 5R=${p.t5} lots=${lots} → ${slot} 时段提醒(${p.remind_date})`);
+      console.log(`  ★ K3激活 ${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'} ref=${p.ref} 止损=${p.stop}(${stopNote}) 作废基准=${p.void_px} lots=${lots} → ${slot} 时段提醒(${p.remind_date})`);
     }
   }
 
   // 持仓到位检查（止损/3R/5R/变色，即时提醒，不受禁提醒限制）
   const touchNotes = await checkPositions(ledger, barCache, today);
   for (const n of touchNotes) console.log('  ● ' + n);
+
+  // 已提醒信号的生命周期管理：①设置作废（价格破基准）②反馈超期自动关闭
+  for (const p of pending.items) {
+    if (p.status !== 'reminded') continue;
+    const bars = barCache.get(p.sym);
+    if (p.void_px != null && bars && bars.length) {
+      const voidHit = bars.filter(b => b.d >= p.date)
+        .some(b => p.dir === 'long' ? b.h > p.void_px : b.l < p.void_px);
+      if (voidHit) {
+        p.status = 'invalidated'; p.invalidated_at = nowStr();
+        if (!blackout) await feishuSend(cardVoid(p));
+        console.log(`  ✗ 设置作废 ${p.id} ${p.name}：价格已破基准 ${p.void_px}，操作区失效`);
+        continue;
+      }
+    }
+    const expiry = await nextTradingDay(p.remind_date);
+    if (today > expiry) {
+      p.status = 'expired'; p.expired_at = nowStr();
+      console.log(`  ⏳ 反馈超期 ${p.id} ${p.name}（提醒日 ${p.remind_date}，有效期至 ${expiry} 收盘）`);
+    }
+  }
 
   // 净值
   const eq2 = equityNow(ledger, lastPx);
@@ -732,7 +817,8 @@ async function modeRemind(slot) {
     if (p.remind_date > today) continue;
     if (p.remind_date < today || p.slot !== slot) { p.status = 'expired'; expired++; continue; }
     if (blackout) { p.status = 'expired'; expired++; console.log(`  禁提醒日，信号 ${p.id} 作废：${blackout}`); continue; }
-    const ok = await feishuSend(cardSignal(p));
+    const expiry = await nextTradingDay(p.remind_date);
+    const ok = await feishuSend(cardSignal(p, expiry));
     if (ok) { p.status = 'reminded'; p.reminded_at = nowStr(); sent++; console.log(`  → 已提醒 ${p.id} ${p.name} ${p.contract}`); }
   }
   // 心跳：本时段无信号提醒时发一条存活确认（可在 settings.json 关闭）
@@ -769,21 +855,39 @@ async function modeFeedback() {
   const today = todayStr();
   let processed = false;
 
-  const mCJ = body.match(/成交\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)?\s*(\d+)?/);
-  const mWCJ = body.match(/未成交\s*#?(S\d{8}-\d+)?/);
+  const mCJ = body.match(/(?:成交|入场)\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)?\s*(\d+)?/);
+  const mWCJ = body.match(/未\s*(?:成交|入场)\s*#?(S\d{8}-\d+)?/);
   const mPC = body.match(/平仓\s*#?(T\d+)?\s*(\d+(?:\.\d+)?)?/);
 
   if (mWCJ) {
     const p = mWCJ[1]
       ? pending.items.find(x => x.id === mWCJ[1])
       : pending.items.filter(x => ['pending', 'reminded'].includes(x.status)).pop();
-    if (p) { p.status = 'missed'; p.fb = body.slice(0, 100); processed = true; console.log(`  ${p.id} 标记未成交`); }
-    else console.log('  未找到对应信号');
+    if (p && ['pending', 'reminded'].includes(p.status)) {
+      p.status = 'missed'; p.fb = body.slice(0, 100); processed = true;
+      console.log(`  ${p.id} 标记未入场`);
+      await feishuSend(cardFbAck('【擒龙手】反馈已记录', [
+        `信号 **#${p.id}**（${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'}）已标记为 **未入场**，信号关闭。`,
+        mWCJ[1] ? '' : '⚠ 本次回复未带 #编号，系统按"最新一条有效信号"匹配——多个信号并存时务必带编号，避免匹配错误'
+      ].filter(Boolean), 'wathet'));
+    } else {
+      console.log('  未找到对应信号');
+      await feishuSend(cardFbAck('【擒龙手】反馈未受理', [
+        `未找到可匹配的有效信号${mWCJ[1] ? '（编号 ' + mWCJ[1] + '）' : ''}。`,
+        '可能原因：信号已作废/超期关闭，或编号有误。有效信号的编号见飞书提醒卡片。'
+      ], 'red'));
+    }
   } else if (mCJ) {
     const p = mCJ[1]
       ? pending.items.find(x => x.id === mCJ[1])
       : pending.items.filter(x => ['pending', 'reminded'].includes(x.status)).pop();
-    if (!p) console.log('  未找到对应信号');
+    if (!p || !['pending', 'reminded'].includes(p.status)) {
+      console.log('  未找到对应信号');
+      await feishuSend(cardFbAck('【擒龙手】反馈未受理', [
+        `未找到可匹配的有效信号${mCJ[1] ? '（编号 ' + mCJ[1] + '）' : ''}。`,
+        '可能原因：信号已作废/超期关闭，或编号有误。若实际已入场，请自行严格按止损纪律执行。'
+      ], 'red'));
+    }
     else if (p.status === 'filled') console.log(`  ${p.id} 已登记过成交，忽略`);
     else {
       const spec = SPEC[p.sym];
@@ -805,21 +909,41 @@ async function modeFeedback() {
       p.status = 'filled'; p.trade = t.id;
       processed = true;
       console.log(`  ★ 成交登记 ${t.id}：${t.name} ${t.contract} ${t.dir === 'long' ? '多' : '空'} ${lots}手 @${entry} 止损${t.stop} 3R=${t.t3} 5R=${t.t5}`);
+      await feishuSend(cardFbAck('【擒龙手】成交已入账 ' + t.id, [
+        `**${t.name} ${t.contract}** ${t.dir === 'long' ? '多' : '空'} **${lots} 手 @ ${entry}**`,
+        `止损 ${t.stop}｜1R=${Math.round(R * 100) / 100}点｜3R=${Math.round(t.t3 * 100) / 100}｜5R=${Math.round(t.t5 * 100) / 100}`,
+        `信号 #${p.id} 已关闭，云端将按纪律自动跟踪止损/3R/5R/变色并提醒。`,
+        mCJ[1] ? '' : '⚠ 本次回复未带 #编号，系统按"最新一条有效信号"匹配——多个信号并存时务必带编号'
+      ].filter(Boolean), 'green'));
     }
   } else if (mPC) {
     const t = mPC[1]
       ? ledger.trades.find(x => x.id === mPC[1])
       : ledger.trades.filter(x => x.status === 'open').pop();
-    if (!t || t.status !== 'open') console.log('  未找到持仓中的该单');
+    if (!t || t.status !== 'open') {
+      console.log('  未找到持仓中的该单');
+      await feishuSend(cardFbAck('【擒龙手】反馈未受理', [
+        `未找到持仓中的该单${mPC[1] ? '（单号 ' + mPC[1] + '）' : ''}。`, '持仓单号见净值面板或到位提醒卡片。'
+      ], 'red'));
+    }
     else {
       let px = mPC[2] ? +mPC[2] : null;
       if (!px) { try { const bars = await fetchDaily(t.sym); px = bars[bars.length - 1].c; } catch { px = t.entry; } }
       closeTrade(t, px, today, '手动平仓');
       processed = true;
       console.log(`  平仓登记 ${t.id} @${px} 盈亏 ${t.pnl}`);
+      await feishuSend(cardFbAck('【擒龙手】平仓已入账 ' + t.id, [
+        `**${t.name} ${t.contract}** ${t.dir === 'long' ? '多' : '空'} ${t.lots0} 手 @ ${px}`,
+        `本单净盈亏（已扣双边手续费）：**${t.pnl} 元**`
+      ], t.pnl > 0 ? 'green' : 'wathet'));
     }
   } else {
-    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] / 未成交 #信号号 / 平仓 #单号 [价]）');
+    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] / 未入场 #信号号 / 平仓 #单号 [价]）');
+    await feishuSend(cardFbAck('【擒龙手】未能识别回复', [
+      `您的回复："${body.slice(0, 60)}" 未匹配任何指令。`,
+      '支持格式：\n**成交 #信号号 [实际价] [手数]**（如：成交 #S20261008-001 935 2）\n**未入场 #信号号**\n**平仓 #单号 [实际价]**（如：平仓 #T0007 921）',
+      '多个信号并存时务必带 #编号；不带编号将匹配"最新一条有效信号/持仓"，存在错配风险。'
+    ], 'red'));
   }
 
   if (processed) {
