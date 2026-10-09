@@ -21,9 +21,13 @@
       "mult": 20,
       "half_done": false,
       "realized": 0,
-      "status": "open",
-      "fees": 5,
-      "fb": "成交 #S20261008-001  1758  1"
+      "status": "closed",
+      "fees": 10,
+      "fb": "成交 #S20261008-001  1758  1",
+      "pnl": 470,
+      "exit_date": "2026-10-09",
+      "exit_px": 1734,
+      "reason": "手动平仓"
     }
   ],
   "nav": [
@@ -33,7 +37,7 @@
     },
     {
       "d": "2026-10-09",
-      "equity": 5495
+      "equity": 5470
     }
   ]
 }
