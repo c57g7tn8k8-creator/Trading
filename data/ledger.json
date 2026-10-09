@@ -1,11 +1,39 @@
 {
   "capital": 5000,
-  "seq": 0,
-  "trades": [],
+  "seq": 1,
+  "trades": [
+    {
+      "id": "T0001",
+      "signal": "S20261008-001",
+      "sym": "UR0",
+      "name": "尿素",
+      "contract": "UR701",
+      "dir": "short",
+      "entry_date": "2026-10-09",
+      "entry": 1758,
+      "lots": 1,
+      "lots0": 1,
+      "stop": 1781,
+      "stop0": 1781,
+      "R": 23,
+      "t3": 1689,
+      "t5": 1643,
+      "mult": 20,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "fees": 5,
+      "fb": "成交 #S20261008-001  1758  1"
+    }
+  ],
   "nav": [
     {
       "d": "2026-10-08",
       "equity": 5000
+    },
+    {
+      "d": "2026-10-09",
+      "equity": 4795
     }
   ]
 }
