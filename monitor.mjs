@@ -100,6 +100,14 @@ function atrLast(bars, n = 14) {
   return cnt ? s / cnt : 0;
 }
 
+/** 持仓估值价：优先3分钟K线最新收盘（新浪日线盘中不更新，会直接沿用昨结导致浮盈浮亏失真），失败回退日线收盘 */
+async function liveLastPx(sym, fallback) {
+  try { const m3 = await fetch3min(sym); if (m3.length) return m3[m3.length - 1].c; } catch { }
+  if (fallback) return fallback;
+  try { const b = await fetchDaily(sym); if (b.length) return b[b.length - 1].c; } catch { }
+  return null;
+}
+
 /* ---------------- 指标：EMA 三色K ---------------- */
 function ema(vals, n) {
   const a = 2 / (n + 1); const out = []; let e = vals[0];
@@ -655,6 +663,11 @@ async function modeScan(slot) {
   }
   const lastPx = {};
   for (const [code, bars] of barCache) if (bars.length) lastPx[code] = bars[bars.length - 1].c;
+  // 持仓品种改用3分钟实时价估值（日线盘中不更新，否则浮动盈亏显示失真）
+  for (const t of ledger.trades) if (t.status === 'open') {
+    const lp = await liveLastPx(t.sym, lastPx[t.sym]);
+    if (lp) lastPx[t.sym] = lp;
+  }
   const equity = equityNow(ledger, lastPx);
 
   // 信号扫描
@@ -948,7 +961,10 @@ async function modeFeedback() {
 
   if (processed) {
     const lastPx = {};
-    for (const t of ledger.trades) if (t.status === 'open') { try { const b = await fetchDaily(t.sym); lastPx[t.sym] = b[b.length - 1].c; } catch { } }
+    for (const t of ledger.trades) if (t.status === 'open') {
+      const lp = await liveLastPx(t.sym);
+      if (lp) lastPx[t.sym] = lp;
+    }
     const eq = equityNow(ledger, lastPx);
     ledger.nav = (ledger.nav || []).filter(p => p.d !== today);
     ledger.nav.push({ d: today, equity: eq });
