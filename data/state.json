@@ -12959,8 +12959,28 @@
     "RB0|2026-06-01|short|2026-06-01|short|3205": {
       "date": "2026-06-01",
       "alerted": false
+    },
+    "C0|2026-10-14|short|2026-10-14|short|2226": {
+      "date": "2026-10-14",
+      "alerted": true
+    },
+    "P0|2026-10-14|short|2026-10-14|short|9778": {
+      "date": "2026-10-14",
+      "alerted": false
+    },
+    "AO0|2026-01-26|short|2026-01-26|short|2896": {
+      "date": "2026-01-26",
+      "alerted": false
+    },
+    "AO0|2026-02-27|long|2026-02-27|long|2925": {
+      "date": "2026-02-27",
+      "alerted": false
+    },
+    "AO0|2026-04-20|short|2026-04-20|short|2876": {
+      "date": "2026-04-20",
+      "alerted": false
     }
   },
-  "last_scan": "2026-10-14 13:42",
-  "last_scan_slot": "noon"
+  "last_scan": "2026-10-14 14:08",
+  "last_scan_slot": "evening"
 }
