@@ -44,8 +44,9 @@
       "margin1": 1880,
       "equity": 5470,
       "remind_date": "2026-10-14",
-      "status": "pending",
-      "created": "2026-10-14 14:08"
+      "status": "reminded",
+      "created": "2026-10-14 14:08",
+      "reminded_at": "2026-10-14 14:16"
     }
   ]
 }
