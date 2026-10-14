@@ -100,6 +100,19 @@ function atrLast(bars, n = 14) {
   return cnt ? s / cnt : 0;
 }
 
+/** 当日交易K线雏形（3分钟聚合）：昨夜夜盘(归属今日) + 今日白天。
+ *  夜盘归属规则：交易日T的夜盘开在上一交易日prevTd的日历日晚21:00后（周五夜盘归属周一）；
+ *  凌晨0-3点的bar（部分品种深夜盘）归属其日历日当天。 */
+function partialDayBar(m3, today, prevTd) {
+  if (!m3 || !m3.length) return null;
+  const sel = m3.filter(b => {
+    const ds = b.d.slice(0, 10), hh = +b.d.slice(11, 13);
+    return (ds === today && hh >= 9) || (ds === today && hh < 3) || (ds === prevTd && hh >= 21);
+  });
+  if (!sel.length) return null;
+  return { d: today, o: sel[0].o, h: Math.max(...sel.map(b => b.h)), l: Math.min(...sel.map(b => b.l)), c: sel[sel.length - 1].c };
+}
+
 /** 持仓估值价：优先3分钟K线最新收盘（新浪日线盘中不更新，会直接沿用昨结导致浮盈浮亏失真），失败回退日线收盘。
  *  传 contract（持仓单自己的合约）时，换月后旧合约持仓只按自己的合约序列估值，不串新主力价格 */
 async function liveLastPx(sym, fallback, contract) {
@@ -248,7 +261,7 @@ function replayDaily(daily, spec) {
       }
     }
   }
-  return { signals, bars: daily };
+  return { signals, bars: daily, term: { trend, base, trig, zoneUsed } };
 }
 
 /* ---------------- 交易日历（静态日历优先 → timor.tech + 本地缓存 → 兜底周一至周五） ----------------
@@ -715,19 +728,56 @@ async function modeScan(slot) {
 
   // 信号扫描
   let newCnt = 0, skipCnt = { seen: 0, zone3: 0, afford: 0, dup: 0, hold: 0 };
+  const prevTd = await prevTradingDay(today);   // 今日夜盘开在prevTd日历日晚间
   for (const spec of POOL) {
     const bars = barCache.get(spec.code);
     if (!bars || bars.length < SETTINGS.min_history) { console.log(`  ${spec.name} 数据不足，跳过`); continue; }
-    const { signals } = replayDaily(bars.map(b => ({ ...b })), spec);
+    const { signals, term } = replayDaily(bars.map(b => ({ ...b })), spec);
     const lastDate = bars[bars.length - 1].d;
     const zoneCount = {};
     for (const s of signals) zoneCount[s.zoneId] = (zoneCount[s.zoneId] || 0) + 1;
+
+    // 盘中激活检测（2026-10-14升级）：新浪日线当日bar要到15:00后才发布，夜盘/早盘破K2触发线
+    // 云端原要等15:01/次日才确认，错过当日入场窗口。现用3分钟聚合"昨夜+今昼"当日K雏形，
+    // 已破触发线且未创新高/低（否则走作废补丁口径）→ 立即生成信号，提醒提前到8:00/11:45。
+    if (term && term.trig && !term.zoneUsed && term.base && (term.trend === 'long' || term.trend === 'short') && today !== lastDate) {
+      try {
+        if (!min3Cache.has(spec.code)) {
+          let m3 = [];
+          try { m3 = await fetch3min(contractSinaCode(spec)); } catch { }
+          if (!m3.length) m3 = await fetch3min(spec.code);
+          min3Cache.set(spec.code, m3);
+        }
+        const pb = partialDayBar(min3Cache.get(spec.code), today, prevTd);
+        if (pb) {
+          const dir = term.trend;
+          const breakTrig = dir === 'long' ? pb.l < term.trig : pb.h > term.trig;
+          const newExtreme = dir === 'long' ? pb.h > term.base.px : pb.l < term.base.px;
+          if (breakTrig && !newExtreme) {
+            const seg = dir === 'long' ? pb.l : pb.h;
+            const stop0 = dir === 'long' ? seg - 3 * spec.tick : seg + 3 * spec.tick;
+            const R0 = dir === 'long' ? pb.c - stop0 : stop0 - pb.c;
+            if (R0 > 0) {
+              signals.push({
+                date: today, dir, kind: 'activate',
+                zoneId: `${today}|${dir}|${term.trig}`,
+                ref: pb.c, stop: stop0, R: R0,
+                t3: dir === 'long' ? pb.c + 3 * R0 : pb.c - 3 * R0,
+                t5: dir === 'long' ? pb.c + 5 * R0 : pb.c - 5 * R0,
+                seg, voidPx: term.base.px, intraday: true
+              });
+              console.log(`  ◆ 盘中激活: ${spec.name} 当日K(昨夜+今昼 高${pb.h}低${pb.l}) 已破触发线${term.trig}`);
+            }
+          }
+        }
+      } catch { /* 3分钟数据不可用时保持日线口径 */ }
+    }
 
     for (const s of signals) {
       const key = `${spec.code}|${s.date}|${s.dir}|${s.zoneId}`;
       if (state.seen[key]) continue;
       state.seen[key] = { date: s.date, alerted: false };
-      if (s.date !== lastDate) continue;                      // 历史信号仅播种
+      if (s.date !== lastDate && s.date !== today) continue;   // 历史信号仅播种（当日=盘中激活信号）
       if (zoneCount[s.zoneId] > SETTINGS.max_zone_signals) { skipCnt.zone3++; continue; }
       if (pending.items.some(p => p.sym === spec.code && p.date === s.date && p.dir === s.dir && ['pending', 'reminded'].includes(p.status))) { skipCnt.dup++; continue; }
       if (ledger.trades.some(t => t.status === 'open' && t.sym === spec.code && t.dir === s.dir)) { skipCnt.hold++; continue; }
