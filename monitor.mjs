@@ -100,11 +100,16 @@ function atrLast(bars, n = 14) {
   return cnt ? s / cnt : 0;
 }
 
-/** 持仓估值价：优先3分钟K线最新收盘（新浪日线盘中不更新，会直接沿用昨结导致浮盈浮亏失真），失败回退日线收盘 */
-async function liveLastPx(sym, fallback) {
-  try { const m3 = await fetch3min(sym); if (m3.length) return m3[m3.length - 1].c; } catch { }
-  if (fallback) return fallback;
-  try { const b = await fetchDaily(sym); if (b.length) return b[b.length - 1].c; } catch { }
+/** 持仓估值价：优先3分钟K线最新收盘（新浪日线盘中不更新，会直接沿用昨结导致浮盈浮亏失真），失败回退日线收盘。
+ *  传 contract（持仓单自己的合约）时，换月后旧合约持仓只按自己的合约序列估值，不串新主力价格 */
+async function liveLastPx(sym, fallback, contract) {
+  const spec = specOf(sym);
+  const own = contract && contractOf(sym) !== contract;
+  const cc = own ? tradeSinaCode(sym, contract) : (contractSinaCode(spec) || sym);
+  try { const m3 = await fetch3min(cc); if (m3.length) return m3[m3.length - 1].c; } catch { }
+  if (!own) { try { const m3 = await fetch3min(sym); if (m3.length) return m3[m3.length - 1].c; } catch { } }
+  try { const b = await fetchDaily(cc); if (b.length) return b[b.length - 1].c; } catch { }
+  if (!own && fallback) return fallback;
   return null;
 }
 
@@ -393,6 +398,32 @@ function advanceContracts(today) {
 }
 const contractOf = code => (CONTRACTS[code] && CONTRACTS[code].main) || code;
 
+/* ---------------- 具体合约取数（2026-10-14 修复） ----------------
+ * 背景：主连C0是未复权拼接序列，换月后与具体合约价格系统性偏离（玉米同日差30点），
+ * 导致状态机信号与用户实际交易/看图的C2701口径不一致。统一改为具体合约优先、主连兜底。 */
+const specOf = sym => POOL.find(s => s.code === sym) || SPEC[sym];
+/** 品种当前主力合约的新浪取数码（如 C0→C2701、CF0→CF2701），无映射时返回原码 */
+function contractSinaCode(spec) {
+  if (!spec) return null;
+  const c = contractOf(spec.code);
+  if (!c || c === spec.code) return spec.code;
+  try { const { y, m } = parseContract(spec, c); return fetchCode(spec, y, m); } catch { return spec.code; }
+}
+/** 日线：先取具体合约，数据不足20根（新合约历史短）回退主连 */
+async function fetchDailySmart(spec) {
+  const cc = contractSinaCode(spec);
+  if (cc && cc !== spec.code) {
+    try { const b = await fetchDaily(cc); if (b.length >= 20) return b; } catch { }
+  }
+  return fetchDaily(spec.code);
+}
+/** 持仓单自己的合约（展示码如 UR701）→ 新浪取数码（UR2701）：换月后旧合约持仓仍按自己的合约跟踪 */
+function tradeSinaCode(sym, contract) {
+  const spec = specOf(sym);
+  if (!spec || !contract) return contractSinaCode(spec);
+  try { const { y, m } = parseContract(spec, contract); return fetchCode(spec, y, m); } catch { return contractSinaCode(spec); }
+}
+
 /** 单手单边手续费（元）= 固定值 或 成交金额×比例，再乘券商系数 fee_mult */
 function feePerLot(spec, price) {
   const fix = spec.fee_fix || 0;
@@ -518,7 +549,11 @@ async function checkPositions(ledger, barCache, today) {
   const notes = [];
   for (const t of ledger.trades) {
     if (t.status !== 'open') continue;
-    const bars = barCache.get(t.sym);
+    let bars = barCache.get(t.sym);
+    if (t.contract && contractOf(t.sym) !== t.contract) {
+      // 换月后旧合约持仓：按持仓单自己的合约取日线，止损/3R/5R/变色判定不串新主力价格
+      try { const own = await fetchDaily(tradeSinaCode(t.sym, t.contract)); if (own.length) { addColor(own); bars = own; } } catch { }
+    }
     if (!bars || !bars.length) continue;
     const B = bars[bars.length - 1];
     const spec = SPEC[t.sym];
@@ -661,14 +696,19 @@ async function modeScan(slot) {
   const barCache = new Map();
   const min3Cache = new Map();   // 3分钟K线缓存（仅新信号触发时按需拉取，算ATR止损）
   for (const spec of POOL) {
-    try { barCache.set(spec.code, await fetchDaily(spec.code)); }
-    catch (e) { console.log(`  ${spec.name} 数据失败: ${e.message}`); }
+    try {
+      const bars = await fetchDailySmart(spec);
+      addColor(bars);                 // 持仓"反向变色离场"检查依赖颜色字段
+      barCache.set(spec.code, bars);
+      const cc = contractSinaCode(spec);
+      if (cc !== spec.code) console.log(`  ${spec.name} 取数合约 ${cc}`);
+    } catch (e) { console.log(`  ${spec.name} 数据失败: ${e.message}`); }
   }
   const lastPx = {};
   for (const [code, bars] of barCache) if (bars.length) lastPx[code] = bars[bars.length - 1].c;
   // 持仓品种改用3分钟实时价估值（日线盘中不更新，否则浮动盈亏显示失真）
   for (const t of ledger.trades) if (t.status === 'open') {
-    const lp = await liveLastPx(t.sym, lastPx[t.sym]);
+    const lp = await liveLastPx(t.sym, lastPx[t.sym], t.contract);
     if (lp) lastPx[t.sym] = lp;
   }
   const equity = equityNow(ledger, lastPx);
@@ -700,7 +740,12 @@ async function modeScan(slot) {
       let stop = s.stop, R = s.R, t3 = s.t3, t5 = s.t5, stopNote = '3跳';
       if (atrMult > 0) {
         try {
-          if (!min3Cache.has(spec.code)) min3Cache.set(spec.code, await fetch3min(spec.code));
+          if (!min3Cache.has(spec.code)) {
+            let m3 = [];
+            try { m3 = await fetch3min(contractSinaCode(spec)); } catch { }
+            if (!m3.length) m3 = await fetch3min(spec.code);
+            min3Cache.set(spec.code, m3);
+          }
           const a = atrLast(min3Cache.get(spec.code));
           if (a > 0) {
             const pad = atrMult * a;
@@ -947,7 +992,7 @@ async function modeFeedback() {
     }
     else {
       let px = mPC[2] ? +mPC[2] : null;
-      if (!px) { try { const bars = await fetchDaily(t.sym); px = bars[bars.length - 1].c; } catch { px = t.entry; } }
+      if (!px) { try { px = await liveLastPx(t.sym, null, t.contract) || t.entry; } catch { px = t.entry; } }
       closeTrade(t, px, today, '手动平仓');
       processed = true;
       console.log(`  平仓登记 ${t.id} @${px} 盈亏 ${t.pnl}`);
@@ -968,7 +1013,7 @@ async function modeFeedback() {
   if (processed) {
     const lastPx = {};
     for (const t of ledger.trades) if (t.status === 'open') {
-      const lp = await liveLastPx(t.sym);
+      const lp = await liveLastPx(t.sym, null, t.contract);
       if (lp) lastPx[t.sym] = lp;
     }
     const eq = equityNow(ledger, lastPx);
