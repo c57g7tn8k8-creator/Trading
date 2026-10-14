@@ -436,6 +436,14 @@ function tradeSinaCode(sym, contract) {
   if (!spec || !contract) return contractSinaCode(spec);
   try { const { y, m } = parseContract(spec, contract); return fetchCode(spec, y, m); } catch { return contractSinaCode(spec); }
 }
+/** 报价网格取整：按品种最小变动价位（玉米1点/铁矿0.5/PTA 2点/棉花5点…）。
+ *  止损用保守方向（空头向上取整、多头向下取整——离入场更远，R只增不减）；入场价与R均为网格倍数时3R/5R自动落网格 */
+function gridRound(px, tick, dir) {
+  if (!tick || !isFinite(px)) return px;
+  const eps = 1e-9;
+  const v = dir === 'short' ? Math.ceil(px / tick - eps) : Math.floor(px / tick + eps);
+  return Math.round(v * tick * 100) / 100;
+}
 
 /** 单手单边手续费（元）= 固定值 或 成交金额×比例，再乘券商系数 fee_mult */
 function feePerLot(spec, price) {
@@ -809,6 +817,17 @@ async function modeScan(slot) {
             }
           }
         } catch { /* 网络异常时回退3跳 */ }
+      }
+      // 报价网格对齐（2026-10-14）：止损按品种一跳取整（保守方向），R/3R/5R按新止损重算，消除小数点位
+      if (spec.tick) {
+        const g = gridRound(stop, spec.tick, s.dir);
+        if (g !== stop) {
+          stop = g;
+          R = s.dir === 'long' ? s.ref - stop : stop - s.ref;
+          t3 = Math.round((s.dir === 'long' ? s.ref + 3 * R : s.ref - 3 * R) * 100) / 100;
+          t5 = Math.round((s.dir === 'long' ? s.ref + 5 * R : s.ref - 5 * R) * 100) / 100;
+          stopNote += `→网格${g}`;
+        }
       }
       const lots = computeLots(equity, R, spec.mult, margin1);
       const p = {
