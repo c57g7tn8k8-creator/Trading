@@ -492,6 +492,9 @@ function equityNow(ledger, lastPx = {}) {
   }
   return Math.round(eq * 100) / 100;
 }
+/** 保证金率 = 交易所标准(spec.rate) + 期货公司加点（固定值，不考虑交易所临时调整）
+ *  2026-10-14 用户定口径：统一按交易所标准+1.5个百分点统计保证金（settings.margin_broker_add） */
+function marginRate(spec) { return spec.rate + (SETTINGS.margin_broker_add || 0); }
 function computeLots(equity, R, mult, margin1) {
   const budget = SETTINGS.risk_pct * equity;
   let lots = Math.max(1, Math.floor(budget / (R * mult)));
@@ -688,7 +691,7 @@ async function modeScan(slot) {
       if (zoneCount[s.zoneId] > SETTINGS.max_zone_signals) { skipCnt.zone3++; continue; }
       if (pending.items.some(p => p.sym === spec.code && p.date === s.date && p.dir === s.dir && ['pending', 'reminded'].includes(p.status))) { skipCnt.dup++; continue; }
       if (ledger.trades.some(t => t.status === 'open' && t.sym === spec.code && t.dir === s.dir)) { skipCnt.hold++; continue; }
-      const margin1 = s.ref * spec.mult * spec.rate;
+      const margin1 = s.ref * spec.mult * marginRate(spec);
       if (margin1 > equity) { skipCnt.afford++; console.log(`  ${spec.name} 保证金${Math.round(margin1)}>权益${Math.round(equity)}，不提醒`); continue; }
       if (blackout) continue;                                  // 禁提醒日仅记录
       // V2优化：止损宽度 = 区极值 ± 0.5×ATR14(3分钟)，随品种波动率自适应（原固定±3跳，回测PF 1.29→1.46）
@@ -828,7 +831,10 @@ async function modeRemind(slot) {
   for (const p of pending.items) {
     if (p.status !== 'pending') continue;
     if (p.remind_date > today) continue;
-    if (p.remind_date < today || p.slot !== slot) { p.status = 'expired'; expired++; continue; }
+    // 时段判据须经 REMIND_EXPECT_SCAN 映射：夜盘(night)扫描的信号由次日 morning 提醒推送。
+    // 原直接比较 p.slot !== slot 会把 'night' ≠ 'morning' 误判为过期——夜盘扫描发现的信号永远不会被推送（2026-10-13棉花K3空头漏报根因）
+    const expectScan = REMIND_EXPECT_SCAN[slot] || slot;
+    if (p.remind_date < today || p.slot !== expectScan) { p.status = 'expired'; expired++; continue; }
     if (blackout) { p.status = 'expired'; expired++; console.log(`  禁提醒日，信号 ${p.id} 作废：${blackout}`); continue; }
     const expiry = await nextTradingDay(p.remind_date);
     const ok = await feishuSend(cardSignal(p, expiry));
@@ -1042,9 +1048,9 @@ async function modePool() {
       const last20 = bars.slice(-20);
       if (last20.length < 20) throw new Error('历史不足20根');
       const av = last20.reduce((a, b) => a + b.v, 0) / last20.length;
-      const dep = last20.reduce((a, b) => a + (b.p || 0) * ((b.s || b.c)) * spec.mult * spec.rate, 0) / last20.length / 1e8;
+      const dep = last20.reduce((a, b) => a + (b.p || 0) * ((b.s || b.c)) * spec.mult * marginRate(spec), 0) / last20.length / 1e8;
       const lastC = bars[bars.length - 1].s || bars[bars.length - 1].c;
-      const margin1 = lastC * spec.mult * spec.rate;
+      const margin1 = lastC * spec.mult * marginRate(spec);
       row = { spec, pick, av, dep, margin1, pass: av >= c.vol_min && dep > c.depo_min_yi && margin1 < c.margin_max };
       console.log(`  ${spec.name.padEnd(4, '　')} ${pick.code} 交割${pick.days}天 量${(av / 10000).toFixed(1)}万手 沉淀${dep.toFixed(2)}亿 保证金${Math.round(margin1)} → ${row.pass ? '✓' : '✗'}`);
     } catch (e) {
