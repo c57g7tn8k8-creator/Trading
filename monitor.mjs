@@ -488,6 +488,22 @@ function cardSignal(p, expiry) {
     ]
   };
 }
+/** 跟进提醒卡（2026-10-15）：已提醒但未收到成交/未入场反馈的信号，在提醒日之后的交易日重发一次 */
+function cardFollowup(p, px, expiry) {
+  const dirTxt = p.dir === 'long' ? "<font color='red'>做多 ↑</font>" : "<font color='green'>做空 ↓</font>";
+  const colorTxt = p.dir === 'long' ? '转红(R)' : '转绿(G)';
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: 'blue', title: { tag: 'plain_text', content: `【擒龙手】信号跟进提醒 ${p.name} ${p.contract}` } },
+    elements: [
+      ftext(`**信号 #${p.id}** 已于 ${p.reminded_at || p.created || '—'} 推送，**尚未收到您的反馈**。\\n若错过首张卡片，以下为完整信息：`),
+      ftext(`**品种合约**：${p.name} ${p.contract}\\n**开仓方向**：${dirTxt}\\n**建议手数**：${p.lots} 手`),
+      ftext(`**原参考价**：${p.ref}｜**止损**：${p.stop}（1R=${p.R}点≈${Math.round((p.R || 0) * p.mult)}元/手）\\n**3R**：${p.t3}｜**5R**：${p.t5}\\n**当前价**：${px ?? '—'}｜**作废基准**：${p.void_px ?? '—'}`),
+      ftext(`**操作**：信号仍有效时，盯3分钟K线出现新鲜${colorTxt}即可入场\\n**反馈有效期至**：${expiry || '?'} 15:00（价格${p.dir === 'long' ? '创新高' : '创新低'}破 ${p.void_px ?? '—'} 将自动作废）\\n请在 GitHub 置顶 Issue 回复：\\n**成交 #${p.id}** [实际价] [手数]　或　**未入场 #${p.id}**`),
+      { tag: 'note', elements: [{ tag: 'lark_md', content: `纪律：ATR止损｜3R平半推保本余仓追5R/反向变色｜单手版3R锁+2R｜回复务必带 #编号` }] }
+    ]
+  };
+}
 function cardVoid(p) {
   return {
     config: { wide_screen_mode: true },
@@ -954,8 +970,21 @@ async function modeRemind(slot) {
     const ok = await feishuSend(cardSignal(p, expiry));
     if (ok) { p.status = 'reminded'; p.reminded_at = nowStr(); sent++; console.log(`  → 已提醒 ${p.id} ${p.name} ${p.contract}`); }
   }
-  // 心跳：本时段无信号提醒时发一条存活确认（可在 settings.json 关闭）
-  if (sent === 0 && SETTINGS.heartbeat !== false) {
+  // 跟进提醒（2026-10-15）：已提醒但一直未收到成交/未入场反馈的信号，
+  // 在提醒日之后的交易日重发一次简化卡（每信号仅一次；已作废/过期/已反馈的条目状态非 reminded，自动跳过）
+  let follow = 0;
+  for (const p of pending.items) {
+    if (p.status !== 'reminded' || p.followup) continue;
+    if (p.remind_date >= today) continue;                 // 仅在提醒日之后的交易日跟进
+    if (blackout) continue;
+    let px = null;
+    try { px = await liveLastPx(p.sym, null, p.contract); } catch { }
+    const expiryF = await nextTradingDay(p.remind_date);
+    const ok = await feishuSend(cardFollowup(p, px, expiryF));
+    if (ok) { p.followup = true; p.followup_at = nowStr(); follow++; console.log(`  → 跟进提醒 ${p.id} ${p.name} ${p.contract}（未反馈，当前价${px ?? '—'}）`); }
+  }
+  // 心跳：本时段无信号提醒/跟进时发一条存活确认（可在 settings.json 关闭）
+  if (sent === 0 && follow === 0 && SETTINGS.heartbeat !== false) {
     const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
     const st = readJson(J('data/state.json'), { seen: {}, last_scan: null });
     const navLast = (ledger.nav || []).slice(-1)[0];
@@ -971,7 +1000,7 @@ async function modeRemind(slot) {
   pending.items = pending.items.filter(p => ['pending', 'reminded'].includes(p.status) || (p.date >= cutoff));
   writeJson(J('data/pending.json'), pending);
   writeJson(J('data/holidays.json'), HOLIDAYS);
-  console.log(`完成：发送 ${sent}，过期 ${expired}`);
+  console.log(`完成：发送 ${sent}，跟进 ${follow}，过期 ${expired}`);
 }
 
 /* ---------------- 模式：feedback（GitHub Issue 评论） ---------------- */
