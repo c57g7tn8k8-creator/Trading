@@ -44,11 +44,12 @@
       "margin1": 1880,
       "equity": 5470,
       "remind_date": "2026-10-14",
-      "status": "reminded",
+      "status": "filled",
       "created": "2026-10-14 14:08",
       "reminded_at": "2026-10-14 14:16",
       "followup": true,
-      "followup_at": "2026-10-15 20:35"
+      "followup_at": "2026-10-15 20:35",
+      "trade": "T0002"
     }
   ]
 }
