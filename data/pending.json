@@ -46,7 +46,9 @@
       "remind_date": "2026-10-14",
       "status": "reminded",
       "created": "2026-10-14 14:08",
-      "reminded_at": "2026-10-14 14:16"
+      "reminded_at": "2026-10-14 14:16",
+      "followup": true,
+      "followup_at": "2026-10-15 20:35"
     }
   ]
 }
