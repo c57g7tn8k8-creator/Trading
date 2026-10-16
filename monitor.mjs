@@ -474,16 +474,22 @@ async function feishuSend(card) {
   } catch (e) { console.log('  飞书发送异常:', e.message); return false; }
 }
 const ftext = (content) => ({ tag: 'div', text: { tag: 'lark_md', content } });
-function cardSignal(p, expiry) {
+function cardSignal(p, expiry, prio) {
   const dirTxt = p.dir === 'long' ? "<font color='red'>做多 ↑</font>" : "<font color='green'>做空 ↓</font>";
   const colorTxt = p.dir === 'long' ? '转红(R)' : '转绿(G)';
+  const els = [
+    ftext(`**品种合约**：${p.name} ${p.contract}\n**开仓方向**：${dirTxt}\n**建议手数**：${p.lots} 手`),
+    ftext(`**参考价**：${p.ref}（${p.date} 触发时价）\n**止损点位**：${p.stop}（操作区极值±0.5×ATR14，1R=${p.R}点≈${Math.round(p.R * p.mult)}元/手）\n**3R点位**：${p.t3}\n**5R点位**：${p.t5}`),
+    ftext(`**操作**：从下一交易时段起盯3分钟K线——出现新鲜${colorTxt}即可入场；一直未转色、或收到"设置作废"通知，则放弃\n信号编号 **#${p.id}**｜反馈有效期至 **${expiry || '?'} 15:00**\n入场后到 GitHub 置顶 Issue 回复：\n**成交 #${p.id}** [实际价] [手数]　或　**未入场 #${p.id}**`)
+  ];
+  if (prio) {
+    const tag = prio.rank === 1 ? '★ 建议优先' : `第 ${prio.rank} 顺位`;
+    els.splice(1, 0, ftext(`**⚠ 本时段共 ${prio.total} 个信号并存**：${p.name}、${p.peers}\n**优先级**：${tag}${prio.conflicts ? '（与并存信号/持仓同板块，降级）' : ''}｜单手止损风险 ≈ ${prio.risk1} 元\n资金有限时可只做优先信号，其余回复"未入场"即可，不算违规`));
+  }
   return {
     config: { wide_screen_mode: true },
     header: { template: 'indigo', title: { tag: 'plain_text', content: `【擒龙手】K3操作区激活 ${p.name} ${p.contract}` } },
-    elements: [
-      ftext(`**品种合约**：${p.name} ${p.contract}\n**开仓方向**：${dirTxt}\n**建议手数**：${p.lots} 手`),
-      ftext(`**参考价**：${p.ref}（${p.date} 触发时价）\n**止损点位**：${p.stop}（操作区极值±0.5×ATR14，1R=${p.R}点≈${Math.round(p.R * p.mult)}元/手）\n**3R点位**：${p.t3}\n**5R点位**：${p.t5}`),
-      ftext(`**操作**：从下一交易时段起盯3分钟K线——出现新鲜${colorTxt}即可入场；一直未转色、或收到"设置作废"通知，则放弃\n信号编号 **#${p.id}**｜反馈有效期至 **${expiry || '?'} 15:00**\n入场后到 GitHub 置顶 Issue 回复：\n**成交 #${p.id}** [实际价] [手数]　或　**未入场 #${p.id}**`),
+    elements: [...els,
       { tag: 'note', elements: [{ tag: 'lark_md', content: `纪律：ATR止损｜3R平半推保本余仓追5R/反向变色｜单手版3R锁+2R｜多个信号并存时回复务必带 #编号` }] }
     ]
   };
@@ -563,11 +569,57 @@ function equityNow(ledger, lastPx = {}) {
 /** 保证金率 = 交易所标准(spec.rate) + 期货公司加点（固定值，不考虑交易所临时调整）
  *  2026-10-14 用户定口径：统一按交易所标准+1.5个百分点统计保证金（settings.margin_broker_add） */
 function marginRate(spec) { return spec.rate + (SETTINGS.margin_broker_add || 0); }
-function computeLots(equity, R, mult, margin1) {
+/** 手数=以损定量：max(1, floor(权益×risk_pct/单手风险))，且多手时总保证金+已持仓保证金 ≤ 权益×margin_cap
+ *  2026-10-16 增补 usedMargin：第二仓起扣除已持仓占用的保证金，避免双仓保证金超缴 */
+function computeLots(equity, R, mult, margin1, usedMargin = 0) {
   const budget = SETTINGS.risk_pct * equity;
   let lots = Math.max(1, Math.floor(budget / (R * mult)));
-  while (lots > 1 && margin1 * lots > SETTINGS.margin_cap * equity) lots--;
+  while (lots > 1 && margin1 * lots + usedMargin > SETTINGS.margin_cap * equity) lots--;
   return lots;
+}
+
+/* ---------------- 同时段多信号优先级（2026-10-16） ----------------
+ * 数据结论（21品种一年3分钟回测）：碰撞仅约15%的提醒时段；任何规则与随机的差距在噪声范围内，
+ * 但结构性原则有效：同板块品种≈同命运（只取一）、小止损/小保证金略优且不劣于随机、避免"先到先得"。
+ * 评分（低者优先）：同板块冲突×10 + 单手止损风险排名 + 单手保证金排名 */
+const SECTOR = {
+  I: '黑色', HC: '黑色', RB: '黑色',
+  L: '塑化', PP: '塑化', V: '塑化', EG: '塑化', TA: '塑化',
+  SA: '化工', FG: '化工', MA: '化工', UR: '化工',
+  M: '油脂', Y: '油脂', P: '油脂', RM: '油脂', OI: '油脂',
+  SR: '软商品', CF: '软商品', CJ: '软商品', C: '谷物'
+};
+const sectorOf = code => SECTOR[String(code).slice(0, -1)] || '其他';
+/** items: 同一提醒时段待推送的信号；openTrades: 当前持仓。返回 Map(id → {rank,total,peers,reason}) */
+function slotPriority(items, openTrades) {
+  const out = new Map();
+  const n = items.length;
+  if (n < 2) return out;
+  const risk = p => Math.round((p.R || 0) * (p.mult || 1));      // 单手止损风险(元)
+  const mgn = p => p.margin1 || 0;
+  const rankMap = (key) => {
+    const s = [...items].sort((a, b) => key(a) - key(b));
+    return new Map(s.map((x, i) => [x.id, i]));
+  };
+  const rkRisk = rankMap(risk), rkMgn = rankMap(mgn);
+  const openSectors = (openTrades || []).map(t => sectorOf(t.sym));
+  const score = new Map();
+  for (const p of items) {
+    const sec = sectorOf(p.sym);
+    const conflicts = items.filter(x => x !== p && sectorOf(x.sym) === sec).length
+      + openSectors.filter(s => s === sec).length;
+    score.set(p.id, conflicts * 10 + (rkRisk.get(p.id) || 0) + (rkMgn.get(p.id) || 0));
+  }
+  const order = [...items].sort((a, b) => score.get(a.id) - score.get(b.id));
+  order.forEach((p, i) => {
+    const conflicts = Math.floor(score.get(p.id) / 10);
+    out.set(p.id, {
+      rank: i + 1, total: n,
+      peers: items.filter(x => x.id !== p.id).map(x => x.name).join('、'),
+      risk1: risk(p), conflicts
+    });
+  });
+  return out;
 }
 function closeTrade(t, px, date, reason) {
   const spec = SPEC[t.sym];
@@ -749,6 +801,10 @@ async function modeScan(slot) {
     if (lp) lastPx[t.sym] = lp;
   }
   const equity = equityNow(ledger, lastPx);
+  // 已持仓占用的保证金（2026-10-16）：新信号保证金检查从"权益"改为"可用保证金=权益-已用"
+  const usedMargin = ledger.trades.filter(t => t.status === 'open')
+    .reduce((a, t) => a + (t.margin1 || 0) * (t.lots || 1), 0);
+  const availMargin = equity - usedMargin;
 
   // 信号扫描
   let newCnt = 0, skipCnt = { seen: 0, zone3: 0, afford: 0, dup: 0, hold: 0 };
@@ -804,9 +860,9 @@ async function modeScan(slot) {
       if (s.date !== lastDate && s.date !== today) continue;   // 历史信号仅播种（当日=盘中激活信号）
       if (zoneCount[s.zoneId] > SETTINGS.max_zone_signals) { skipCnt.zone3++; continue; }
       if (pending.items.some(p => p.sym === spec.code && p.date === s.date && p.dir === s.dir && ['pending', 'reminded'].includes(p.status))) { skipCnt.dup++; continue; }
-      if (ledger.trades.some(t => t.status === 'open' && t.sym === spec.code && t.dir === s.dir)) { skipCnt.hold++; continue; }
+      if (ledger.trades.some(t => t.status === 'open' && t.sym === spec.code && t.dir === s.dir)) { skipCnt.hold++; console.log(`  ${spec.name} 已有同向持仓，同向不加仓（2026-10-16回测：同段二次信号55笔仅+679元/PF1.06，不启用）`); continue; }
       const margin1 = s.ref * spec.mult * marginRate(spec);
-      if (margin1 > equity) { skipCnt.afford++; console.log(`  ${spec.name} 保证金${Math.round(margin1)}>权益${Math.round(equity)}，不提醒`); continue; }
+      if (margin1 > availMargin) { skipCnt.afford++; console.log(`  ${spec.name} 保证金${Math.round(margin1)}>可用${Math.round(availMargin)}（权益${Math.round(equity)}-已用${Math.round(usedMargin)}），不提醒`); continue; }
       if (blackout) continue;                                  // 禁提醒日仅记录
       // V2优化：止损宽度 = 区极值 ± 0.5×ATR14(3分钟)，随品种波动率自适应（原固定±3跳，回测PF 1.29→1.46）
       // 失败回退：拉不到3分钟数据则沿用日线状态机的±3跳止损
@@ -845,7 +901,7 @@ async function modeScan(slot) {
           stopNote += `→网格${g}`;
         }
       }
-      const lots = computeLots(equity, R, spec.mult, margin1);
+      const lots = computeLots(equity, R, spec.mult, margin1, usedMargin);
       const p = {
         id: 'S' + s.date.replaceAll('-', '') + '-' + String(++pending.seq).padStart(3, '0'),
         sym: spec.code, name: spec.name, contract: contractOf(spec.code),
@@ -958,16 +1014,26 @@ async function modeRemind(slot) {
   const blackout = await isBlackout(today);
   let sent = 0, expired = 0;
 
+  // 同时段多信号优先级（2026-10-16）：≥2个信号同槽推送时，卡内标注建议优先级（板块分散+小止损+小保证金）
+  const expectScan = REMIND_EXPECT_SCAN[slot] || slot;
+  const eligible = pending.items.filter(p => p.status === 'pending' && p.remind_date === today && p.slot === expectScan);
+  let prio = new Map();
+  if (eligible.length >= 2 && !blackout) {
+    let openTrades = [];
+    try { const lg = readJson(J('data/ledger.json'), { trades: [] }); openTrades = lg.trades.filter(t => t.status === 'open'); } catch { }
+    prio = slotPriority(eligible, openTrades);
+    console.log(`  同时段 ${eligible.length} 个信号并存，优先级：${[...prio.entries()].sort((a, b) => a[1].rank - b[1].rank).map(([id, v]) => `${v.rank}.${id}`).join(' ')}`);
+  }
+
   for (const p of pending.items) {
     if (p.status !== 'pending') continue;
     if (p.remind_date > today) continue;
     // 时段判据须经 REMIND_EXPECT_SCAN 映射：夜盘(night)扫描的信号由次日 morning 提醒推送。
     // 原直接比较 p.slot !== slot 会把 'night' ≠ 'morning' 误判为过期——夜盘扫描发现的信号永远不会被推送（2026-10-13棉花K3空头漏报根因）
-    const expectScan = REMIND_EXPECT_SCAN[slot] || slot;
     if (p.remind_date < today || p.slot !== expectScan) { p.status = 'expired'; expired++; continue; }
     if (blackout) { p.status = 'expired'; expired++; console.log(`  禁提醒日，信号 ${p.id} 作废：${blackout}`); continue; }
     const expiry = await nextTradingDay(p.remind_date);
-    const ok = await feishuSend(cardSignal(p, expiry));
+    const ok = await feishuSend(cardSignal(p, expiry, prio.get(p.id)));
     if (ok) { p.status = 'reminded'; p.reminded_at = nowStr(); sent++; console.log(`  → 已提醒 ${p.id} ${p.name} ${p.contract}`); }
   }
   // 跟进提醒（2026-10-15）：已提醒但一直未收到成交/未入场反馈的信号，
