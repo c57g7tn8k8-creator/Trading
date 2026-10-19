@@ -1,5 +1,5 @@
 {
-  "seq": 2,
+  "seq": 3,
   "items": [
     {
       "id": "S20261008-001",
@@ -50,6 +50,28 @@
       "followup": true,
       "followup_at": "2026-10-15 20:35",
       "trade": "T0002"
+    },
+    {
+      "id": "S20261019-003",
+      "sym": "SR0",
+      "name": "白糖",
+      "contract": "SR701",
+      "dir": "long",
+      "date": "2026-10-19",
+      "slot": "noon",
+      "ref": 5390,
+      "stop": 5365,
+      "R": 25,
+      "t3": 5465,
+      "t5": 5515,
+      "void_px": 5563,
+      "mult": 10,
+      "lots": 1,
+      "margin1": 4582,
+      "equity": 5669,
+      "remind_date": "2026-10-19",
+      "status": "pending",
+      "created": "2026-10-19 12:05"
     }
   ]
 }
