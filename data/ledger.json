@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 2,
+  "seq": 3,
   "trades": [
     {
       "id": "T0001",
@@ -51,6 +51,29 @@
       "status": "open",
       "fees": 1.2,
       "fb": "成交 #S20261014-002 2208 1"
+    },
+    {
+      "id": "T0003",
+      "signal": "S20261019-003",
+      "sym": "SR0",
+      "name": "白糖",
+      "contract": "SR701",
+      "dir": "long",
+      "entry_date": "2026-10-19",
+      "entry": 5388,
+      "lots": 1,
+      "lots0": 1,
+      "stop": 5365,
+      "stop0": 5365,
+      "R": 23,
+      "t3": 5457,
+      "t5": 5503,
+      "mult": 10,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "fees": 3,
+      "fb": "成交 #S20261019-003 5388 1"
     }
   ],
   "nav": [
@@ -84,7 +107,7 @@
     },
     {
       "d": "2026-10-19",
-      "equity": 5668.8
+      "equity": 5675.8
     }
   ]
 }

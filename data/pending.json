@@ -70,9 +70,10 @@
       "margin1": 4582,
       "equity": 5669,
       "remind_date": "2026-10-19",
-      "status": "reminded",
+      "status": "filled",
       "created": "2026-10-19 12:05",
-      "reminded_at": "2026-10-19 12:15"
+      "reminded_at": "2026-10-19 12:15",
+      "trade": "T0003"
     }
   ]
 }
