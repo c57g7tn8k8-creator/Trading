@@ -1,5 +1,5 @@
 {
-  "seq": 3,
+  "seq": 4,
   "items": [
     {
       "id": "S20261008-001",
@@ -74,6 +74,28 @@
       "created": "2026-10-19 12:05",
       "reminded_at": "2026-10-19 12:15",
       "trade": "T0003"
+    },
+    {
+      "id": "S20261020-004",
+      "sym": "RM0",
+      "name": "菜粕",
+      "contract": "RM701",
+      "dir": "long",
+      "date": "2026-10-20",
+      "slot": "noon",
+      "ref": 2278,
+      "stop": 2269,
+      "R": 9,
+      "t3": 2305,
+      "t5": 2323,
+      "void_px": 2415,
+      "mult": 10,
+      "lots": 1,
+      "margin1": 1936,
+      "equity": 5526,
+      "remind_date": "2026-10-20",
+      "status": "pending",
+      "created": "2026-10-20 12:01"
     }
   ]
 }
