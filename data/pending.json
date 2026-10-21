@@ -94,11 +94,13 @@
       "margin1": 1936,
       "equity": 5526,
       "remind_date": "2026-10-20",
-      "status": "reminded",
+      "status": "invalidated",
       "created": "2026-10-20 12:01",
       "reminded_at": "2026-10-20 12:12",
       "followup": true,
-      "followup_at": "2026-10-21 08:11"
+      "followup_at": "2026-10-21 08:11",
+      "invalidated_at": "2026-10-21 15:32",
+      "void_reason": "stop"
     }
   ]
 }
