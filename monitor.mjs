@@ -705,57 +705,97 @@ async function checkPositions(ledger, barCache, today) {
   return notes;
 }
 
-/* ---------------- 净值面板 docs/index.html ---------------- */
-function renderDashboard(ledger, state) {
-  const nav = ledger.nav || [];
-  const lastEq = nav.length ? nav[nav.length - 1].equity : ledger.capital;
-  const pnl = Math.round((lastEq - ledger.capital) * 100) / 100;
-  const ret = (100 * (lastEq - ledger.capital) / ledger.capital).toFixed(1);
+/* ---------------- 净值面板 docs/（多页静态存档） ----------------
+ * index.html=全部，year-YYYY.html=单年存档，顶部 tab 互链，纯静态无需前端JS（GitHub Pages 直接支持）。
+ * 年度口径（2026-10-21 需求）：每年收益率相对"该年1月1日起始资金"（=上一年最后一个净值点，最早一年=初始本金）。
+ */
+function yearOf(d) { return String(d).slice(0, 4); }
+function yearBase(nav, capital, year) {
+  const before = nav.filter(p => p.d < year + '-01-01');
+  return before.length ? before[before.length - 1].equity : capital;
+}
+/** 净值曲线SVG：纵轴网格状百分比刻度（相对该页起始资金），横轴具体日期刻度 */
+function renderChartSVG(navData, base) {
+  const W = 940, H = 300, LP = 52, RP = 16, TP = 18, BP = 34;
+  if (!navData.length) return '<div style="color:#999;padding:24px;text-align:center">该区间暂无净值数据</div>';
+  const pw = W - LP - RP, ph = H - TP - BP;
+  const pcts = navData.map(p => 100 * (p.equity - base) / base);
+  let pMin = Math.min(...pcts, 0), pMax = Math.max(...pcts, 0);
+  if (pMax - pMin < 0.5) { pMax += 0.25; pMin -= 0.25; }
+  const niceStep = (range, n) => { const raw = range / n; const mag = Math.pow(10, Math.floor(Math.log10(raw))); const nm = raw / mag; return (nm >= 5 ? 10 : nm >= 2 ? 5 : nm >= 1 ? 2 : 1) * mag; };
+  const step = niceStep(pMax - pMin, 5);
+  const x = i => LP + pw * (navData.length === 1 ? 0.5 : i / (navData.length - 1));
+  const y = pc => TP + ph * (1 - (pc - pMin) / (pMax - pMin));
+  let g = '';
+  for (let pc = Math.ceil(pMin / step - 1e-9) * step; pc <= pMax + 1e-9; pc += step) {   // 网格线+纵轴百分比
+    const yy = y(pc), is0 = Math.abs(pc) < step / 100;
+    g += `<line x1="${LP}" y1="${yy.toFixed(1)}" x2="${W - RP}" y2="${yy.toFixed(1)}" stroke="${is0 ? '#bbb' : '#eee'}" stroke-width="${is0 ? 1.4 : 1}"${is0 ? '' : ' stroke-dasharray="3 3"'}/>`;
+    g += `<text x="${LP - 6}" y="${(yy + 3).toFixed(1)}" text-anchor="end" font-size="10" fill="${is0 ? '#888' : '#aaa'}">${pc > 0 ? '+' : ''}${(+pc.toFixed(2))}%</text>`;
+  }
+  const nL = Math.min(6, navData.length);   // 横轴日期刻度（最多6个均布）
+  for (let k = 0; k < nL; k++) {
+    const i = Math.round(k * (navData.length - 1) / ((nL - 1) || 1));
+    g += `<text x="${x(i).toFixed(1)}" y="${H - 10}" text-anchor="middle" font-size="10" fill="#999">${navData[i].d.slice(5)}</text>`;
+  }
+  const path = navData.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(pcts[i]).toFixed(1)}`).join(' ');
+  g += `<path d="${path}" fill="none" stroke="#c23531" stroke-width="2"/>`;
+  g += navData.map((p, i) => { const rp = pcts[i].toFixed(1); return `<circle cx="${x(i).toFixed(1)}" cy="${y(pcts[i]).toFixed(1)}" r="2.2" fill="#c23531"><title>${p.d}  净值 ¥${p.equity}  收益 ${rp >= 0 ? '+' : ''}${rp}%</title></circle>`; }).join('');
+  return `<svg width="100%" viewBox="0 0 ${W} ${H}" style="margin-top:8px">${g}</svg>`;
+}
+function renderPage(ledger, state, year) {
+  const isAll = year === 'all';
+  const allNav = ledger.nav || [];
+  const base = isAll ? ledger.capital : yearBase(allNav, ledger.capital, year);
+  const navData = isAll ? allNav : allNav.filter(p => yearOf(p.d) === year);
+  const trades = isAll ? ledger.trades : ledger.trades.filter(t => yearOf(t.entry_date) === year);
+  const lastEq = navData.length ? navData[navData.length - 1].equity : base;
+
+  // 总体统计（不随页面切换）
+  const gLastEq = allNav.length ? allNav[allNav.length - 1].equity : ledger.capital;
+  const gPnl = Math.round((gLastEq - ledger.capital) * 100) / 100;
+  const gRet = (100 * (gLastEq - ledger.capital) / ledger.capital).toFixed(1);
   let peak = ledger.capital, dd = 0;
-  for (const p of nav) { peak = Math.max(peak, p.equity); dd = Math.max(dd, peak - p.equity); }
-  const closed = ledger.trades.filter(t => t.status === 'closed');
-  const wins = closed.filter(t => t.pnl > 0).length;
-  const winRate = closed.length ? (100 * wins / closed.length).toFixed(0) : '-';
+  for (const p of allNav) { peak = Math.max(peak, p.equity); dd = Math.max(dd, peak - p.equity); }
+  const allClosed = ledger.trades.filter(t => t.status === 'closed');
+  const gWinRate = allClosed.length ? (100 * allClosed.filter(t => t.pnl > 0).length / allClosed.length).toFixed(0) : '-';
   const opens = ledger.trades.filter(t => t.status === 'open');
   const feeSum = Math.round(ledger.trades.reduce((a, t) => a + (t.fees || 0), 0) * 100) / 100;
 
-  // SVG 权益曲线
-  const W = 920, H = 260, P = 34;
-  let svgPath = '', svgDots = '', ymin = 0, ymax = 0;
-  if (nav.length) {
-    const vs = nav.map(p => p.equity);
-    ymin = Math.min(...vs, ledger.capital); ymax = Math.max(...vs, ledger.capital);
-    if (ymax - ymin < 1) { ymax += 1; ymin -= 1; }
-    const x = i => P + (W - 2 * P) * (nav.length === 1 ? 0.5 : i / (nav.length - 1));
-    const y = v => H - P - (H - 2 * P) * (v - ymin) / (ymax - ymin);
-    svgPath = nav.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.equity).toFixed(1)}`).join(' ');
-    svgDots = nav.map((p, i) => { const rp = (100 * (p.equity - ledger.capital) / ledger.capital).toFixed(1); return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.equity).toFixed(1)}" r="2.2" fill="#c23531"><title>${p.d}  净值 ¥${p.equity}  收益 ${rp >= 0 ? '+' : ''}${rp}%</title></circle>`; }).join('');
-  }
-  const y0 = nav.length ? (H - P - (H - 2 * P) * (ledger.capital - ymin) / (ymax - ymin)) : H / 2;
-  // Y轴百分比刻度（相对本金）+ X轴日期刻度（2026-10-21 需求）
-  const pctOf = v => (100 * (v - ledger.capital) / ledger.capital).toFixed(1);
-  const axisTxt = nav.length ? `
-<text x="6" y="${P - 8}" font-size="10" fill="#999">+${pctOf(ymax)}%</text>
-<text x="6" y="${(y0 + 3).toFixed(1)}" font-size="10" fill="#bbb">0%</text>
-<text x="6" y="${(H - P + 4).toFixed(1)}" font-size="10" fill="#999">${pctOf(ymin)}%</text>
-<text x="${P}" y="${H - 8}" font-size="10" fill="#999">${nav[0].d}</text>
-<text x="${W - P}" y="${H - 8}" text-anchor="end" font-size="10" fill="#999">${nav[nav.length - 1].d}</text>` : '';
-  const row = (t, i) => {
-    const sgn = t.dir === 'long' ? 1 : -1;
+  // 本页范围统计（年度重置口径）
+  const rPnl = Math.round((lastEq - base) * 100) / 100;
+  const rRet = base > 0 ? (100 * (lastEq - base) / base).toFixed(1) : '0';
+  const rClosed = trades.filter(t => t.status === 'closed');
+  const rWinRate = rClosed.length ? (100 * rClosed.filter(t => t.pnl > 0).length / rClosed.length).toFixed(0) : '-';
+  const rangeLabel = isAll ? '全部（自建仓以来）' : `${year} 年（年初资金 ¥${Math.round(base).toLocaleString()}）`;
+
+  // 年份导航（全部 + 有数据的年份）
+  const years = [...new Set(allNav.map(p => yearOf(p.d)).concat(ledger.trades.map(t => yearOf(t.entry_date))))].sort();
+  const tabs = ['all'].concat(years).map(y => {
+    const label = y === 'all' ? '全部' : y + ' 年';
+    const href = y === 'all' ? 'index.html' : 'year-' + y + '.html';
+    return y === year ? `<span class="tab cur">${label}</span>` : `<a class="tab" href="${href}">${label}</a>`;
+  }).join('');
+
+  const row = (t) => {
     const stat = t.status === 'open' ? (t.half_done ? '余仓追踪' : '持仓中') : t.reason;
     const pc = t.status === 'closed' ? (t.pnl > 0 ? '#c23531' : t.pnl < 0 ? '#1a9e4b' : '#888') : '#888';
     const retryTag = t.retry ? `<span style="color:#b8860b;font-size:10px">[试错] </span>` : '';
-    const tk = (SPEC[t.sym] && SPEC[t.sym].tick) || 1;   // 价格按品种tick格式化，去掉旧数据的浮点长尾
+    const tk = (SPEC[t.sym] && SPEC[t.sym].tick) || 1;
     return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${fmtPx(t.entry, tk)}</td><td>${fmtPx(t.stop0, tk)}</td><td>${fmtPx(t.t3, tk)}</td><td>${fmtPx(t.t5, tk)}</td><td>${stat}</td><td>${t.signal || '-'}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
   };
+
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>擒龙手 · 云端监控净值面板</title>
+<title>擒龙手 · 云端监控净值面板 ${isAll ? '' : year}</title>
 <style>
 body{font-family:-apple-system,"Microsoft YaHei",sans-serif;background:#f5f6f8;color:#222;margin:0;padding:24px}
 h1{font-size:20px;margin:0 0 4px}.sub{color:#888;font-size:12px;margin-bottom:16px}
-.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.tabs{margin-bottom:16px}
+.tab{display:inline-block;padding:6px 14px;margin:0 6px 6px 0;border-radius:8px;background:#fff;border:1px solid #e5e7eb;color:#333;text-decoration:none;font-size:13px}
+.tab.cur{background:#c23531;color:#fff;border-color:#c23531;font-weight:600}
+.cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .card{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;min-width:140px}
 .card b{display:block;font-size:22px;margin-top:4px}.card span{color:#888;font-size:12px}
+.sec{color:#888;font-size:12px;margin:4px 0 6px;font-weight:600}
 .panel{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:18px}
 table{border-collapse:collapse;width:100%;font-size:12.5px}
 th,td{border-bottom:1px solid #eee;padding:6px 8px;text-align:right;white-space:nowrap}
@@ -764,32 +804,38 @@ th{background:#fafafa;color:#666;font-weight:600}
 .up{color:#c23531}.dn{color:#1a9e4b}
 </style></head><body>
 <h1>擒龙手 · 黄大侠拐点战法 云端监控</h1>
-<div class="sub">启动资金 ¥${ledger.capital.toLocaleString()}｜最近更新 ${state.last_scan || '-'}｜信号=日线全自动扫描，交易=人工执行后反馈记账</div>
+<div class="sub">最近更新 ${state.last_scan || '-'}｜信号=日线全自动扫描，交易=人工执行后反馈记账｜年度收益率按"该年1月1日净值"为起始资金重算</div>
+<div class="tabs">${tabs}</div>
+<div class="sec">■ ${rangeLabel}</div>
 <div class="cards">
-<div class="card"><span>当前权益</span><b>¥${Math.round(lastEq).toLocaleString()}</b></div>
-<div class="card"><span>累计盈亏</span><b class="${pnl >= 0 ? 'up' : 'dn'}">${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}</b></div>
-<div class="card"><span>收益率</span><b class="${pnl >= 0 ? 'up' : 'dn'}">${ret}%</b></div>
+<div class="card"><span>区间收益率</span><b class="${rPnl >= 0 ? 'up' : 'dn'}">${rPnl >= 0 ? '+' : ''}${rRet}%</b></div>
+<div class="card"><span>区间盈亏</span><b class="${rPnl >= 0 ? 'up' : 'dn'}">${rPnl >= 0 ? '+' : ''}${rPnl.toLocaleString()}</b></div>
+<div class="card"><span>期末权益</span><b>¥${Math.round(lastEq).toLocaleString()}</b></div>
+<div class="card"><span>已平仓/胜率</span><b>${rClosed.length} 笔 / ${rWinRate}%</b></div>
+<div class="card"><span>交易笔数</span><b>${trades.length} 笔</b></div>
+</div>
+<div class="sec">■ 总体（自建仓以来，本金 ¥${ledger.capital.toLocaleString()}）</div>
+<div class="cards">
+<div class="card"><span>当前权益</span><b>¥${Math.round(gLastEq).toLocaleString()}</b></div>
+<div class="card"><span>累计盈亏</span><b class="${gPnl >= 0 ? 'up' : 'dn'}">${gPnl >= 0 ? '+' : ''}${gPnl.toLocaleString()}</b></div>
+<div class="card"><span>总收益率</span><b class="${gPnl >= 0 ? 'up' : 'dn'}">${gRet}%</b></div>
 <div class="card"><span>最大回撤</span><b>¥${Math.round(dd).toLocaleString()}</b></div>
-<div class="card"><span>已平仓/胜率</span><b>${closed.length} 笔 / ${winRate}%</b></div>
+<div class="card"><span>总已平仓/胜率</span><b>${allClosed.length} 笔 / ${gWinRate}%</b></div>
 <div class="card"><span>当前持仓</span><b>${opens.length} 笔</b></div>
 <div class="card"><span>累计手续费</span><b>¥${feeSum.toLocaleString()}</b></div>
 </div>
-<div class="panel"><b>净值曲线</b><br>
-<svg width="100%" viewBox="0 0 ${W} ${H}" style="margin-top:8px">
-<line x1="${P}" y1="${y0}" x2="${W - P}" y2="${y0}" stroke="#bbb" stroke-dasharray="4 3"/>
-<path d="${svgPath}" fill="none" stroke="#c23531" stroke-width="2"/>
-${svgDots}
-${axisTxt}
-<text x="${W - P}" y="${P - 8}" text-anchor="end" font-size="11" fill="#888">高 ¥${Math.round(ymax)}</text>
-</svg></div>
-<div class="panel"><b>交易记录</b>（红涨绿跌；盈亏=已扣双边手续费净额，单位：元；平仓请按"单号"列回复）<br>
+<div class="panel"><b>净值曲线</b>（纵轴=相对${isAll ? '本金' : '年初资金'}的收益率%，横轴=日期；hover看单日明细）<br>
+${renderChartSVG(navData, base)}</div>
+<div class="panel"><b>交易记录 · ${rangeLabel}</b>（红涨绿跌；盈亏=已扣双边手续费净额，单位：元；平仓请按"单号"列回复）<br>
 <table><thead><tr><th>日期</th><th>单号</th><th>品种合约</th><th>方向</th><th>手数</th><th>入场</th><th>止损</th><th>3R</th><th>5R</th><th>状态</th><th>信号编号</th><th>盈亏</th></tr></thead>
-<tbody>${ledger.trades.slice().reverse().map(row).join('') || '<tr><td colspan="12" style="text-align:center;color:#999">暂无成交记录</td></tr>'}</tbody></table></div>
+<tbody>${trades.slice().reverse().map(row).join('') || '<tr><td colspan="12" style="text-align:center;color:#999">该区间暂无成交记录</td></tr>'}</tbody></table></div>
 </body></html>`;
 }
 function rebuildDashboard(ledger, state) {
   fs.mkdirSync(J('docs'), { recursive: true });
-  fs.writeFileSync(J('docs/index.html'), renderDashboard(ledger, state));
+  fs.writeFileSync(J('docs/index.html'), renderPage(ledger, state, 'all'));
+  const years = [...new Set((ledger.nav || []).map(p => yearOf(p.d)).concat(ledger.trades.map(t => yearOf(t.entry_date))))].sort();
+  for (const y of years) fs.writeFileSync(J('docs/year-' + y + '.html'), renderPage(ledger, state, y));
 }
 
 /* ---------------- 模式：daily（收盘日报 15:15 推飞书，按当日收盘价更新） ---------------- */
