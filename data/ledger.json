@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 3,
+  "seq": 4,
   "trades": [
     {
       "id": "T0001",
@@ -82,6 +82,31 @@
       "exit_date": "2026-10-20",
       "exit_px": 5365,
       "reason": "止损"
+    },
+    {
+      "id": "T0004",
+      "signal": "S20261019-003",
+      "sym": "SR0",
+      "name": "白糖",
+      "contract": "SR701",
+      "dir": "long",
+      "entry_date": "2026-10-22",
+      "entry": 5383,
+      "lots": 1,
+      "lots0": 1,
+      "stop": 5360,
+      "stop0": 5360,
+      "R": 23,
+      "t3": 5452,
+      "t5": 5498,
+      "mult": 10,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "margin1": 4576,
+      "fees": 3,
+      "retry": true,
+      "fb": "试错#S20261019-003 5383 5360 1"
     }
   ],
   "nav": [
@@ -124,6 +149,10 @@
     {
       "d": "2026-10-21",
       "equity": 5291.6
+    },
+    {
+      "d": "2026-10-22",
+      "equity": 5348.6
     }
   ]
 }
