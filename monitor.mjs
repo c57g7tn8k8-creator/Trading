@@ -246,7 +246,12 @@ function replayDaily(daily, spec) {
           const ref = B.c;
           const stop = zone.dir === 'long' ? zone.seg - 3 * tick : zone.seg + 3 * tick;
           const R = zone.dir === 'long' ? ref - stop : stop - ref;
-          if (R > 0) {
+          // 逆色激活过滤（2026-10-21，settings.filter_opp_color）：激活当根bar收反向色
+          // （多头信号收绿/空头信号收红）不生成信号——破位当天日线已转反向，多为下跌/上涨启动而非回调结束。
+          // 一年回测：逆色激活31信号/23笔 胜率17.4%/PF0.97/净-196元（菜粕RM701 2026-10-20即此类）；
+          // 过滤后整体胜率37.7%→42.4%，PF1.64→1.86，净盈亏+15766→+15962元。
+          const oppColor = (zone.dir === 'long' && B.color === 'G') || (zone.dir === 'short' && B.color === 'R');
+          if (R > 0 && !(SETTINGS.filter_opp_color && oppColor)) {
             signals.push({
               date: B.d, dir: zone.dir, kind: 'activate',
               zoneId: `${zone.born}|${zone.dir}|${zone.trigPx}`,
@@ -510,12 +515,15 @@ function cardFollowup(p, px, expiry) {
     ]
   };
 }
-function cardVoid(p) {
+function cardVoid(p, reason) {
+  const isStop = reason === 'stop';
   return {
     config: { wide_screen_mode: true },
-    header: { template: 'orange', title: { tag: 'plain_text', content: `【擒龙手】设置作废 ${p.name} ${p.contract}` } },
+    header: { template: 'orange', title: { tag: 'plain_text', content: `【擒龙手】${isStop ? '止损破位作废' : '设置作废'} ${p.name} ${p.contract}` } },
     elements: [
-      ftext(`信号 **#${p.id}**（${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'}）操作区已失效：价格${p.dir === 'long' ? '创新高' : '创新低'}突破基准 **${p.void_px}**。\n**请勿再按此信号入场**；若已入场，按原止损纪律执行不受影响。`),
+      ftext(isStop
+        ? `信号 **#${p.id}**（${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'}）**尚未入场**，但价格已破止损位 **${p.stop}**（${p.dir === 'long' ? '跌破' : '涨破'}）。未入场即破止损，继续等待入场将致 R<0，信号失效。\n**请勿再按此信号入场**。`
+        : `信号 **#${p.id}**（${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'}）操作区已失效：价格${p.dir === 'long' ? '创新高' : '创新低'}突破基准 **${p.void_px}**。\n**请勿再按此信号入场**；若已入场，按原止损纪律执行不受影响。`),
       { tag: 'note', elements: [{ tag: 'lark_md', content: '该信号已关闭，之后的成交/未入场回复不再受理' }] }
     ]
   };
@@ -833,7 +841,19 @@ async function modeScan(slot) {
           const dir = term.trend;
           const breakTrig = dir === 'long' ? pb.l < term.trig : pb.h > term.trig;
           const newExtreme = dir === 'long' ? pb.h > term.base.px : pb.l < term.base.px;
-          if (breakTrig && !newExtreme) {
+          // 逆色激活过滤（同日线口径）：当日K雏形已收反向色则不生成信号
+          let oppColor = false, pbColor = '';
+          if (SETTINGS.filter_opp_color) {
+            const seq = bars.map(b => b.c).concat([pb.c]);
+            const e5 = ema(seq, 5), e10 = ema(seq, 10), e20 = ema(seq, 20);
+            const li = seq.length - 1;
+            pbColor = (e5[li] > e10[li] && e5[li] > e20[li]) ? 'R' : (e5[li] < e10[li] && e5[li] < e20[li]) ? 'G' : 'W';
+            oppColor = (dir === 'long' && pbColor === 'G') || (dir === 'short' && pbColor === 'R');
+          }
+          if (breakTrig && !newExtreme && oppColor) {
+            console.log(`  ${spec.name} 盘中破触发线${term.trig}，但当日K雏形收${pbColor}色（与${dir === 'long' ? '多' : '空'}反向），逆色激活不生成信号`);
+          }
+          if (breakTrig && !newExtreme && !oppColor) {
             const seg = dir === 'long' ? pb.l : pb.h;
             const stop0 = dir === 'long' ? seg - 3 * spec.tick : seg + 3 * spec.tick;
             const R0 = dir === 'long' ? pb.c - stop0 : stop0 - pb.c;
@@ -924,18 +944,33 @@ async function modeScan(slot) {
   const touchNotes = await checkPositions(ledger, barCache, today);
   for (const n of touchNotes) console.log('  ● ' + n);
 
-  // 已提醒信号的生命周期管理：①设置作废（价格破基准）②反馈超期自动关闭
+  // 已提醒信号的生命周期管理：①设置作废（价格破基准）②破止损作废（未入场破止损）③反馈超期自动关闭
   for (const p of pending.items) {
     if (p.status !== 'reminded') continue;
     const bars = barCache.get(p.sym);
-    if (p.void_px != null && bars && bars.length) {
-      const voidHit = bars.filter(b => b.d >= p.date)
-        .some(b => p.dir === 'long' ? b.h > p.void_px : b.l < p.void_px);
-      if (voidHit) {
-        p.status = 'invalidated'; p.invalidated_at = nowStr();
-        if (!blackout) await feishuSend(cardVoid(p));
-        console.log(`  ✗ 设置作废 ${p.id} ${p.name}：价格已破基准 ${p.void_px}，操作区失效`);
-        continue;
+    if (bars && bars.length) {
+      const since = bars.filter(b => b.d >= p.date);
+      // ①破基准作废：多头创新高/空头创新低，操作区失效
+      if (p.void_px != null) {
+        const voidHit = since.some(b => p.dir === 'long' ? b.h > p.void_px : b.l < p.void_px);
+        if (voidHit) {
+          p.status = 'invalidated'; p.invalidated_at = nowStr(); p.void_reason = 'base';
+          if (!blackout) await feishuSend(cardVoid(p, 'base'));
+          console.log(`  ✗ 设置作废 ${p.id} ${p.name}：价格已破基准 ${p.void_px}，操作区失效`);
+          continue;
+        }
+      }
+      // ②破止损作废（2026-10-21）：未入场价格已越过止损位（多:最低价≤止损/空:最高价≥止损），
+      //   继续等3分钟转红入场将使入场价劣于止损、R<0，信号失效。菜粕RM701 10-20当天2261破止损2269仍发跟进即此缺口。
+      //   仅对未入场(reminded)判定；已入场持仓改走持仓止损跟踪，不受此影响。
+      if (p.stop != null) {
+        const stopHit = since.some(b => p.dir === 'long' ? b.l <= p.stop : b.h >= p.stop);
+        if (stopHit) {
+          p.status = 'invalidated'; p.invalidated_at = nowStr(); p.void_reason = 'stop';
+          if (!blackout) await feishuSend(cardVoid(p, 'stop'));
+          console.log(`  ✗ 止损破位作废 ${p.id} ${p.name}：未入场价格已破止损 ${p.stop}，信号失效`);
+          continue;
+        }
       }
     }
     const expiry = await nextTradingDay(p.remind_date);
