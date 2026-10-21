@@ -722,14 +722,23 @@ function renderDashboard(ledger, state) {
     const x = i => P + (W - 2 * P) * (nav.length === 1 ? 0.5 : i / (nav.length - 1));
     const y = v => H - P - (H - 2 * P) * (v - ymin) / (ymax - ymin);
     svgPath = nav.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.equity).toFixed(1)}`).join(' ');
-    svgDots = nav.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.equity).toFixed(1)}" r="2.2" fill="#c23531"><title>${p.d}  ${p.equity}</title></circle>`).join('');
+    svgDots = nav.map((p, i) => { const rp = (100 * (p.equity - ledger.capital) / ledger.capital).toFixed(1); return `<circle cx="${x(i).toFixed(1)}" cy="${y(p.equity).toFixed(1)}" r="2.2" fill="#c23531"><title>${p.d}  净值 ¥${p.equity}  收益 ${rp >= 0 ? '+' : ''}${rp}%</title></circle>`; }).join('');
   }
   const y0 = nav.length ? (H - P - (H - 2 * P) * (ledger.capital - ymin) / (ymax - ymin)) : H / 2;
+  // Y轴百分比刻度（相对本金）+ X轴日期刻度（2026-10-21 需求）
+  const pctOf = v => (100 * (v - ledger.capital) / ledger.capital).toFixed(1);
+  const axisTxt = nav.length ? `
+<text x="6" y="${P - 8}" font-size="10" fill="#999">+${pctOf(ymax)}%</text>
+<text x="6" y="${(y0 + 3).toFixed(1)}" font-size="10" fill="#bbb">0%</text>
+<text x="6" y="${(H - P + 4).toFixed(1)}" font-size="10" fill="#999">${pctOf(ymin)}%</text>
+<text x="${P}" y="${H - 8}" font-size="10" fill="#999">${nav[0].d}</text>
+<text x="${W - P}" y="${H - 8}" text-anchor="end" font-size="10" fill="#999">${nav[nav.length - 1].d}</text>` : '';
   const row = (t, i) => {
     const sgn = t.dir === 'long' ? 1 : -1;
     const stat = t.status === 'open' ? (t.half_done ? '余仓追踪' : '持仓中') : t.reason;
     const pc = t.status === 'closed' ? (t.pnl > 0 ? '#c23531' : t.pnl < 0 ? '#1a9e4b' : '#888') : '#888';
-    return `<tr><td>${t.entry_date}</td><td>${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${t.entry}</td><td>${t.stop0}</td><td>${t.t3}</td><td>${t.t5}</td><td>${stat}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
+    const retryTag = t.retry ? `<span style="color:#b8860b;font-size:10px">[试错] </span>` : '';
+    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${t.entry}</td><td>${t.stop0}</td><td>${t.t3}</td><td>${t.t5}</td><td>${stat}</td><td>${t.signal || '-'}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
   };
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>擒龙手 · 云端监控净值面板</title>
@@ -742,7 +751,7 @@ h1{font-size:20px;margin:0 0 4px}.sub{color:#888;font-size:12px;margin-bottom:16
 .panel{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:16px;margin-bottom:18px}
 table{border-collapse:collapse;width:100%;font-size:12.5px}
 th,td{border-bottom:1px solid #eee;padding:6px 8px;text-align:right;white-space:nowrap}
-th:first-child,td:first-child,th:nth-child(2),td:nth-child(2){text-align:left}
+th:first-child,td:first-child,th:nth-child(2),td:nth-child(2),th:nth-child(3),td:nth-child(3){text-align:left}
 th{background:#fafafa;color:#666;font-weight:600}
 .up{color:#c23531}.dn{color:#1a9e4b}
 </style></head><body>
@@ -762,17 +771,85 @@ th{background:#fafafa;color:#666;font-weight:600}
 <line x1="${P}" y1="${y0}" x2="${W - P}" y2="${y0}" stroke="#bbb" stroke-dasharray="4 3"/>
 <path d="${svgPath}" fill="none" stroke="#c23531" stroke-width="2"/>
 ${svgDots}
-<text x="${W - P}" y="${P - 8}" text-anchor="end" font-size="11" fill="#888">高 ${Math.round(ymax)}</text>
-<text x="${W - P}" y="${H - 6}" text-anchor="end" font-size="11" fill="#888">低 ${Math.round(ymin)}</text>
+${axisTxt}
+<text x="${W - P}" y="${P - 8}" text-anchor="end" font-size="11" fill="#888">高 ¥${Math.round(ymax)}</text>
 </svg></div>
-<div class="panel"><b>交易记录</b>（红涨绿跌；盈亏=已扣双边手续费净额，单位：元）<br>
-<table><thead><tr><th>日期</th><th>品种合约</th><th>方向</th><th>手数</th><th>入场</th><th>止损</th><th>3R</th><th>5R</th><th>状态</th><th>盈亏</th></tr></thead>
-<tbody>${ledger.trades.slice().reverse().map(row).join('') || '<tr><td colspan="10" style="text-align:center;color:#999">暂无成交记录</td></tr>'}</tbody></table></div>
+<div class="panel"><b>交易记录</b>（红涨绿跌；盈亏=已扣双边手续费净额，单位：元；平仓请按"单号"列回复）<br>
+<table><thead><tr><th>日期</th><th>单号</th><th>品种合约</th><th>方向</th><th>手数</th><th>入场</th><th>止损</th><th>3R</th><th>5R</th><th>状态</th><th>信号编号</th><th>盈亏</th></tr></thead>
+<tbody>${ledger.trades.slice().reverse().map(row).join('') || '<tr><td colspan="12" style="text-align:center;color:#999">暂无成交记录</td></tr>'}</tbody></table></div>
 </body></html>`;
 }
 function rebuildDashboard(ledger, state) {
   fs.mkdirSync(J('docs'), { recursive: true });
   fs.writeFileSync(J('docs/index.html'), renderDashboard(ledger, state));
+}
+
+/* ---------------- 模式：daily（收盘日报 15:15 推飞书，按当日收盘价更新） ---------------- */
+/** 净值字符走势图：净值序列映射到 ▁▂▃▄▅▆▇█（飞书自定义机器人发不了图片，用文字走势替代） */
+function sparkline(vals) {
+  if (!vals.length) return '（暂无净值数据）';
+  const blocks = '▁▂▃▄▅▆▇█';
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const span = hi - lo || 1;
+  return vals.map(v => blocks[Math.max(0, Math.min(blocks.length - 1, Math.round((v - lo) / span * (blocks.length - 1))))]).join('');
+}
+function cardDaily(ledger, today, lastPx) {
+  const nav = ledger.nav || [];
+  const eq = nav.length ? nav[nav.length - 1].equity : ledger.capital;
+  const prevEq = nav.length > 1 ? nav[nav.length - 2].equity : ledger.capital;
+  const dayPnl = Math.round((eq - prevEq) * 100) / 100;
+  const pnl = Math.round((eq - ledger.capital) * 100) / 100;
+  const ret = (100 * (eq - ledger.capital) / ledger.capital).toFixed(1);
+  let peak = ledger.capital, dd = 0;
+  for (const p of nav) { peak = Math.max(peak, p.equity); dd = Math.max(dd, peak - p.equity); }
+  const ddPct = peak > 0 ? (100 * dd / peak).toFixed(1) : '0';
+  const closed = ledger.trades.filter(t => t.status === 'closed');
+  const wins = closed.filter(t => t.pnl > 0).length;
+  const winRate = closed.length ? (100 * wins / closed.length).toFixed(0) : '-';
+  const opens = ledger.trades.filter(t => t.status === 'open');
+  const todayClosed = closed.filter(t => t.exit_date === today);
+  const feeSum = Math.round(ledger.trades.reduce((a, t) => a + (t.fees || 0), 0) * 100) / 100;
+  const recent = nav.slice(-30).map(p => p.equity);
+  const lo = recent.length ? Math.min(...recent) : eq, hi = recent.length ? Math.max(...recent) : eq;
+  const pct = v => (100 * (v - ledger.capital) / ledger.capital).toFixed(1);
+
+  const openLines = opens.length ? opens.map((t, i) => {
+    const lp = lastPx[t.sym];
+    const f = lp ? Math.round((t.dir === 'long' ? lp - t.entry : t.entry - lp) * t.mult * t.lots) : null;
+    return `${i + 1}. ${t.name} ${t.contract} ${t.dir === 'long' ? '多' : '空'} ${t.lots}手 @${t.entry}｜止损${t.stop}｜浮盈 ${f == null ? '—' : (f >= 0 ? '+' : '') + f} 元`;
+  }).join('\n') : '无持仓';
+  const closedLines = todayClosed.length ? todayClosed.map((t, i) =>
+    `${i + 1}. ${t.name} ${t.contract} ${t.dir === 'long' ? '多' : '空'} ${t.lots0}手｜${t.reason}｜盈亏 ${t.pnl >= 0 ? '+' : ''}${t.pnl} 元`).join('\n') : '今日无平仓';
+
+  return {
+    config: { wide_screen_mode: true },
+    header: { template: pnl >= 0 ? 'green' : 'red', title: { tag: 'plain_text', content: `【擒龙手】收盘日报 ${today}` } },
+    elements: [
+      ftext(`**当前权益 ¥${Math.round(eq).toLocaleString()}**（累计 ${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()} 元，${ret}%）\n**当日盈亏 ${dayPnl >= 0 ? '+' : ''}${dayPnl} 元**｜最大回撤 ¥${Math.round(dd)}（-${ddPct}%）\n已平仓 ${closed.length} 笔 / 胜率 ${winRate}%｜当前持仓 ${opens.length} 笔｜累计手续费 ¥${feeSum}`),
+      ftext(`**净值走势（近${recent.length}日·收盘）**\n${sparkline(recent)}\n最高 ¥${Math.round(hi)}（+${pct(hi)}%）　最低 ¥${Math.round(lo)}（${pct(lo)}%）`),
+      ftext(`**当前持仓（${opens.length}）**\n${openLines}`),
+      ftext(`**当日平仓（${todayClosed.length}）**\n${closedLines}`),
+      { tag: 'note', elements: [{ tag: 'lark_md', content: '收盘口径｜完整净值曲线见 GitHub 面板（打不开就开 Watt Toolkit 加速）' }] }
+    ]
+  };
+}
+async function modeDaily() {
+  const today = todayStr();
+  if (!(await isTradingDay(today))) { console.log('非交易日，跳过收盘日报'); return; }
+  const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
+  const state = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  // 持仓品种取最新收盘价估值（15:05日线已发布；换月旧合约按自己合约取）
+  const lastPx = {};
+  for (const t of ledger.trades) if (t.status === 'open') {
+    try { const lp = await liveLastPx(t.sym, null, t.contract); if (lp) lastPx[t.sym] = lp; } catch { }
+  }
+  const eq = equityNow(ledger, lastPx);
+  ledger.nav = (ledger.nav || []).filter(p => p.d !== today);
+  ledger.nav.push({ d: today, equity: eq });   // 落当日收盘净值点
+  await feishuSend(cardDaily(ledger, today, lastPx));
+  writeJson(J('data/ledger.json'), ledger);
+  rebuildDashboard(ledger, state);
+  console.log(`收盘日报已推送：权益 ${eq}，持仓 ${ledger.trades.filter(t => t.status === 'open').length} 笔`);
 }
 
 /* ---------------- 模式：scan ---------------- */
@@ -1121,6 +1198,8 @@ async function modeFeedback() {
   const mCJ = body.match(/(?:成交|入场)\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)?\s*(\d+)?/);
   const mWCJ = body.match(/未\s*(?:成交|入场)\s*#?(S\d{8}-\d+)?/);
   const mPC = body.match(/平仓\s*#?(T\d+)?\s*(\d+(?:\.\d+)?)?/);
+  // 试错/再入场（2026-10-21）：同一信号止损后再进场，可自定义止损。格式：试错 #信号号 入场价 止损价 [手数]
+  const mSR = body.match(/(?:试错|重进|再入场)\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)\s*(\d+(?:\.\d+)?)?\s*(\d+)?/);
 
   if (mWCJ) {
     const p = mWCJ[1]
@@ -1139,6 +1218,45 @@ async function modeFeedback() {
         `未找到可匹配的有效信号${mWCJ[1] ? '（编号 ' + mWCJ[1] + '）' : ''}。`,
         '可能原因：信号已作废/超期关闭，或编号有误。有效信号的编号见飞书提醒卡片。'
       ], 'red'));
+    }
+  } else if (mSR) {
+    // 试错/再入场：关联原信号 zoneId、retry=true，独立于 pending 状态，云端按你给的止损照常跟踪
+    const p = mSR[1] ? pending.items.find(x => x.id === mSR[1]) : null;
+    if (!mSR[1]) {
+      await feishuSend(cardFbAck('【擒龙手】试错未受理', ['试错单必须带信号编号，格式：**试错 #信号号 入场价 止损价 [手数]**', '例：试错 #S20261019-002 5383 5370 1'], 'red'));
+    } else if (!p) {
+      await feishuSend(cardFbAck('【擒龙手】试错未受理', [`未找到信号 **#${mSR[1]}**。`, '试错单需关联一条已推送过的信号（无论其是否已止损/关闭），编号见历史提醒卡片。'], 'red'));
+    } else if (!mSR[2] || !mSR[3]) {
+      await feishuSend(cardFbAck('【擒龙手】试错未受理', ['试错单需同时给 **入场价** 和 **止损价**。', '格式：**试错 #信号号 入场价 止损价 [手数]**（例：试错 #S20261019-002 5383 5370 1）'], 'red'));
+    } else {
+      const spec = SPEC[p.sym];
+      const entry = +mSR[2], stop = +mSR[3], lots = mSR[4] ? +mSR[4] : 1;
+      const sgn = p.dir === 'long' ? 1 : -1;
+      const badDir = (p.dir === 'long' && stop >= entry) || (p.dir === 'short' && stop <= entry);
+      if (badDir) {
+        await feishuSend(cardFbAck('【擒龙手】试错未受理', [`止损价方向有误：${p.dir === 'long' ? '做多止损应低于入场价' : '做空止损应高于入场价'}（入场 ${entry} / 止损 ${stop}）。`], 'red'));
+      } else {
+        const R = Math.abs(entry - stop);
+        const t = {
+          id: 'T' + String(++ledger.seq).padStart(4, '0'),
+          signal: p.id, sym: p.sym, name: p.name, contract: p.contract,
+          dir: p.dir, entry_date: today, entry, lots, lots0: lots,
+          stop, stop0: stop, R,
+          t3: entry + 3 * sgn * R, t5: entry + 5 * sgn * R,
+          mult: spec.mult, half_done: false, realized: 0, status: 'open',
+          margin1: Math.round(entry * spec.mult * marginRate(spec)),
+          fees: Math.round(feePerLot(spec, entry) * lots * 100) / 100,
+          retry: true, fb: body.slice(0, 100)
+        };
+        ledger.trades.push(t);
+        processed = true;
+        console.log(`  ★ 试错登记 ${t.id}：${t.name} ${t.contract} ${p.dir === 'long' ? '多' : '空'} ${lots}手 @${entry} 止损${stop}（信号 #${p.id} 试错）`);
+        await feishuSend(cardFbAck('【擒龙手】试错单已入账 ' + t.id, [
+          `**${t.name} ${t.contract}** ${p.dir === 'long' ? '多' : '空'} **${lots} 手 @ ${entry}**（信号 #${p.id} 试错）`,
+          `止损 ${stop}｜1R=${Math.round(R * 100) / 100}点｜3R=${Math.round(t.t3 * 100) / 100}｜5R=${Math.round(t.t5 * 100) / 100}`,
+          `云端将按你给的止损 ${stop} 跟踪止损/3R/5R/变色并提醒。`
+        ], 'green'));
+      }
     }
   } else if (mCJ) {
     const p = mCJ[1]
@@ -1201,10 +1319,10 @@ async function modeFeedback() {
       ], t.pnl > 0 ? 'green' : 'wathet'));
     }
   } else {
-    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] / 未入场 #信号号 / 平仓 #单号 [价]）');
+    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] / 未入场 #信号号 / 平仓 #单号 [价] / 试错 #信号号 入场价 止损价 [手数]）');
     await feishuSend(cardFbAck('【擒龙手】未能识别回复', [
       `您的回复："${body.slice(0, 60)}" 未匹配任何指令。`,
-      '支持格式：\n**成交 #信号号 [实际价] [手数]**（如：成交 #S20261008-001 935 2）\n**未入场 #信号号**\n**平仓 #单号 [实际价]**（如：平仓 #T0007 921）',
+      '支持格式：\n**成交 #信号号 [实际价] [手数]**（如：成交 #S20261008-001 935 2）\n**未入场 #信号号**\n**平仓 #单号 [实际价]**（如：平仓 #T0007 921）\n**试错 #信号号 入场价 止损价 [手数]**（同一信号止损后再进场，如：试错 #S20261019-002 5383 5370 1）',
       '多个信号并存时务必带 #编号；不带编号将匹配"最新一条有效信号/持仓"，存在错配风险。'
     ], 'red'));
   }
@@ -1396,6 +1514,7 @@ try {
   if (mode === 'scan') await modeScan(arg || 'noon');
   else if (mode === 'remind') await modeRemind(arg || 'noon');
   else if (mode === 'feedback') await modeFeedback();
+  else if (mode === 'daily') await modeDaily();
   else if (mode === 'nav') {
     const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
     const state = readJson(J('data/state.json'), { seen: {}, last_scan: null });
@@ -1405,7 +1524,7 @@ try {
   else if (mode === 'contracts') await modeContracts();
   else if (mode === 'pool') await modePool();
   else if (mode === 'calendar') await modeCalendar();
-  else console.log('用法: node monitor.mjs scan|remind|feedback|nav|contracts|pool|calendar [noon|evening|night|morning]');
+  else console.log('用法: node monitor.mjs scan|remind|feedback|daily|nav|contracts|pool|calendar [noon|evening|night|morning]');
 } catch (e) {
   console.error('运行出错:', e);
   process.exit(1);
