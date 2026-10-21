@@ -15,5 +15,7 @@
   },
   "pool_screen_note": "每月1日自动筛池口径：代表合约=距名义交割日(交割月15日)≥min_days天的最近主力档(不足自动顺延下一档)；一手保证金<margin_max元；20日日均成交量≥vol_min手；20日日均沉淀保证金(持仓×结算×乘数×保证金率)>depo_min_yi亿。有未平仓持仓或待反馈信号的品种强制留池。",
   "stop_atr_mult": 0.5,
-  "margin_broker_add": 0.015
+  "margin_broker_add": 0.015,
+  "filter_opp_color": true,
+  "filter_opp_color_note": "逆色激活过滤（2026-10-21）：操作区激活当根bar收反向色（多头信号收绿/空头信号收红）不生成信号。一年回测：逆色激活31信号胜率仅17.4%/PF0.97/净-196元；过滤后胜率37.7%→42.4%、PF1.64→1.86。设 false 关闭。"
 }
