@@ -48,9 +48,13 @@
       "mult": 10,
       "half_done": false,
       "realized": 0,
-      "status": "open",
-      "fees": 1.2,
-      "fb": "成交 #S20261014-002 2208 1"
+      "status": "closed",
+      "fees": 2.4,
+      "fb": "成交 #S20261014-002 2208 1",
+      "pnl": 57.6,
+      "exit_date": "2026-10-21",
+      "exit_px": 2202,
+      "reason": "手动平仓"
     },
     {
       "id": "T0003",
@@ -119,7 +123,7 @@
     },
     {
       "d": "2026-10-21",
-      "equity": 5452.8
+      "equity": 5291.6
     }
   ]
 }
