@@ -536,11 +536,12 @@ function cardFbAck(title, lines, template) {
   };
 }
 function cardTouch(t, label, px, extra) {
+  const tk = (SPEC[t.sym] && SPEC[t.sym].tick) || 1;   // 价格按品种tick格式化，去浮点长尾
   return {
     config: { wide_screen_mode: true },
     header: { template: 'indigo', title: { tag: 'plain_text', content: `【擒龙手】到位提醒 ${t.name} ${t.contract}` } },
     elements: [
-      ftext(`**${t.name} ${t.contract} 目前已达到${label}点位 ${px}**\n方向：${t.dir === 'long' ? '多' : '空'}｜入场 ${t.entry}｜${t.lots} 手${extra ? '\n' + extra : ''}`),
+      ftext(`**${t.name} ${t.contract} 目前已达到${label}点位 ${fmtPx(px, tk)}**\n方向：${t.dir === 'long' ? '多' : '空'}｜入场 ${fmtPx(t.entry, tk)}｜${t.lots} 手${extra ? '\n' + extra : ''}`),
       { tag: 'note', elements: [{ tag: 'lark_md', content: `单号 ${t.id}｜按信号价自动记账，实际不同请到置顶 Issue 回复：平仓 ${t.id} 实际价` }] }
     ]
   };
@@ -577,6 +578,12 @@ function equityNow(ledger, lastPx = {}) {
 /** 保证金率 = 交易所标准(spec.rate) + 期货公司加点（固定值，不考虑交易所临时调整）
  *  2026-10-14 用户定口径：统一按交易所标准+1.5个百分点统计保证金（settings.margin_broker_add） */
 function marginRate(spec) { return spec.rate + (SETTINGS.margin_broker_add || 0); }
+/** 价格按品种最小变动价位格式化显示（去掉浮点长尾，如玉米2148.4199…→2148）。tick>=1取整，0.5留1位，其余留2位。仅用于展示，不改账本原值 */
+function fmtPx(v, tick) {
+  if (v == null || !isFinite(+v)) return '-';
+  const dec = tick >= 1 ? 0 : (tick >= 0.5 ? 1 : 2);
+  return (+v).toFixed(dec);
+}
 /** 手数=以损定量：max(1, floor(权益×risk_pct/单手风险))，且多手时总保证金+已持仓保证金 ≤ 权益×margin_cap
  *  2026-10-16 增补 usedMargin：第二仓起扣除已持仓占用的保证金，避免双仓保证金超缴 */
 function computeLots(equity, R, mult, margin1, usedMargin = 0) {
@@ -738,7 +745,8 @@ function renderDashboard(ledger, state) {
     const stat = t.status === 'open' ? (t.half_done ? '余仓追踪' : '持仓中') : t.reason;
     const pc = t.status === 'closed' ? (t.pnl > 0 ? '#c23531' : t.pnl < 0 ? '#1a9e4b' : '#888') : '#888';
     const retryTag = t.retry ? `<span style="color:#b8860b;font-size:10px">[试错] </span>` : '';
-    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${t.entry}</td><td>${t.stop0}</td><td>${t.t3}</td><td>${t.t5}</td><td>${stat}</td><td>${t.signal || '-'}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
+    const tk = (SPEC[t.sym] && SPEC[t.sym].tick) || 1;   // 价格按品种tick格式化，去掉旧数据的浮点长尾
+    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${fmtPx(t.entry, tk)}</td><td>${fmtPx(t.stop0, tk)}</td><td>${fmtPx(t.t3, tk)}</td><td>${fmtPx(t.t5, tk)}</td><td>${stat}</td><td>${t.signal || '-'}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
   };
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>擒龙手 · 云端监控净值面板</title>
