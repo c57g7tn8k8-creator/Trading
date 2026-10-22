@@ -102,11 +102,15 @@
       "mult": 10,
       "half_done": false,
       "realized": 0,
-      "status": "open",
+      "status": "closed",
       "margin1": 4576,
-      "fees": 3,
+      "fees": 6,
       "retry": true,
-      "fb": "试错#S20261019-003 5383 5360 1"
+      "fb": "试错#S20261019-003 5383 5360 1",
+      "pnl": -236,
+      "exit_date": "2026-10-22",
+      "exit_px": 5360,
+      "reason": "手动平仓"
     }
   ],
   "nav": [
@@ -152,7 +156,7 @@
     },
     {
       "d": "2026-10-22",
-      "equity": 5288.6
+      "equity": 5055.6
     }
   ]
 }
