@@ -266,7 +266,98 @@ function replayDaily(daily, spec) {
       }
     }
   }
-  return { signals, bars: daily, term: { trend, base, trig, zoneUsed } };
+  return {
+    signals, bars: daily,
+    // 供"未来三日展望"使用：pullN/pullRun=回调进度，zone=当前存活操作区
+    term: {
+      trend, base, trig, zoneUsed,
+      pullN: pull.n, pullRun: pull.run,
+      zone: zone ? { dir: zone.dir, seg: zone.seg, born: zone.born, trigPx: zone.trigPx } : null
+    }
+  };
+}
+
+/* ---------------- 未来 N 个交易日信号展望（收盘日报用） ----------------
+ * 依据 K3 段内进度推算每个品种"最快还要几步才能出信号"及对应点位：
+ *   已激活(zone)      → 等 3 分钟转色入场，T+0
+ *   已有触发线(trig)  → 破位即激活，T+1
+ *   回调 n≥1 无 trig  → 先创新极值形成触发线，再破位，T+2
+ *   回调 n=0          → 需三步，T+3（仅列示最接近的）
+ * 段内额度已用(zoneUsed)的品种在趋势翻转前无资格，单独计数不列示。
+ */
+async function tradingDaysAfter(d, n) {
+  const out = [];
+  let x = d;
+  for (let i = 0; i < n; i++) { x = await nextTradingDay(x); out.push(x); }
+  return out;
+}
+async function forecastWindow(today, horizon = 3) {
+  const dates = await tradingDaysAfter(today, horizon);
+  const rows = [], active = [];
+  let usedCnt = 0, failCnt = 0;
+  for (const spec of POOL) {
+    let bars;
+    try { bars = await fetchDailySmart(spec); } catch (e) { failCnt++; continue; }
+    if (!bars || bars.length < SETTINGS.min_history) { failCnt++; continue; }
+    let term;
+    try { ({ term } = replayDaily(bars.map(b => ({ ...b })), spec)); } catch (e) { failCnt++; continue; }
+    if (!term || (term.trend !== 'long' && term.trend !== 'short')) continue;
+    const last = bars[bars.length - 1];
+    const dir = term.trend === 'long' ? 'long' : 'short';   // 多头段回调做多／空头段反弹做空
+
+    if (term.zone) {
+      // 超期作废：有效期 = 激活日次一交易日收盘，超过即失去入场资格
+      const zExpiry = await nextTradingDay(term.zone.born);
+      if (today > zExpiry) { usedCnt++; continue; }
+      active.push({
+        name: spec.name, contract: spec.contract, dir: term.zone.dir,
+        seg: term.zone.seg, born: term.zone.born, expiry: zExpiry
+      });
+      continue;
+    }
+    if (term.zoneUsed) { usedCnt++; continue; }
+
+    let eta, gate, stage;
+    if (term.trig) { eta = 1; gate = term.trig; stage = '破位即激活'; }
+    else if ((term.pullN || 0) >= 1) { eta = 2; gate = term.pullRun; stage = '先形成触发线'; }
+    else { eta = 3; gate = null; stage = '需攒两段回调'; }
+    if (eta > horizon) continue;
+
+    // 门槛方向：空头段需向上突破（正幅度），多头段需向下破位（负幅度）
+    const need = gate == null ? null : (dir === 'short' ? gate - last.c : last.c - gate);
+    if (need != null && need < 0) continue;   // 已越过门槛（等下一根确认），保险跳过
+    const pct = need == null ? null : (dir === 'short' ? 100 * need / last.c : -100 * need / last.c);
+    rows.push({
+      name: spec.name, contract: spec.contract, dir, eta, gate, stage,
+      close: last.c, pct, etaDate: dates[eta - 1]
+    });
+  }
+  // 先按最快出信号日，再按距门槛的绝对幅度（方向无关）
+  const absPct = r => r.pct == null ? 9e9 : Math.abs(r.pct);
+  rows.sort((a, b) => (a.eta - b.eta) || (absPct(a) - absPct(b)));
+  return { rows, active, usedCnt, failCnt, dates };
+}
+function fmtForecast(fc, today) {
+  if (!fc) return '';
+  const L = [];
+  L.push(`**未来${fc.dates.length}个交易日信号展望**（截至 ${today} 收盘，按最快出信号日排序）`);
+  if (fc.active.length) {
+    L.push('', `**已激活·待入场（${fc.active.length}）**：` + fc.active.map(a =>
+      `${a.name} ${a.contract} ${a.dir === 'long' ? '多' : '空'}（${a.born} 激活，损基 ${a.seg}，有效期至 ${a.expiry} 收盘）`).join('；') +
+      '　→ 切 3 分钟图等新鲜转色入场');
+  }
+  if (fc.rows.length) {
+    L.push('');
+    for (const r of fc.rows.slice(0, 8)) {
+      const mark = r.gate == null ? '' : (r.dir === 'short' ? `H>${r.gate}` : `L<${r.gate}`);
+      const dist = r.pct == null ? '—' : `${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(2)}%`;
+      L.push(`${r.eta === 1 ? '①' : r.eta === 2 ? '②' : '③'} ${r.name} ${r.contract}｜${r.dir === 'long' ? '回调做多' : '反弹做空'}｜${r.stage} ${mark}（${dist}）→ 最快 ${r.etaDate}`);
+    }
+  } else {
+    L.push('', '全池无品种在窗口内具备出信号条件（均在额度已用或需重新攒回调）');
+  }
+  L.push('', `段内额度已用 ${fc.usedCnt} 个：翻段前无资格。破位当日收反向色不发信号（逆色过滤）；创新低/高会重置段并清零回调计数。`);
+  return L.join('\n');
 }
 
 /* ---------------- 交易日历（静态日历优先 → timor.tech + 本地缓存 → 兜底周一至周五） ----------------
@@ -847,7 +938,7 @@ function sparkline(vals) {
   const span = hi - lo || 1;
   return vals.map(v => blocks[Math.max(0, Math.min(blocks.length - 1, Math.round((v - lo) / span * (blocks.length - 1))))]).join('');
 }
-function cardDaily(ledger, today, lastPx) {
+function cardDaily(ledger, today, lastPx, forecastText) {
   const nav = ledger.nav || [];
   const eq = nav.length ? nav[nav.length - 1].equity : ledger.capital;
   const prevEq = nav.length > 1 ? nav[nav.length - 2].equity : ledger.capital;
@@ -875,16 +966,19 @@ function cardDaily(ledger, today, lastPx) {
   const closedLines = todayClosed.length ? todayClosed.map((t, i) =>
     `${i + 1}. ${t.name} ${t.contract} ${t.dir === 'long' ? '多' : '空'} ${t.lots0}手｜${t.reason}｜盈亏 ${t.pnl >= 0 ? '+' : ''}${t.pnl} 元`).join('\n') : '今日无平仓';
 
+  const els = [
+    ftext(`**当前权益 ¥${Math.round(eq).toLocaleString()}**（累计 ${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()} 元，${ret}%）\n**当日盈亏 ${dayPnl >= 0 ? '+' : ''}${dayPnl} 元**｜最大回撤 ¥${Math.round(dd)}（-${ddPct}%）\n已平仓 ${closed.length} 笔 / 胜率 ${winRate}%｜当前持仓 ${opens.length} 笔｜累计手续费 ¥${feeSum}`),
+    ftext(`**净值走势（近${recent.length}日·收盘）**\n${sparkline(recent)}\n最高 ¥${Math.round(hi)}（+${pct(hi)}%）　最低 ¥${Math.round(lo)}（${pct(lo)}%）`),
+    ftext(`**当前持仓（${opens.length}）**\n${openLines}`),
+    ftext(`**当日平仓（${todayClosed.length}）**\n${closedLines}`)
+  ];
+  if (forecastText) els.push(ftext(forecastText));
+  els.push({ tag: 'note', elements: [{ tag: 'lark_md', content: '收盘口径｜展望点位为当日收盘快照，次日极值变化后门槛同步更新｜完整净值曲线见 GitHub 面板' }] });
+
   return {
     config: { wide_screen_mode: true },
     header: { template: pnl >= 0 ? 'green' : 'red', title: { tag: 'plain_text', content: `【擒龙手】收盘日报 ${today}` } },
-    elements: [
-      ftext(`**当前权益 ¥${Math.round(eq).toLocaleString()}**（累计 ${pnl >= 0 ? '+' : ''}${pnl.toLocaleString()} 元，${ret}%）\n**当日盈亏 ${dayPnl >= 0 ? '+' : ''}${dayPnl} 元**｜最大回撤 ¥${Math.round(dd)}（-${ddPct}%）\n已平仓 ${closed.length} 笔 / 胜率 ${winRate}%｜当前持仓 ${opens.length} 笔｜累计手续费 ¥${feeSum}`),
-      ftext(`**净值走势（近${recent.length}日·收盘）**\n${sparkline(recent)}\n最高 ¥${Math.round(hi)}（+${pct(hi)}%）　最低 ¥${Math.round(lo)}（${pct(lo)}%）`),
-      ftext(`**当前持仓（${opens.length}）**\n${openLines}`),
-      ftext(`**当日平仓（${todayClosed.length}）**\n${closedLines}`),
-      { tag: 'note', elements: [{ tag: 'lark_md', content: '收盘口径｜完整净值曲线见 GitHub 面板（打不开就开 Watt Toolkit 加速）' }] }
-    ]
+    elements: els
   };
 }
 async function modeDaily() {
@@ -904,7 +998,16 @@ async function modeDaily() {
   const eq = equityNow(ledger, lastPx);
   ledger.nav = (ledger.nav || []).filter(p => p.d !== today);
   ledger.nav.push({ d: today, equity: eq });   // 落当日收盘净值点
-  await feishuSend(cardDaily(ledger, today, lastPx));
+  // 未来三个交易日信号展望（2026-10-28 新增）：失败不影响日报主体推送
+  let fcText = '';
+  try {
+    const fc = await forecastWindow(today, 3);
+    fcText = fmtForecast(fc, today);
+    console.log(`展望：候选 ${fc.rows.length} 个，已激活 ${fc.active.length} 个，额度已用 ${fc.usedCnt} 个，取数失败 ${fc.failCnt} 个`);
+  } catch (e) {
+    console.log('展望生成失败（不影响日报）：' + (e.message || e));
+  }
+  await feishuSend(cardDaily(ledger, today, lastPx, fcText));
   state.last_daily = today;        // 幂等标记：冗余 cron 触发时据此跳过，避免重复推日报
   writeJson(J('data/state.json'), state);
   writeJson(J('data/ledger.json'), ledger);
