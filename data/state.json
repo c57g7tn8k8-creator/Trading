@@ -12997,5 +12997,6 @@
   "last_scan_slot": "evening",
   "runs": {
     "2026-10-28:evening": "2026-10-28 19:50"
-  }
+  },
+  "last_daily": "2026-10-28"
 }
