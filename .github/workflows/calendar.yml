@@ -3,9 +3,12 @@ name: 年度交易日历刷新
 # 每年12月30日 10:00 北京时间 = UTC 02:00
 # 抓取次年官方法定节假日数据，整文件覆盖 config/holidays_static.json（仅保留次年，前一年数据自动删除）。
 # 若次年官方数据尚未发布或抓取失败，保留现有文件不做改动——可稍后在此页面手动 Run workflow 重跑。
+# 冗余备份档（2026-10-28）：12:00 再排一档，主档被调度器静默丢弃时补上；
+# modeCalendar 内 last_calendar 幂等守卫保证同一年度只实跑一次。
 on:
   schedule:
     - cron: '0 2 30 12 *'
+    - cron: '0 4 30 12 *'
   workflow_dispatch:
 
 permissions:

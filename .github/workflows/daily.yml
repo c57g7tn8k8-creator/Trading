@@ -1,9 +1,14 @@
 name: 收盘日报
 
 # 北京时间 15:15 = UTC 07:15（日盘收盘后，当日日线已发布，按收盘价更新面板推飞书）
+# 冗余三档（2026-10-28）：GitHub 定时任务可能在整段窗口被静默丢弃且不补跑，
+# 故设 15:15 / 15:35 / 15:55 三档；monitor.mjs 内 state.last_daily 幂等守卫保证只实跑一次，
+# 后两档若前档已完成则直接跳过（不重复推飞书、不重复写净值）。手动补跑用 Run workflow。
 on:
   schedule:
     - cron: '15 7 * * *'
+    - cron: '35 7 * * *'
+    - cron: '55 7 * * *'
   workflow_dispatch:
 
 concurrency: qls-daily
