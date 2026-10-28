@@ -892,6 +892,10 @@ async function modeDaily() {
   if (!(await isTradingDay(today))) { console.log('非交易日，跳过收盘日报'); return; }
   const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
   const state = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  if (!process.env.FORCE_DAILY && state.last_daily === today) {
+    console.log(`今日（${today}）收盘日报已推送过，冗余触发跳过；如需强制重推设 FORCE_DAILY=1`);
+    return;
+  }
   // 持仓品种取最新收盘价估值（15:05日线已发布；换月旧合约按自己合约取）
   const lastPx = {};
   for (const t of ledger.trades) if (t.status === 'open') {
@@ -901,6 +905,8 @@ async function modeDaily() {
   ledger.nav = (ledger.nav || []).filter(p => p.d !== today);
   ledger.nav.push({ d: today, equity: eq });   // 落当日收盘净值点
   await feishuSend(cardDaily(ledger, today, lastPx));
+  state.last_daily = today;        // 幂等标记：冗余 cron 触发时据此跳过，避免重复推日报
+  writeJson(J('data/state.json'), state);
   writeJson(J('data/ledger.json'), ledger);
   rebuildDashboard(ledger, state);
   console.log(`收盘日报已推送：权益 ${eq}，持仓 ${ledger.trades.filter(t => t.status === 'open').length} 笔`);
@@ -911,6 +917,15 @@ async function modeScan(slot) {
   const today = todayStr();
   console.log(`== scan ${slot} @ ${nowStr()} (today=${today}) ==`);
   if (!(await isTradingDay(today))) { console.log('非交易日，跳过'); return; }
+
+  // 幂等守卫（2026-10-28）：多档 cron 冗余触发时，同一交易日同一时段只实跑一次。
+  // 被守卫拦下时 state.last_scan_slot 仍保留主档写入的值，remind 的防竞态等待不受影响。
+  const _st = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  const runKey = `${today}:${slot}`;
+  if (!process.env.FORCE_SCAN && _st.runs && _st.runs[runKey]) {
+    console.log(`  本时段已扫描过（${_st.runs[runKey]}），冗余触发跳过；如需强制重跑设 FORCE_SCAN=1`);
+    return;
+  }
 
   advanceContracts(today);
   const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
@@ -1118,6 +1133,10 @@ async function modeScan(slot) {
   if (ledger.nav.length > 750) ledger.nav = ledger.nav.slice(-750);
   state.last_scan = nowStr();
   state.last_scan_slot = slot;   // 供 remind 防竞态等待识别本时段扫描是否已完成
+  // 幂等标记：仅在整轮扫描成功走完后才写入，故主档中途失败时备份档仍会补跑（不会被误判为已完成）
+  const _cut = addDays(today, -7);
+  state.runs = Object.fromEntries(Object.entries(state.runs || {}).filter(([k]) => String(k).slice(0, 10) >= _cut));
+  state.runs[runKey] = nowStr();
 
   writeJson(J('data/ledger.json'), ledger);
   writeJson(J('data/state.json'), state);
@@ -1176,6 +1195,13 @@ async function modeRemind(slot) {
   console.log(`== remind ${slot} @ ${nowStr()} (today=${today}) ==`);
   if (!(await isTradingDay(today))) { console.log('非交易日，跳过'); return; }
   await waitScanDone(slot, today);
+  // 幂等守卫（2026-10-28）：冗余 cron 触发时，同一交易日同一时段只推一次提醒。
+  // 判据取自 waitScanDone 已同步的远端 state.json（remind 工作流每次都会回写推送状态）。
+  const _rm = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  if (!process.env.FORCE_REMIND && _rm.last_remind === `${today}:${slot}`) {
+    console.log(`  本时段（${slot}）提醒已推送过，冗余触发跳过；如需强制重推设 FORCE_REMIND=1`);
+    return;
+  }
   const pending = readJson(J('data/pending.json'), { seq: 0, items: [] });
   const blackout = await isBlackout(today);
   let sent = 0, expired = 0;
@@ -1232,6 +1258,9 @@ async function modeRemind(slot) {
   pending.items = pending.items.filter(p => ['pending', 'reminded'].includes(p.status) || (p.date >= cutoff));
   writeJson(J('data/pending.json'), pending);
   writeJson(J('data/holidays.json'), HOLIDAYS);
+  const _rs = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  _rs.last_remind = `${today}:${slot}`;   // 冗余触发去重标记
+  writeJson(J('data/state.json'), _rs);
   console.log(`完成：发送 ${sent}，跟进 ${follow}，过期 ${expired}`);
 }
 
