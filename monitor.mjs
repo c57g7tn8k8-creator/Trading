@@ -1432,12 +1432,23 @@ async function modeFeedback() {
 async function modeContracts() {
   const today = todayStr();
   console.log(`== contracts 维护 @ ${today} ==`);
+  // 幂等守卫（2026-10-28）：月度维护工作流设多档冗余 cron，同月只实跑一次；
+  // 标记写入放在维护流程最后一步（contracts），故 pool 中途失败时备份档仍会补跑。
+  const _mm = today.slice(0, 7);
+  const _cs = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  if (!process.env.FORCE_MAINT && _cs.last_maintenance === _mm) {
+    console.log(`本月（${_mm}）维护已执行过，冗余触发跳过；如需强制重跑设 FORCE_MAINT=1`);
+    return;
+  }
   const changed = advanceContracts(today);
   console.log(changed ? '已更新合约' : '无需换月');
   for (const spec of POOL) {
     const c = CONTRACTS[spec.code];
     if (c) console.log(`  ${spec.name.padEnd(4, '　')} main=${c.main} next=${c.next} rollover=${c.rollover}`);
   }
+  const _cs2 = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  _cs2.last_maintenance = _mm;   // 月度维护幂等标记（供冗余 cron 去重）
+  writeJson(J('data/state.json'), _cs2);
 }
 
 /* ---------------- 模式：pool（每月1日品种池自动筛选） ----------------
@@ -1471,6 +1482,13 @@ function cardPool(info) {
 async function modePool() {
   const today = todayStr();
   console.log(`== pool 月度筛选 @ ${nowStr()} (today=${today}) ==`);
+  // 幂等守卫（2026-10-28）：与 modeContracts 同一标记，保证多档冗余 cron 下每月只筛一次
+  const _pm = today.slice(0, 7);
+  const _ps = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  if (!process.env.FORCE_MAINT && _ps.last_maintenance === _pm) {
+    console.log(`本月（${_pm}）维护已执行过，冗余触发跳过；如需强制重跑设 FORCE_MAINT=1`);
+    return;
+  }
   const c = Object.assign(
     { depo_min_yi: 7, vol_min: 150000, margin_max: 10000, min_days: 60 },
     SETTINGS.pool_screen || {}
@@ -1548,6 +1566,12 @@ async function modeCalendar() {
     return;
   }
   const nextY = y + 1;
+  // 幂等守卫（2026-10-28）：年度日历工作流设冗余备份档，同一年度只实跑一次
+  const _cs = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  if (!process.env.FORCE_CALENDAR_RERUN && _cs.last_calendar === String(nextY)) {
+    console.log(`${nextY} 年日历已刷新过，冗余触发跳过；如需强制重跑设 FORCE_CALENDAR_RERUN=1`);
+    return;
+  }
   let j = null;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
@@ -1589,6 +1613,9 @@ async function modeCalendar() {
     writeJson(cachePath, kept);
     console.log(`缓存已清理：${Object.keys(cache).length} → ${Object.keys(kept).length} 条`);
   }
+  const _cs2 = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  _cs2.last_calendar = String(nextY);   // 年度日历幂等标记（供冗余 cron 去重）
+  writeJson(J('data/state.json'), _cs2);
 }
 
 /* ---------------- 入口 ---------------- */
