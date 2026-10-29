@@ -34,21 +34,34 @@ jobs:
         with:
           node-version: 22
 
-      - name: 确定扫描时段（按时间窗口判定，容忍任务延迟漂移）
+      - name: 确定扫描时段（cron 精确映射，延迟再久也不错槽；2026-10-29）
         id: slot
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             S="${{ github.event.inputs.slot }}"
           else
-            T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
-            # 计划时刻(UTC分钟)：noon=211(03:31), evening=421(07:01), night=901(15:01)
-            # 取相邻计划时刻中点为窗口边界，延迟落入哪段就按哪段处理
-            if [ $T -ge 316 ] && [ $T -lt 661 ]; then
-              S=evening
-            elif [ $T -ge 661 ] && [ $T -lt 1276 ]; then
-              S=night
+            # github.event.schedule = 触发本次运行的 cron 表达式，直接映射时段，
+            # 不再按运行时刻猜（GitHub 延迟可达数小时，时间窗会把跨窗任务错判时段）
+            C="${{ github.event.schedule }}"
+            IM=-1
+            case "$C" in
+              "31 3 * * *")  S=noon;    IM=211 ;;
+              "51 3 * * *")  S=noon;    IM=231 ;;
+              "1 7 * * *")   S=evening; IM=421 ;;
+              "21 7 * * *")  S=evening; IM=441 ;;
+              "1 15 * * *")  S=night;   IM=901 ;;
+              "21 15 * * *") S=night;   IM=921 ;;
+            esac
+            if [ -n "$S" ] && [ $IM -ge 0 ]; then
+              # 业务日 = 该 cron 计划时刻对应的北京时间日期（延迟跨零点也不漂移）
+              BD=$(date -u -d "$(date -u +%F) $(printf '%02d:%02d' $((IM/60)) $((IM%60))) +8 hours" +%F)
+              echo "bizdate=$BD" >> "$GITHUB_OUTPUT"
+              echo "cron=$C 时段=$S 业务日=$BD"
             else
-              S=noon
+              # 兜底：cron 变更未同步映射表时按时间窗
+              T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
+              if [ $T -ge 316 ] && [ $T -lt 661 ]; then S=evening; elif [ $T -ge 661 ] && [ $T -lt 1276 ]; then S=night; else S=noon; fi
+              echo "cron=$C 未识别，时间窗兜底时段=$S"
             fi
           fi
           echo "slot=$S" >> "$GITHUB_OUTPUT"
@@ -57,6 +70,7 @@ jobs:
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
+          TODAY_OVERRIDE: ${{ steps.slot.outputs.bizdate }}
         run: node monitor.mjs scan ${{ steps.slot.outputs.slot }}
 
       - name: 提交数据与面板

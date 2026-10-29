@@ -37,29 +37,49 @@ jobs:
         with:
           node-version: 22
 
-      - name: 确定提醒时段（按时间窗口判定，容忍任务延迟漂移）
+      - name: 确定提醒时段（cron 精确映射 + 超时丢弃；2026-10-29）
         id: slot
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             S="${{ github.event.inputs.slot }}"
           else
-            T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
-            # 计划时刻(UTC分钟)：morning=0, noon=225(03:45), evening=720(12:00)
-            # 取相邻计划时刻中点为窗口边界，延迟落入哪段就按哪段处理
-            if [ $T -ge 112 ] && [ $T -lt 472 ]; then
-              S=noon
-            elif [ $T -ge 472 ] && [ $T -lt 1080 ]; then
-              S=evening
+            # github.event.schedule = 触发本次运行的 cron 表达式，直接映射时段
+            C="${{ github.event.schedule }}"
+            IM=-1
+            case "$C" in
+              "45 3 * * *")  S=noon;    IM=225 ;;
+              "5 4 * * *")   S=noon;    IM=245 ;;
+              "0 12 * * *")  S=evening; IM=720 ;;
+              "20 12 * * *") S=evening; IM=740 ;;
+              "0 0 * * *")   S=morning; IM=0 ;;
+              "20 0 * * *")  S=morning; IM=20 ;;
+            esac
+            if [ -n "$S" ] && [ $IM -ge 0 ]; then
+              # 业务日 = 该 cron 计划时刻对应的北京时间日期
+              BD=$(date -u -d "$(date -u +%F) $(printf '%02d:%02d' $((IM/60)) $((IM%60))) +8 hours" +%F)
+              echo "bizdate=$BD" >> "$GITHUB_OUTPUT"
+              # 超时丢弃：提醒晚到 >90 分钟已错过去入场窗口，推送只会造成混乱，直接放弃
+              T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
+              DIFF=$(( (T - IM + 1440) % 1440 ))
+              if [ $DIFF -gt 90 ]; then
+                echo "stale=true" >> "$GITHUB_OUTPUT"
+                echo "::warning::调度延迟 ${DIFF} 分钟（>90），本时段提醒放弃推送（时段=$S）"
+              fi
+              echo "cron=$C 时段=$S 业务日=$BD 延迟=${DIFF}分钟"
             else
-              S=morning
+              T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
+              if [ $T -ge 112 ] && [ $T -lt 472 ]; then S=noon; elif [ $T -ge 472 ] && [ $T -lt 1080 ]; then S=evening; else S=morning; fi
+              echo "cron=$C 未识别，时间窗兜底时段=$S"
             fi
           fi
           echo "slot=$S" >> "$GITHUB_OUTPUT"
 
       - name: 推送入场信号到飞书
+        if: steps.slot.outputs.stale != 'true'
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
+          TODAY_OVERRIDE: ${{ steps.slot.outputs.bizdate }}
         run: node monitor.mjs remind ${{ steps.slot.outputs.slot }}
 
       - name: 提交状态
