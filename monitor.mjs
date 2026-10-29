@@ -40,6 +40,8 @@ const WEBHOOK = process.env.FEISHU_WEBHOOK || '';
 const FSECRET = process.env.FEISHU_SECRET || '';
 const TODAY_OVERRIDE = process.env.TODAY_OVERRIDE || '';
 const FORCE_TD = process.env.FORCE_TRADING_DAY === '1';
+// 手动 Run workflow（workflow_dispatch）视为用户显式强制执行，绕过所有幂等守卫（2026-10-29）
+const IS_MANUAL = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
 
 /* ---------------- 时间（全部按北京时间 CST 处理） ---------------- */
 const CST = 8 * 3600 * 1000;
@@ -986,7 +988,7 @@ async function modeDaily() {
   if (!(await isTradingDay(today))) { console.log('非交易日，跳过收盘日报'); return; }
   const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
   const state = readJson(J('data/state.json'), { seen: {}, last_scan: null });
-  if (!process.env.FORCE_DAILY && state.last_daily === today) {
+  if (!IS_MANUAL && !process.env.FORCE_DAILY && state.last_daily === today) {
     console.log(`今日（${today}）收盘日报已推送过，冗余触发跳过；如需强制重推设 FORCE_DAILY=1`);
     return;
   }
@@ -1023,11 +1025,17 @@ async function modeScan(slot) {
 
   // 幂等守卫（2026-10-28）：多档 cron 冗余触发时，同一交易日同一时段只实跑一次。
   // 被守卫拦下时 state.last_scan_slot 仍保留主档写入的值，remind 的防竞态等待不受影响。
+  // 自愈（2026-10-29）：标记超过 3 小时视为历史残留（调度器把昨日任务延迟到今天造成的脏标记），允许重跑。
   const _st = readJson(J('data/state.json'), { seen: {}, last_scan: null });
   const runKey = `${today}:${slot}`;
-  if (!process.env.FORCE_SCAN && _st.runs && _st.runs[runKey]) {
-    console.log(`  本时段已扫描过（${_st.runs[runKey]}），冗余触发跳过；如需强制重跑设 FORCE_SCAN=1`);
-    return;
+  const _mark = _st.runs && _st.runs[runKey];
+  if (!IS_MANUAL && !process.env.FORCE_SCAN && _mark) {
+    const ageMin = (Date.now() - new Date(_mark.replace(' ', 'T') + ':00+08:00').getTime()) / 60000;
+    if (ageMin <= 180) {
+      console.log(`  本时段已扫描过（${_mark}），冗余触发跳过；如需强制重跑设 FORCE_SCAN=1`);
+      return;
+    }
+    console.log(`  已有标记 ${_mark} 超过3小时，视为历史残留，允许重跑`);
   }
 
   advanceContracts(today);
@@ -1301,7 +1309,7 @@ async function modeRemind(slot) {
   // 幂等守卫（2026-10-28）：冗余 cron 触发时，同一交易日同一时段只推一次提醒。
   // 判据取自 waitScanDone 已同步的远端 state.json（remind 工作流每次都会回写推送状态）。
   const _rm = readJson(J('data/state.json'), { seen: {}, last_scan: null });
-  if (!process.env.FORCE_REMIND && _rm.last_remind === `${today}:${slot}`) {
+  if (!IS_MANUAL && !process.env.FORCE_REMIND && _rm.last_remind === `${today}:${slot}`) {
     console.log(`  本时段（${slot}）提醒已推送过，冗余触发跳过；如需强制重推设 FORCE_REMIND=1`);
     return;
   }
@@ -1539,7 +1547,7 @@ async function modeContracts() {
   // 标记写入放在维护流程最后一步（contracts），故 pool 中途失败时备份档仍会补跑。
   const _mm = today.slice(0, 7);
   const _cs = readJson(J('data/state.json'), { seen: {}, last_scan: null });
-  if (!process.env.FORCE_MAINT && _cs.last_maintenance === _mm) {
+  if (!IS_MANUAL && !process.env.FORCE_MAINT && _cs.last_maintenance === _mm) {
     console.log(`本月（${_mm}）维护已执行过，冗余触发跳过；如需强制重跑设 FORCE_MAINT=1`);
     return;
   }
@@ -1588,7 +1596,7 @@ async function modePool() {
   // 幂等守卫（2026-10-28）：与 modeContracts 同一标记，保证多档冗余 cron 下每月只筛一次
   const _pm = today.slice(0, 7);
   const _ps = readJson(J('data/state.json'), { seen: {}, last_scan: null });
-  if (!process.env.FORCE_MAINT && _ps.last_maintenance === _pm) {
+  if (!IS_MANUAL && !process.env.FORCE_MAINT && _ps.last_maintenance === _pm) {
     console.log(`本月（${_pm}）维护已执行过，冗余触发跳过；如需强制重跑设 FORCE_MAINT=1`);
     return;
   }
@@ -1671,7 +1679,7 @@ async function modeCalendar() {
   const nextY = y + 1;
   // 幂等守卫（2026-10-28）：年度日历工作流设冗余备份档，同一年度只实跑一次
   const _cs = readJson(J('data/state.json'), { seen: {}, last_scan: null });
-  if (!process.env.FORCE_CALENDAR_RERUN && _cs.last_calendar === String(nextY)) {
+  if (!IS_MANUAL && !process.env.FORCE_CALENDAR_RERUN && _cs.last_calendar === String(nextY)) {
     console.log(`${nextY} 年日历已刷新过，冗余触发跳过；如需强制重跑设 FORCE_CALENDAR_RERUN=1`);
     return;
   }
