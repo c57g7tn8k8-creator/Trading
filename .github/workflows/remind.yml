@@ -1,19 +1,29 @@
 name: 信号提醒推送
 
 # 北京时间 11:45 / 20:00 / 次日08:00 = UTC 03:45 / 12:00 / 00:00
-# （较原 12:00/20:30/08:30 提前，抵消 GitHub 定时任务 5~20 分钟延迟；
+# （较原 12:00/20:30/08:30 提前，抵消 GitHub 定时任务延迟；
 #   引擎内含防竞态等待：若扫描尚未完成会先轮询等待，不会漏推信号）
-# 冗余备份档（2026-10-28）：每档 +20 分钟再排一档（08:20 / 12:05 / 20:20），
-# 时段由运行时刻所在时间窗自动判定（见下方 slot 步骤），延迟漂移也不会错位；
-# monitor.mjs 内 state.last_remind 幂等守卫保证同一时段只推一次，不会重复发信号卡。
+# 密集兜底网格（2026-10-29）：GitHub 调度整窗丢弃已成为常态，每时段改排 4 档。
+# 时段由 github.event.schedule（触发本次的 cron）精确映射，延迟漂移不会错位；
+# monitor.mjs 内 state.last_remind 幂等守卫保证同一时段只推一次，不会重复发信号卡；
+# 晚到超过 90 分钟的提醒直接放弃推送（已过入场窗口，推送只会造成混乱）。
 on:
   schedule:
-    - cron: '45 3 * * *'    # 11:45 推送 11:31 时段信号
-    - cron: '5 4 * * *'     # 12:05 备份
-    - cron: '0 12 * * *'    # 20:00 推送 15:01 时段信号
-    - cron: '20 12 * * *'   # 20:20 备份
-    - cron: '0 0 * * *'     # 08:00 推送前一交易日 23:01 时段信号
-    - cron: '20 0 * * *'    # 08:20 备份
+    # 早间（北京 08:00 起，推前一交易日夜盘时段信号）
+    - cron: '0 0 * * *'     # 08:00 主档
+    - cron: '10 0 * * *'    # 08:10 兜底
+    - cron: '20 0 * * *'    # 08:20 兜底
+    - cron: '30 0 * * *'    # 08:30 兜底
+    # 午间（北京 11:45 起，推 11:31 时段信号）
+    - cron: '45 3 * * *'    # 11:45 主档
+    - cron: '55 3 * * *'    # 11:55 兜底
+    - cron: '5 4 * * *'     # 12:05 兜底
+    - cron: '15 4 * * *'    # 12:15 兜底
+    # 晚间（北京 20:00 起，推 15:01 时段信号，赶夜盘开盘）
+    - cron: '0 12 * * *'    # 20:00 主档
+    - cron: '15 12 * * *'   # 20:15 兜底
+    - cron: '30 12 * * *'   # 20:30 兜底
+    - cron: '45 12 * * *'   # 20:45 兜底
   workflow_dispatch:
     inputs:
       slot:
@@ -22,6 +32,12 @@ on:
         default: 'noon'
         type: choice
         options: [noon, evening, morning]
+      force:
+        description: '强制重推：1=忽略幂等守卫（UI 手动补推用）；0=参与去重（外部定时踢腿器必须用 0）'
+        required: false
+        default: '1'
+        type: choice
+        options: ['1', '0']
 
 concurrency: qls-remind
 permissions:
@@ -48,17 +64,23 @@ jobs:
             IM=-1
             case "$C" in
               "45 3 * * *")  S=noon;    IM=225 ;;
+              "55 3 * * *")  S=noon;    IM=235 ;;
               "5 4 * * *")   S=noon;    IM=245 ;;
+              "15 4 * * *")  S=noon;    IM=255 ;;
               "0 12 * * *")  S=evening; IM=720 ;;
-              "20 12 * * *") S=evening; IM=740 ;;
+              "15 12 * * *") S=evening; IM=735 ;;
+              "30 12 * * *") S=evening; IM=750 ;;
+              "45 12 * * *") S=evening; IM=765 ;;
               "0 0 * * *")   S=morning; IM=0 ;;
+              "10 0 * * *")  S=morning; IM=10 ;;
               "20 0 * * *")  S=morning; IM=20 ;;
+              "30 0 * * *")  S=morning; IM=30 ;;
             esac
             if [ -n "$S" ] && [ $IM -ge 0 ]; then
               # 业务日 = 该 cron 计划时刻对应的北京时间日期
               BD=$(date -u -d "$(date -u +%F) $(printf '%02d:%02d' $((IM/60)) $((IM%60))) +8 hours" +%F)
               echo "bizdate=$BD" >> "$GITHUB_OUTPUT"
-              # 超时丢弃：提醒晚到 >90 分钟已错过去入场窗口，推送只会造成混乱，直接放弃
+              # 超时丢弃：提醒晚到 >90 分钟已错过入场窗口，推送只会造成混乱，直接放弃
               T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
               DIFF=$(( (T - IM + 1440) % 1440 ))
               if [ $DIFF -gt 90 ]; then
@@ -80,6 +102,7 @@ jobs:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
           TODAY_OVERRIDE: ${{ steps.slot.outputs.bizdate }}
+          DISPATCH_FORCE: ${{ github.event.inputs.force }}
         run: node monitor.mjs remind ${{ steps.slot.outputs.slot }}
 
       - name: 提交状态

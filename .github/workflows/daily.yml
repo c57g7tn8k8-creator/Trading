@@ -1,15 +1,27 @@
 name: 收盘日报
 
 # 北京时间 15:15 = UTC 07:15（日盘收盘后，当日日线已发布，按收盘价更新面板推飞书）
-# 冗余三档（2026-10-28）：GitHub 定时任务可能在整段窗口被静默丢弃且不补跑，
-# 故设 15:15 / 15:35 / 15:55 三档；monitor.mjs 内 state.last_daily 幂等守卫保证只实跑一次，
-# 后两档若前档已完成则直接跳过（不重复推飞书、不重复写净值）。手动补跑用 Run workflow。
+# 密集兜底网格（2026-10-29）：GitHub 定时调度会整窗静默丢弃（10-28、10-29 连续两天
+# 07:0x UTC 窗口全部未触发），三档不够，改为 10 分钟一档共 7 档（15:15~16:15）。
+# monitor.mjs 内 state.last_daily 幂等守卫保证只实跑一次：先跑到的档位完成推送与净值写入，
+# 其余档位读到标记即跳过（不重复推飞书、不重复写净值）。手动补跑用 Run workflow。
 on:
   schedule:
-    - cron: '15 7 * * *'
-    - cron: '35 7 * * *'
-    - cron: '55 7 * * *'
+    - cron: '15 7 * * *'    # 15:15 主档
+    - cron: '25 7 * * *'    # 15:25 兜底
+    - cron: '35 7 * * *'    # 15:35 兜底
+    - cron: '45 7 * * *'    # 15:45 兜底
+    - cron: '55 7 * * *'    # 15:55 兜底
+    - cron: '5 8 * * *'     # 16:05 兜底
+    - cron: '15 8 * * *'    # 16:15 兜底
   workflow_dispatch:
+    inputs:
+      force:
+        description: '强制重跑：1=忽略幂等守卫（UI 手动补跑用）；0=参与去重（外部定时踢腿器必须用 0）'
+        required: false
+        default: '1'
+        type: choice
+        options: ['1', '0']
 
 concurrency: qls-daily
 permissions:
@@ -29,6 +41,7 @@ jobs:
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
+          DISPATCH_FORCE: ${{ github.event.inputs.force }}
         run: node monitor.mjs daily
 
       - name: 提交数据与面板

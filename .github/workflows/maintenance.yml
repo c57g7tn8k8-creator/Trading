@@ -9,6 +9,13 @@ on:
     - cron: '30 2 1 * *'
     - cron: '0 3 1 * *'
   workflow_dispatch:
+    inputs:
+      force:
+        description: '强制重跑：1=忽略幂等守卫（UI 手动补跑用）；0=参与去重（外部定时踢腿器必须用 0）'
+        required: false
+        default: '1'
+        type: choice
+        options: ['1', '0']
 
 permissions:
   contents: write
@@ -27,6 +34,7 @@ jobs:
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
+          DISPATCH_FORCE: ${{ github.event.inputs.force }}
         run: |
           node monitor.mjs pool
           node monitor.mjs contracts

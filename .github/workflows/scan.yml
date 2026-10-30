@@ -1,16 +1,32 @@
 name: 盘中扫描
 
 # 北京时间 11:31 / 15:01 / 23:01 = UTC 03:31 / 07:01 / 15:01（中国无夏令时）
-# 冗余备份档（2026-10-28）：每时段主档 +20 分钟再排一档，主档被调度器静默丢弃时由备份档补上；
-# monitor.mjs 内 state.runs[日期:时段] 幂等守卫保证两档只实跑一次（后一档跳过但不影响 last_scan_slot）。
+# 密集兜底网格（2026-10-29）：GitHub 定时调度会整窗静默丢弃（10-28、10-29 连续两天
+# 07:0x UTC 窗口全部未触发），单点/双档冗余不够，改为每时段 10 分钟一档、共 5~6 档。
+# monitor.mjs 内 state.runs[日期:时段] 幂等守卫保证同一时段只实跑一次，
+# 其余档位读到标记即跳过（约 10 秒空转，不重复取数/写数据/推飞书）。手动补跑用 Run workflow。
 on:
   schedule:
-    - cron: '31 3 * * *'    # 11:31 上午收盘后
-    - cron: '51 3 * * *'    # 11:51 备份
-    - cron: '1 7 * * *'     # 15:01 日盘收盘后
-    - cron: '21 7 * * *'    # 15:21 备份
-    - cron: '1 15 * * *'    # 23:01 夜盘收盘后
-    - cron: '21 15 * * *'   # 23:21 备份
+    # 午间（北京 11:31 起）
+    - cron: '31 3 * * *'    # 11:31 上午收盘后（主档）
+    - cron: '41 3 * * *'    # 11:41 兜底
+    - cron: '51 3 * * *'    # 11:51 兜底
+    - cron: '1 4 * * *'     # 12:01 兜底
+    - cron: '11 4 * * *'    # 12:11 兜底
+    - cron: '21 4 * * *'    # 12:21 兜底
+    # 傍晚（北京 15:01 起）
+    - cron: '1 7 * * *'     # 15:01 日盘收盘后（主档）
+    - cron: '11 7 * * *'    # 15:11 兜底
+    - cron: '21 7 * * *'    # 15:21 兜底
+    - cron: '31 7 * * *'    # 15:31 兜底
+    - cron: '41 7 * * *'    # 15:41 兜底
+    - cron: '51 7 * * *'    # 15:51 兜底
+    # 夜盘（北京 23:01 起）
+    - cron: '1 15 * * *'    # 23:01 夜盘收盘后（主档）
+    - cron: '11 15 * * *'   # 23:11 兜底
+    - cron: '21 15 * * *'   # 23:21 兜底
+    - cron: '31 15 * * *'   # 23:31 兜底
+    - cron: '41 15 * * *'   # 23:41 兜底
   workflow_dispatch:
     inputs:
       slot:
@@ -19,6 +35,12 @@ on:
         default: 'noon'
         type: choice
         options: [noon, evening, night]
+      force:
+        description: '强制重跑：1=忽略幂等守卫（UI 手动补跑用）；0=参与去重（外部定时踢腿器必须用 0，避免与 cron 撞车重复推送）'
+        required: false
+        default: '1'
+        type: choice
+        options: ['1', '0']
 
 concurrency: qls-scan
 permissions:
@@ -46,11 +68,22 @@ jobs:
             IM=-1
             case "$C" in
               "31 3 * * *")  S=noon;    IM=211 ;;
+              "41 3 * * *")  S=noon;    IM=221 ;;
               "51 3 * * *")  S=noon;    IM=231 ;;
+              "1 4 * * *")   S=noon;    IM=241 ;;
+              "11 4 * * *")  S=noon;    IM=251 ;;
+              "21 4 * * *")  S=noon;    IM=261 ;;
               "1 7 * * *")   S=evening; IM=421 ;;
+              "11 7 * * *")  S=evening; IM=431 ;;
               "21 7 * * *")  S=evening; IM=441 ;;
+              "31 7 * * *")  S=evening; IM=451 ;;
+              "41 7 * * *")  S=evening; IM=461 ;;
+              "51 7 * * *")  S=evening; IM=471 ;;
               "1 15 * * *")  S=night;   IM=901 ;;
+              "11 15 * * *") S=night;   IM=911 ;;
               "21 15 * * *") S=night;   IM=921 ;;
+              "31 15 * * *") S=night;   IM=931 ;;
+              "41 15 * * *") S=night;   IM=941 ;;
             esac
             if [ -n "$S" ] && [ $IM -ge 0 ]; then
               # 业务日 = 该 cron 计划时刻对应的北京时间日期（延迟跨零点也不漂移）
@@ -71,6 +104,7 @@ jobs:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
           TODAY_OVERRIDE: ${{ steps.slot.outputs.bizdate }}
+          DISPATCH_FORCE: ${{ github.event.inputs.force }}
         run: node monitor.mjs scan ${{ steps.slot.outputs.slot }}
 
       - name: 提交数据与面板
