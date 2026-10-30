@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 4,
+  "seq": 5,
   "trades": [
     {
       "id": "T0001",
@@ -111,6 +111,31 @@
       "exit_date": "2026-10-22",
       "exit_px": 5360,
       "reason": "手动平仓"
+    },
+    {
+      "id": "T0005",
+      "signal": "自选",
+      "sym": "SA0",
+      "name": "纯碱",
+      "contract": "SA701",
+      "dir": "short",
+      "entry_date": "2026-10-30",
+      "entry": 978,
+      "lots": 2,
+      "lots0": 2,
+      "stop": 997,
+      "stop0": 997,
+      "R": 19,
+      "t3": 921,
+      "t5": 883,
+      "mult": 20,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "margin1": 2641,
+      "fees": 7,
+      "manual": true,
+      "fb": "自选 纯碱 空 978 997 2"
     }
   ],
   "nav": [
@@ -180,7 +205,7 @@
     },
     {
       "d": "2026-10-30",
-      "equity": 5055.6
+      "equity": 5088.6
     }
   ]
 }
