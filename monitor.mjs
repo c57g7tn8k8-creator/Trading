@@ -1294,7 +1294,11 @@ async function waitScanDone(slot, today) {
       if (r.ok) {
         const st = await r.json();
         const scanDay = String(st.last_scan || '').slice(0, 10);
-        if (st.last_scan_slot === expectSlot && scanDay === expectDate) {
+        // 2026-10-30 修复：判据改查 runs[日期:时段]（每时段独立键，永不互相覆盖），
+        // last_scan_slot 仅作旧数据兜底——它会被后续其他时段的扫描覆盖（10-30 延迟倾倒的
+        // noon 重跑把 evening 覆盖掉，导致 21:08 晚间提醒误以为扫描未完成，空等 12 分钟）
+        const runMark = st.runs && st.runs[`${expectDate}:${expectSlot}`];
+        if (runMark || (st.last_scan_slot === expectSlot && scanDay === expectDate)) {
           if (attempt > 1) console.log(`  扫描已完成（第 ${attempt} 次探测）`);
           // 拉取扫描刚提交的最新数据，覆盖 checkout 时的旧快照
           for (const f of ['data/pending.json', 'data/state.json', 'data/ledger.json']) {
