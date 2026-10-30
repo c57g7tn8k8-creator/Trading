@@ -564,14 +564,18 @@ async function feishuSend(card) {
   const body = JSON.stringify({ msg_type: 'interactive', card, ...feishuSign() });
   if (!WEBHOOK) {
     console.log('  [DRY-RUN 飞书]', body.slice(0, 400));
+    // 云端运行必须有 FEISHU_WEBHOOK secret；为空说明 secret 丢失/改名，按失败处理（2026-10-30）
+    if (process.env.GITHUB_ACTIONS) { console.log('  !! 云端运行但 FEISHU_WEBHOOK 为空：请检查仓库 Settings → Secrets → Actions'); process.exitCode = 1; return false; }
     return true;
   }
   try {
     const r = await fetch(WEBHOOK, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
     const j = await r.json();
-    if (j.code !== 0 && j.StatusCode !== 0) { console.log('  飞书发送失败:', body.slice(0, 120), JSON.stringify(j)); return false; }
+    // 2026-10-30：推送失败置 exitCode=1（任务变红）。飞书拒绝时旧逻辑仅打日志仍绿勾，
+    // 导致 10-30 全天日报/提醒"运行成功"但飞书零送达且无任何告警。
+    if (j.code !== 0 && j.StatusCode !== 0) { console.log('  飞书发送失败:', body.slice(0, 120), JSON.stringify(j)); process.exitCode = 1; return false; }
     return true;
-  } catch (e) { console.log('  飞书发送异常:', e.message); return false; }
+  } catch (e) { console.log('  飞书发送异常:', e.message); process.exitCode = 1; return false; }
 }
 const ftext = (content) => ({ tag: 'div', text: { tag: 'lark_md', content } });
 function cardSignal(p, expiry, prio) {
@@ -1012,7 +1016,14 @@ async function modeDaily() {
   } catch (e) {
     console.log('展望生成失败（不影响日报）：' + (e.message || e));
   }
-  await feishuSend(cardDaily(ledger, today, lastPx, fcText));
+  // 推送失败时：不写幂等标记、任务置红（2026-10-30 修复静默失败：飞书拒绝/secret 丢失时
+  // 旧逻辑照样写 last_daily 并绿勾，导致当日后续补跑全被守卫跳过且无任何告警）
+  const pushed = await feishuSend(cardDaily(ledger, today, lastPx, fcText));
+  if (!pushed) {
+    console.log('收盘日报推送失败：飞书未确认送达。幂等标记未写入，可立即用 force=1 补跑。');
+    process.exitCode = 1;
+    return;
+  }
   state.last_daily = today;        // 幂等标记：冗余 cron 触发时据此跳过，避免重复推日报
   writeJson(J('data/state.json'), state);
   writeJson(J('data/ledger.json'), ledger);
@@ -1028,17 +1039,15 @@ async function modeScan(slot) {
 
   // 幂等守卫（2026-10-28）：多档 cron 冗余触发时，同一交易日同一时段只实跑一次。
   // 被守卫拦下时 state.last_scan_slot 仍保留主档写入的值，remind 的防竞态等待不受影响。
-  // 自愈（2026-10-29）：标记超过 3 小时视为历史残留（调度器把昨日任务延迟到今天造成的脏标记），允许重跑。
+  // 2026-10-30：删除"标记超3小时自愈重跑"——cron→业务日精确映射后，延迟数小时倾倒的
+  // 积压任务也能落到正确的业务日键上，自愈机制反而造成同一时段当天重复实跑（10-30 18:21
+  // noon 时段被 6 小时前的延迟 cron 重跑了一次）。确需重跑用 force=1。
   const _st = readJson(J('data/state.json'), { seen: {}, last_scan: null });
   const runKey = `${today}:${slot}`;
   const _mark = _st.runs && _st.runs[runKey];
   if (!IS_MANUAL && !process.env.FORCE_SCAN && _mark) {
-    const ageMin = (Date.now() - new Date(_mark.replace(' ', 'T') + ':00+08:00').getTime()) / 60000;
-    if (ageMin <= 180) {
-      console.log(`  本时段已扫描过（${_mark}），冗余触发跳过；如需强制重跑设 FORCE_SCAN=1`);
-      return;
-    }
-    console.log(`  已有标记 ${_mark} 超过3小时，视为历史残留，允许重跑`);
+    console.log(`  本时段已扫描过（${_mark}），冗余触发跳过；如需强制重跑设 FORCE_SCAN=1 或手动 force=1`);
+    return;
   }
 
   advanceContracts(today);
