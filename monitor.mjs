@@ -875,8 +875,9 @@ function renderPage(ledger, state, year) {
     const stat = t.status === 'open' ? (t.half_done ? '余仓追踪' : '持仓中') : t.reason;
     const pc = t.status === 'closed' ? (t.pnl > 0 ? '#c23531' : t.pnl < 0 ? '#1a9e4b' : '#888') : '#888';
     const retryTag = t.retry ? `<span style="color:#b8860b;font-size:10px">[试错] </span>` : '';
+    const manualTag = t.manual ? `<span style="color:#7030a0;font-size:10px">[自选] </span>` : '';
     const tk = (SPEC[t.sym] && SPEC[t.sym].tick) || 1;
-    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${fmtPx(t.entry, tk)}</td><td>${fmtPx(t.stop0, tk)}</td><td>${fmtPx(t.t3, tk)}</td><td>${fmtPx(t.t5, tk)}</td><td>${stat}</td><td>${t.signal || '-'}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
+    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${manualTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${fmtPx(t.entry, tk)}</td><td>${fmtPx(t.stop0, tk)}</td><td>${fmtPx(t.t3, tk)}</td><td>${fmtPx(t.t5, tk)}</td><td>${stat}</td><td>${t.signal || '-'}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
   };
 
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -1396,6 +1397,8 @@ async function modeFeedback() {
   const mPC = body.match(/平仓\s*#?(T\d+)?\s*(\d+(?:\.\d+)?)?/);
   // 试错/再入场（2026-10-21）：同一信号止损后再进场，可自定义止损。格式：试错 #信号号 入场价 止损价 [手数]
   const mSR = body.match(/(?:试错|重进|再入场)\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)\s*(\d+(?:\.\d+)?)?\s*(\d+)?/);
+  // 自选单（2026-10-30）：不依赖任何信号的手动记账。格式：自选 合约(或品种名) 多|空 入场价 止损价 [手数]
+  const mZX = body.match(/自选\s+(\S{1,10})\s*(多|空)\s*(\d+(?:\.\d+)?)\s*(\d+(?:\.\d+)?)\s*(\d+)?/);
 
   if (mWCJ) {
     const p = mWCJ[1]
@@ -1453,6 +1456,53 @@ async function modeFeedback() {
           `云端将按你给的止损 ${stop} 跟踪止损/3R/5R/变色并提醒。`
         ], 'green'));
       }
+    }
+  } else if (mZX) {
+    // 自选单（2026-10-30）：合约归一（郑商所3/4位年份互认）→ 匹配池内品种；方向、入场、止损由用户给定
+    const tok = mZX[1].toUpperCase();
+    const norm = tok.replace(/^([A-Z]+)(\d{3})$/, (s0, a, d) => a + '2' + d);   // HC701 → HC2701
+    const flat = tok.replace(/^([A-Z]+)2(\d{3})$/, (s0, a, d) => a + d);         // HC2701 → HC701
+    const hit = POOL.find(s => {
+      const c = CONTRACTS[s.code] || {};
+      const list = [s.contract, c.main, c.next].filter(Boolean).map(x => String(x).toUpperCase());
+      return list.some(x => [tok, norm, flat].includes(x)) || s.name === mZX[1];
+    });
+    const dir = mZX[2] === '多' ? 'long' : 'short';
+    const entry = +mZX[3], stop = +mZX[4], lots = mZX[5] ? +mZX[5] : 1;
+    if (!hit) {
+      await feishuSend(cardFbAck('【擒龙手】自选单未受理', [
+        `未识别品种/合约「${mZX[1]}」。`,
+        '可用：池内品种的主力/次月合约（如 HC2701、rb2701、FG701/FG2701），或直接写品种名（如 热卷、纯碱）。',
+        '格式：**自选 合约 多|空 入场价 止损价 [手数]**（例：自选 HC2701 多 3210 3195 1）'
+      ], 'red'));
+    } else if ((dir === 'long' && stop >= entry) || (dir === 'short' && stop <= entry)) {
+      await feishuSend(cardFbAck('【擒龙手】自选单未受理', [
+        `止损价方向有误：${dir === 'long' ? '做多止损应低于入场价' : '做空止损应高于入场价'}（入场 ${entry} / 止损 ${stop}）。`
+      ], 'red'));
+    } else {
+      const spec = hit;
+      const sgn = dir === 'long' ? 1 : -1;
+      const R = Math.abs(entry - stop);
+      const dispContract = (CONTRACTS[hit.code] && CONTRACTS[hit.code].main) || hit.contract;
+      const t = {
+        id: 'T' + String(++ledger.seq).padStart(4, '0'),
+        signal: '自选', sym: hit.code, name: hit.name, contract: dispContract,
+        dir, entry_date: today, entry, lots, lots0: lots,
+        stop, stop0: stop, R,
+        t3: entry + 3 * sgn * R, t5: entry + 5 * sgn * R,
+        mult: spec.mult, half_done: false, realized: 0, status: 'open',
+        margin1: Math.round(entry * spec.mult * marginRate(spec)),
+        fees: Math.round(feePerLot(spec, entry) * lots * 100) / 100,
+        manual: true, fb: body.slice(0, 100)
+      };
+      ledger.trades.push(t);
+      processed = true;
+      console.log(`  ★ 自选登记 ${t.id}：${t.name} ${t.contract} ${dir === 'long' ? '多' : '空'} ${lots}手 @${entry} 止损${stop}`);
+      await feishuSend(cardFbAck('【擒龙手】自选单已入账 ' + t.id, [
+        `**${t.name} ${t.contract}** ${dir === 'long' ? '多' : '空'} **${lots} 手 @ ${entry}**（非信号自选单）`,
+        `止损 ${stop}｜1R=${Math.round(R * 100) / 100}点｜3R=${Math.round(t.t3 * 100) / 100}｜5R=${Math.round(t.t5 * 100) / 100}`,
+        `云端将按你给的止损跟踪止损/3R/5R/变色并提醒；提前离场回复：**平仓 #${t.id} 实际价**`
+      ], 'green'));
     }
   } else if (mCJ) {
     const p = mCJ[1]
@@ -1515,10 +1565,10 @@ async function modeFeedback() {
       ], t.pnl > 0 ? 'green' : 'wathet'));
     }
   } else {
-    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] / 未入场 #信号号 / 平仓 #单号 [价] / 试错 #信号号 入场价 止损价 [手数]）');
+    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] / 未入场 #信号号 / 平仓 #单号 [价] / 试错 #信号号 入场价 止损价 [手数] / 自选 合约 多|空 入场价 止损价 [手数]）');
     await feishuSend(cardFbAck('【擒龙手】未能识别回复', [
       `您的回复："${body.slice(0, 60)}" 未匹配任何指令。`,
-      '支持格式：\n**成交 #信号号 [实际价] [手数]**（如：成交 #S20261008-001 935 2）\n**未入场 #信号号**\n**平仓 #单号 [实际价]**（如：平仓 #T0007 921）\n**试错 #信号号 入场价 止损价 [手数]**（同一信号止损后再进场，如：试错 #S20261019-002 5383 5370 1）',
+      '支持格式：\n**成交 #信号号 [实际价] [手数]**（如：成交 #S20261008-001 935 2）\n**未入场 #信号号**\n**平仓 #单号 [实际价]**（如：平仓 #T0007 921）\n**试错 #信号号 入场价 止损价 [手数]**（同一信号止损后再进场，如：试错 #S20261019-002 5383 5370 1）\n**自选 合约 多|空 入场价 止损价 [手数]**（非信号手动记账，如：自选 HC2701 多 3210 3195 1）',
       '多个信号并存时务必带 #编号；不带编号将匹配"最新一条有效信号/持仓"，存在错配风险。'
     ], 'red'));
   }
