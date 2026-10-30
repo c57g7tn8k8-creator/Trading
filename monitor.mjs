@@ -40,8 +40,10 @@ const WEBHOOK = process.env.FEISHU_WEBHOOK || '';
 const FSECRET = process.env.FEISHU_SECRET || '';
 const TODAY_OVERRIDE = process.env.TODAY_OVERRIDE || '';
 const FORCE_TD = process.env.FORCE_TRADING_DAY === '1';
-// 手动 Run workflow（workflow_dispatch）视为用户显式强制执行，绕过所有幂等守卫（2026-10-29）
-const IS_MANUAL = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch';
+// 手动 Run workflow（workflow_dispatch）视为用户显式强制执行，绕过所有幂等守卫（2026-10-29）。
+// 外部定时踢腿器（cron-job.org 等）走的也是 workflow_dispatch，但它需要参与幂等去重，
+// 故仅在 DISPATCH_FORCE=1 时才绕过；外部触发传 force=0（或省略）即走正常守卫（2026-10-29）。
+const IS_MANUAL = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.DISPATCH_FORCE === '1';
 
 /* ---------------- 时间（全部按北京时间 CST 处理） ---------------- */
 const CST = 8 * 3600 * 1000;
