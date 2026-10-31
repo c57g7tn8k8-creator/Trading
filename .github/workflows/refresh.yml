@@ -1,0 +1,33 @@
+name: 刷新看板估值
+
+# 纯手动触发（2026-10-31 新增）：任意时刻（含周末/夜盘）按市价给持仓估值并更新看板。
+# 场景：看板默认按结算口径（每日 15:20 日报写入），周末或盘中想看"当前真实浮盈"时手动跑一次。
+# 只写 state.live + 重建 docs 面板：不动 nav 净值序列、不动信号状态、不推飞书、不做交易日校验。
+# 无定时档——估值是"想看才刷"的按需动作，不适合定时（非交易时段取价无意义且浪费运行额度）。
+on:
+  workflow_dispatch:
+
+concurrency: qls-refresh
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 按市价刷新看板估值
+        run: node monitor.mjs refresh
+
+      - name: 提交估值与面板
+        run: |
+          git config user.name "qls-bot"
+          git config user.email "qls-bot@users.noreply.github.com"
+          git add data/state.json docs
+          git diff --cached --quiet || git commit -m "refresh $(date -u +'%F %T')"
+          git push
