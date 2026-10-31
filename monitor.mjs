@@ -7,6 +7,7 @@
  *   node monitor.mjs remind <noon|evening|morning>  推送到期入场信号到飞书
  *   node monitor.mjs feedback                     解析GitHub Issue评论反馈（读环境变量）
  *   node monitor.mjs nav                          重建 docs/index.html 净值面板
+ *   node monitor.mjs refresh                      手动刷新看板实时估值（按市价给持仓估值，任意时刻可跑）
  *   node monitor.mjs contracts                    合约换月维护（到期切换主力）
  *   node monitor.mjs pool                         月度品种池筛选（每月1日，口径见 settings.pool_screen）
  *
@@ -881,8 +882,34 @@ function renderPage(ledger, state, year) {
     const retryTag = t.retry ? `<span style="color:#b8860b;font-size:10px">[试错] </span>` : '';
     const manualTag = t.manual ? `<span style="color:#7030a0;font-size:10px">[自选] </span>` : '';
     const tk = (SPEC[t.sym] && SPEC[t.sym].tick) || 1;
-    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${manualTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${fmtPx(t.entry, tk)}</td><td>${fmtPx(t.stop0, tk)}</td><td>${fmtPx(t.t3, tk)}</td><td>${fmtPx(t.t5, tk)}</td><td>${stat}</td><td>${t.signal || '-'}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
+    // 现价/浮盈（2026-10-31）：仅持仓单，取 state.live.px（refresh 模式或收盘日报写入的市价估值）
+    const lp = (t.status === 'open' && state.live && state.live.px) ? state.live.px[t.sym] : null;
+    const fp = lp != null ? Math.round((t.dir === 'long' ? lp - t.entry : t.entry - lp) * t.mult * t.lots * 100) / 100 : null;
+    const lpCell = lp != null ? fmtPx(lp, tk) : '-';
+    const fpCell = fp != null ? `<span style="color:${fp >= 0 ? '#c23531' : '#1a9e4b'};font-weight:600">${fp >= 0 ? '+' : ''}${fp}</span>` : '-';
+    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${manualTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${fmtPx(t.entry, tk)}</td><td>${fmtPx(t.stop0, tk)}</td><td>${fmtPx(t.t3, tk)}</td><td>${fmtPx(t.t5, tk)}</td><td>${stat}</td><td>${t.signal || '-'}</td><td>${lpCell}</td><td>${fpCell}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
   };
+
+  // 实时估值块（2026-10-31 新增）：state.live 存在且有持仓估值价时渲染。
+  // 数据来源：refresh 模式（手动，按市价）或 daily 模式（15:20 收盘口径）。净值曲线仍为结算口径不动。
+  const liveBlock = (state.live && state.live.px && opens.some(t => state.live.px[t.sym])) ? (() => {
+    const lv = state.live;
+    const rows = opens.filter(t => lv.px[t.sym]).map(t => {
+      const lp2 = lv.px[t.sym];
+      const fp2 = Math.round((t.dir === 'long' ? lp2 - t.entry : t.entry - lp2) * t.mult * t.lots * 100) / 100;
+      const tk2 = (SPEC[t.sym] && SPEC[t.sym].tick) || 1;
+      return `<tr><td style="text-align:left">${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots}</td><td>${fmtPx(t.entry, tk2)}</td><td>${fmtPx(lp2, tk2)}</td><td style="color:${fp2 >= 0 ? '#c23531' : '#1a9e4b'};font-weight:600">${fp2 >= 0 ? '+' : ''}${fp2}</td></tr>`;
+    }).join('');
+    const fpSum = Math.round((lv.equity - gLastEq) * 100) / 100;
+    return `<div class="sec">■ 实时估值（市价，更新于 ${lv.t}）</div>
+<div class="cards">
+<div class="card"><span>实时权益</span><b>¥${Math.round(lv.equity).toLocaleString()}</b></div>
+<div class="card"><span>较结算浮动</span><b class="${fpSum >= 0 ? 'up' : 'dn'}">${fpSum >= 0 ? '+' : ''}${fpSum.toLocaleString()}</b></div>
+</div>
+<div class="panel"><b>持仓实时估值</b>（按市价计，浮动盈亏未含平仓手续费）<br>
+<table><thead><tr><th>品种合约</th><th>方向</th><th>手数</th><th>入场</th><th>现价</th><th>浮动盈亏</th></tr></thead>
+<tbody>${rows}</tbody></table></div>`;
+  })() : '';
 
   return `<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>擒龙手 · 云端监控净值面板 ${isAll ? '' : year}</title>
@@ -904,7 +931,7 @@ th{background:#fafafa;color:#666;font-weight:600}
 .up{color:#c23531}.dn{color:#1a9e4b}
 </style></head><body>
 <h1>擒龙手 · 黄大侠拐点战法 云端监控</h1>
-<div class="sub">最近更新 ${state.last_scan || '-'}｜信号=日线全自动扫描，交易=人工执行后反馈记账｜年度收益率按"该年1月1日净值"为起始资金重算</div>
+<div class="sub">最近更新 ${state.last_scan || '-'}${state.live && state.live.t ? `｜实时估值 ${state.live.t}（市价）` : ''}｜信号=日线全自动扫描，交易=人工执行后反馈记账｜年度收益率按"该年1月1日净值"为起始资金重算</div>
 <div class="tabs">${tabs}</div>
 <div class="sec">■ ${rangeLabel}</div>
 <div class="cards">
@@ -924,11 +951,12 @@ th{background:#fafafa;color:#666;font-weight:600}
 <div class="card"><span>当前持仓</span><b>${opens.length} 笔</b></div>
 <div class="card"><span>累计手续费</span><b>¥${feeSum.toLocaleString()}</b></div>
 </div>
+${liveBlock}
 <div class="panel"><b>净值曲线</b>（纵轴=相对${isAll ? '本金' : '年初资金'}的收益率%，横轴=日期；hover看单日明细）<br>
 ${renderChartSVG(navData, base)}</div>
 <div class="panel"><b>交易记录 · ${rangeLabel}</b>（红涨绿跌；盈亏=已扣双边手续费净额，单位：元；平仓请按"单号"列回复）<br>
-<table><thead><tr><th>日期</th><th>单号</th><th>品种合约</th><th>方向</th><th>手数</th><th>入场</th><th>止损</th><th>3R</th><th>5R</th><th>状态</th><th>信号编号</th><th>盈亏</th></tr></thead>
-<tbody>${trades.slice().reverse().map(row).join('') || '<tr><td colspan="12" style="text-align:center;color:#999">该区间暂无成交记录</td></tr>'}</tbody></table></div>
+<table><thead><tr><th>日期</th><th>单号</th><th>品种合约</th><th>方向</th><th>手数</th><th>入场</th><th>止损</th><th>3R</th><th>5R</th><th>状态</th><th>信号编号</th><th>现价</th><th>浮盈</th><th>盈亏</th></tr></thead>
+<tbody>${trades.slice().reverse().map(row).join('') || '<tr><td colspan="14" style="text-align:center;color:#999">该区间暂无成交记录</td></tr>'}</tbody></table></div>
 </body></html>`;
 }
 function rebuildDashboard(ledger, state) {
@@ -1025,6 +1053,7 @@ async function modeDaily() {
     return;
   }
   state.last_daily = today;        // 幂等标记：冗余 cron 触发时据此跳过，避免重复推日报
+  state.live = { t: nowStr(), equity: eq, px: lastPx };   // 看板"实时估值"块同步为收盘口径（2026-10-31）
   writeJson(J('data/state.json'), state);
   writeJson(J('data/ledger.json'), ledger);
   rebuildDashboard(ledger, state);
@@ -1794,6 +1823,36 @@ async function modeCalendar() {
   writeJson(J('data/state.json'), _cs2);
 }
 
+/* ---------------- 模式：refresh（手动刷新看板实时估值，2026-10-31 新增） ----------------
+ * 任意时刻可跑（含周末/非交易日，不做交易日校验）：按市价（3分钟K线最新收盘；周末=周五夜盘收盘）
+ * 给当前持仓估值，只写 state.live 并重建 docs 面板——不动 nav 净值序列、不动信号状态、不推飞书。
+ * 净值曲线/区间统计保持结算口径，"实时估值"块与交易表的 现价/浮盈 列按市价口径展示，两者并存不混。 */
+async function modeRefresh() {
+  const ledger = readJson(J('data/ledger.json'), { capital: 5000, seq: 0, trades: [], nav: [] });
+  const state = readJson(J('data/state.json'), { seen: {}, last_scan: null });
+  const opens = ledger.trades.filter(t => t.status === 'open');
+  if (!opens.length) {
+    delete state.live;
+    writeJson(J('data/state.json'), state);
+    rebuildDashboard(ledger, state);
+    console.log('当前无持仓，已按最新结算净值重建看板（无实时估值块）');
+    return;
+  }
+  const px = {};
+  for (const t of opens) {
+    try { const lp = await liveLastPx(t.sym, null, t.contract); if (lp) px[t.sym] = lp; } catch { }
+  }
+  if (!Object.keys(px).length) {
+    console.log('实时取价全部失败，看板保持原样（可稍后重试）');
+    process.exitCode = 1;
+    return;
+  }
+  state.live = { t: nowStr(), equity: equityNow(ledger, px), px };
+  writeJson(J('data/state.json'), state);
+  rebuildDashboard(ledger, state);
+  console.log(`看板实时估值已更新 @ ${state.live.t}：权益 ${state.live.equity}，估值品种 ${Object.keys(px).join(' / ')}`);
+}
+
 /* ---------------- 入口 ---------------- */
 const [mode, arg] = process.argv.slice(2);
 try {
@@ -1807,10 +1866,11 @@ try {
     rebuildDashboard(ledger, state);
     console.log('docs/index.html 已重建');
   }
+  else if (mode === 'refresh') await modeRefresh();
   else if (mode === 'contracts') await modeContracts();
   else if (mode === 'pool') await modePool();
   else if (mode === 'calendar') await modeCalendar();
-  else console.log('用法: node monitor.mjs scan|remind|feedback|daily|nav|contracts|pool|calendar [noon|evening|night|morning]');
+  else console.log('用法: node monitor.mjs scan|remind|feedback|daily|nav|refresh|contracts|pool|calendar [noon|evening|night|morning]');
 } catch (e) {
   console.error('运行出错:', e);
   process.exit(1);
