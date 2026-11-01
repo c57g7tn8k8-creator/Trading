@@ -13,9 +13,9 @@
       9
     ],
     "fee_fix": 6,
-    "av": 1394482,
-    "dep": 28.17,
-    "margin1": 2150,
+    "av": 1071147,
+    "dep": 35.07,
+    "margin1": 2336,
     "contract": "FG701"
   },
   {
@@ -32,9 +32,9 @@
       9
     ],
     "fee_fix": 3.5,
-    "av": 1517260,
-    "dep": 31.75,
-    "margin1": 2417,
+    "av": 1230285,
+    "dep": 33.16,
+    "margin1": 2635,
     "contract": "SA701"
   },
   {
@@ -51,9 +51,9 @@
       9
     ],
     "fee_fix": 2,
-    "av": 645725,
-    "dep": 13.97,
-    "margin1": 2347,
+    "av": 1942414,
+    "dep": 25.13,
+    "margin1": 3290,
     "contract": "MA701"
   },
   {
@@ -70,9 +70,9 @@
       9
     ],
     "fee_fix": 3,
-    "av": 1290289,
-    "dep": 23.97,
-    "margin1": 2188,
+    "av": 1144892,
+    "dep": 29.96,
+    "margin1": 2814,
     "contract": "TA701"
   },
   {
@@ -89,9 +89,9 @@
       9
     ],
     "fee_fix": 3,
-    "av": 435180,
-    "dep": 23.78,
-    "margin1": 3762,
+    "av": 400891,
+    "dep": 25.44,
+    "margin1": 4475,
     "contract": "SR701"
   },
   {
@@ -108,9 +108,9 @@
       9
     ],
     "fee_fix": 4.3,
-    "av": 337651,
-    "dep": 31.2,
-    "margin1": 5612,
+    "av": 395505,
+    "dep": 39.83,
+    "margin1": 6483,
     "contract": "CF701"
   },
   {
@@ -127,10 +127,29 @@
       9
     ],
     "fee_fix": 3,
-    "av": 178644,
-    "dep": 8.4,
-    "margin1": 3570,
+    "av": 313566,
+    "dep": 8.72,
+    "margin1": 3539,
     "contract": "CJ701"
+  },
+  {
+    "code": "AP0",
+    "prefix": "AP",
+    "exch": "czce",
+    "name": "苹果",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.1,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 5,
+    "av": 253487,
+    "dep": 11.3,
+    "margin1": 6530,
+    "contract": "AP701"
   },
   {
     "code": "OI0",
@@ -146,9 +165,9 @@
       9
     ],
     "fee_fix": 2,
-    "av": 214957,
-    "dep": 20.25,
-    "margin1": 7094,
+    "av": 255791,
+    "dep": 29.9,
+    "margin1": 8751,
     "contract": "OI701"
   },
   {
@@ -165,17 +184,36 @@
       9
     ],
     "fee_fix": 1.5,
-    "av": 426189,
-    "dep": 9.55,
-    "margin1": 1636,
+    "av": 583614,
+    "dep": 13.05,
+    "margin1": 1903,
     "contract": "RM701"
   },
   {
-    "code": "UR0",
-    "prefix": "UR",
+    "code": "SM0",
+    "prefix": "SM",
     "exch": "czce",
-    "name": "尿素",
-    "mult": 20,
+    "name": "锰硅",
+    "mult": 5,
+    "tick": 2,
+    "rate": 0.09,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 3,
+    "av": 200559,
+    "dep": 10.19,
+    "margin1": 3089,
+    "contract": "SM701"
+  },
+  {
+    "code": "SH0",
+    "prefix": "SH",
+    "exch": "czce",
+    "name": "烧碱",
+    "mult": 30,
     "tick": 1,
     "rate": 0.08,
     "months": [
@@ -183,11 +221,30 @@
       5,
       9
     ],
-    "fee_fix": 5,
-    "av": 175954,
-    "dep": 7.38,
-    "margin1": 2800,
-    "contract": "UR701"
+    "fee_fix": 2,
+    "av": 384646,
+    "dep": 10.13,
+    "margin1": 4275,
+    "contract": "SH701"
+  },
+  {
+    "code": "A0",
+    "prefix": "A",
+    "exch": "dce",
+    "name": "豆一",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.07,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_fix": 2,
+    "av": 257639,
+    "dep": 14.03,
+    "margin1": 4500,
+    "contract": "A2701"
   },
   {
     "code": "C0",
@@ -203,9 +260,9 @@
       9
     ],
     "fee_fix": 1.2,
-    "av": 197156,
-    "dep": 9.54,
-    "margin1": 1546,
+    "av": 442723,
+    "dep": 19.88,
+    "margin1": 1884,
     "contract": "C2701"
   },
   {
@@ -222,9 +279,9 @@
       9
     ],
     "fee_fix": 3,
-    "av": 354707,
-    "dep": 7.69,
-    "margin1": 3786,
+    "av": 610579,
+    "dep": 11.05,
+    "margin1": 5075,
     "contract": "EG2701"
   },
   {
@@ -241,9 +298,9 @@
       9
     ],
     "fee_rate": 0.0001,
-    "av": 273157,
-    "dep": 46.36,
-    "margin1": 7750,
+    "av": 277353,
+    "dep": 51.77,
+    "margin1": 8438,
     "contract": "I2701"
   },
   {
@@ -260,9 +317,9 @@
       9
     ],
     "fee_fix": 1,
-    "av": 611872,
-    "dep": 12.69,
-    "margin1": 2871,
+    "av": 682648,
+    "dep": 16.29,
+    "margin1": 4035,
     "contract": "L2701"
   },
   {
@@ -279,9 +336,9 @@
       9
     ],
     "fee_fix": 1.5,
-    "av": 1533242,
-    "dep": 65.84,
-    "margin1": 2370,
+    "av": 1041994,
+    "dep": 64.91,
+    "margin1": 2698,
     "contract": "M2701"
   },
   {
@@ -298,9 +355,9 @@
       9
     ],
     "fee_fix": 2.5,
-    "av": 584223,
-    "dep": 47.53,
-    "margin1": 7740,
+    "av": 513811,
+    "dep": 52.42,
+    "margin1": 8752,
     "contract": "P2701"
   },
   {
@@ -317,9 +374,9 @@
       9
     ],
     "fee_fix": 1,
-    "av": 786336,
-    "dep": 19.22,
-    "margin1": 3009,
+    "av": 961227,
+    "dep": 26.49,
+    "margin1": 4434,
     "contract": "PP2701"
   },
   {
@@ -336,9 +393,9 @@
       9
     ],
     "fee_fix": 1,
-    "av": 1728593,
-    "dep": 19.17,
-    "margin1": 1673,
+    "av": 1501252,
+    "dep": 23,
+    "margin1": 2250,
     "contract": "V2701"
   },
   {
@@ -355,10 +412,29 @@
       9
     ],
     "fee_fix": 2.5,
-    "av": 371289,
-    "dep": 44.93,
-    "margin1": 6218,
+    "av": 295362,
+    "dep": 43.42,
+    "margin1": 7623,
     "contract": "Y2701"
+  },
+  {
+    "code": "FU0",
+    "prefix": "FU",
+    "exch": "shfe",
+    "name": "燃料油",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.1,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_rate": 0.00005,
+    "av": 523606,
+    "dep": 11.32,
+    "margin1": 6250,
+    "contract": "FU2701"
   },
   {
     "code": "HC0",
@@ -374,9 +450,9 @@
       10
     ],
     "fee_rate": 0.0001,
-    "av": 370703,
-    "dep": 30.25,
-    "margin1": 2297,
+    "av": 400300,
+    "dep": 42.66,
+    "margin1": 2702,
     "contract": "HC2701"
   },
   {
@@ -393,9 +469,47 @@
       10
     ],
     "fee_rate": 0.0001,
-    "av": 714700,
-    "dep": 33.63,
-    "margin1": 2170,
+    "av": 662286,
+    "dep": 45.28,
+    "margin1": 2583,
     "contract": "RB2701"
+  },
+  {
+    "code": "SP0",
+    "prefix": "SP",
+    "exch": "shfe",
+    "name": "纸浆",
+    "mult": 10,
+    "tick": 2,
+    "rate": 0.08,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_rate": 0.00005,
+    "av": 260038,
+    "dep": 13.25,
+    "margin1": 4387,
+    "contract": "SP2701"
+  },
+  {
+    "code": "AO0",
+    "prefix": "AO",
+    "exch": "shfe",
+    "name": "氧化铝",
+    "mult": 10,
+    "tick": 1,
+    "rate": 0.12,
+    "months": [
+      1,
+      5,
+      9
+    ],
+    "fee_rate": 0.0001,
+    "av": 164055,
+    "dep": 9.61,
+    "margin1": 3499,
+    "contract": "AO2701"
   }
 ]

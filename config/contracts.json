@@ -124,5 +124,30 @@
     "main": "AO2701",
     "next": "AO2705",
     "rollover": "2026-12-01"
+  },
+  "AP0": {
+    "main": "AP701",
+    "next": "AP705",
+    "rollover": "2026-12-01"
+  },
+  "SM0": {
+    "main": "SM701",
+    "next": "SM705",
+    "rollover": "2026-12-01"
+  },
+  "SH0": {
+    "main": "SH701",
+    "next": "SH705",
+    "rollover": "2026-12-01"
+  },
+  "FU0": {
+    "main": "FU2701",
+    "next": "FU2705",
+    "rollover": "2026-12-01"
+  },
+  "SP0": {
+    "main": "SP2701",
+    "next": "SP2705",
+    "rollover": "2026-12-01"
   }
 }
