@@ -57,8 +57,12 @@ jobs:
             # github.event.schedule = 触发本次运行的 cron 表达式，直接映射时段，
             # 不再按运行时刻猜（GitHub 延迟可达数小时，时间窗会把跨窗任务错判时段）
             C="${{ github.event.schedule }}"
+            # 2026-11-02 修复：cron 已加"仅工作日"后缀（如 '10 0 * * 1-5'），
+            # 先剥掉第 5 段再匹配映射表，否则全部落入时间窗兜底、延迟倾倒时错判时段
+            # （当日 08:10 早间档延迟到 10:49 被错判成 noon，污染了午间标记）
+            C4="${C% *}"
             IM=-1
-            case "$C" in
+            case "$C4" in
               "31 3 * * *")  S=noon;    IM=211 ;;
               "41 3 * * *")  S=noon;    IM=221 ;;
               "1 7 * * *")   S=evening; IM=421 ;;
@@ -72,15 +76,17 @@ jobs:
               echo "bizdate=$BD" >> "$GITHUB_OUTPUT"
               echo "cron=$C 时段=$S 业务日=$BD"
             else
-              # 兜底：cron 变更未同步映射表时按时间窗
-              T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
-              if [ $T -ge 316 ] && [ $T -lt 661 ]; then S=evening; elif [ $T -ge 661 ] && [ $T -lt 1276 ]; then S=night; else S=noon; fi
-              echo "cron=$C 未识别，时间窗兜底时段=$S"
+              # 2026-11-02：cron 未识别时不再按时间窗兜底（延迟倾倒会被错判时段并污染当日
+              # 幂等标记，导致真正的整点扫描被守卫跳过）——放弃本次扫描，宁缺毋错
+              S=unknown
+              echo "stale=true" >> "$GITHUB_OUTPUT"
+              echo "::warning::cron=$C 未在映射表中（映射表未同步？），放弃本次扫描以免错槽"
             fi
           fi
           echo "slot=$S" >> "$GITHUB_OUTPUT"
 
       - name: 运行扫描引擎
+        if: steps.slot.outputs.stale != 'true'
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}

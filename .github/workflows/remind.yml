@@ -57,8 +57,12 @@ jobs:
           else
             # github.event.schedule = 触发本次运行的 cron 表达式，直接映射时段
             C="${{ github.event.schedule }}"
+            # 2026-11-02 修复：cron 已加"仅工作日"后缀（如 '10 0 * * 1-5'），
+            # 先剥掉第 5 段再匹配映射表，否则全部落入时间窗兜底、延迟倾倒时错判时段
+            # （当日 08:10 早间档延迟到 10:49 被错判成 noon，且兜底分支无超时丢弃检查）
+            C4="${C% *}"
             IM=-1
-            case "$C" in
+            case "$C4" in
               "45 3 * * *")  S=noon;    IM=225 ;;
               "55 3 * * *")  S=noon;    IM=235 ;;
               "0 12 * * *")  S=evening; IM=720 ;;
@@ -79,9 +83,11 @@ jobs:
               fi
               echo "cron=$C 时段=$S 业务日=$BD 延迟=${DIFF}分钟"
             else
-              T=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
-              if [ $T -ge 112 ] && [ $T -lt 472 ]; then S=noon; elif [ $T -ge 472 ] && [ $T -lt 1080 ]; then S=evening; else S=morning; fi
-              echo "cron=$C 未识别，时间窗兜底时段=$S"
+              # 2026-11-02：cron 未识别时不再按时间窗兜底（兜底无计划时刻，无法做超时丢弃，
+              # 会把延迟数小时的早间档错判成午间并污染当日标记）——放弃本次推送，宁缺毋错
+              S=unknown
+              echo "stale=true" >> "$GITHUB_OUTPUT"
+              echo "::warning::cron=$C 未在映射表中（映射表未同步？），放弃本次推送以免错槽"
             fi
           fi
           echo "slot=$S" >> "$GITHUB_OUTPUT"
