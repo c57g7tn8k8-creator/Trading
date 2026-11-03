@@ -284,10 +284,10 @@ function replayDaily(daily, spec) {
 
 /* ---------------- 未来 N 个交易日信号展望（收盘日报用） ----------------
  * 依据 K3 段内进度推算每个品种"最快还要几步才能出信号"及对应点位：
- *   已激活(zone)      → 等 3 分钟转色入场，T+0
- *   已有触发线(trig)  → 破位即激活，T+1
- *   回调 n≥1 无 trig  → 先创新极值形成触发线，再破位，T+2
- *   回调 n=0          → 需三步，T+3（仅列示最接近的）
+ *   已激活(zone)      → 等 3 分钟转色入场，T+0（单独列示）
+ *   已有触发线(trig)  → 破位即激活，T+1（唯一纳入提醒的类型）
+ *   回调 n≥1 无 trig  → 先创新极值形成触发线，再破位，T+2（2026-11-03 起不再提醒）
+ *   回调 n=0          → 需三步，T+3（2026-11-03 起不再提醒）
  * 段内额度已用(zoneUsed)的品种在趋势翻转前无资格，单独计数不列示。
  */
 async function tradingDaysAfter(d, n) {
@@ -327,6 +327,7 @@ async function forecastWindow(today, horizon = 3) {
     else if ((term.pullN || 0) >= 1) { eta = 2; gate = term.pullRun; stage = '先形成触发线'; }
     else { eta = 3; gate = null; stage = '需攒两段回调'; }
     if (eta > horizon) continue;
+    if (eta !== 1) continue;   // 2026-11-03 起：只提醒"破位即激活"，未形成触发线的品种不入提醒
 
     // 门槛方向：空头段需向上突破（正幅度），多头段需向下破位（负幅度）
     const need = gate == null ? null : (dir === 'short' ? gate - last.c : last.c - gate);
@@ -345,7 +346,7 @@ async function forecastWindow(today, horizon = 3) {
 function fmtForecast(fc, today) {
   if (!fc) return '';
   const L = [];
-  L.push(`**未来${fc.dates.length}个交易日信号展望**（截至 ${today} 收盘，按最快出信号日排序）`);
+  L.push(`**未来${fc.dates.length}个交易日信号展望**（截至 ${today} 收盘，破位即激活品种，按距门槛幅度排序）`);
   if (fc.active.length) {
     L.push('', `**已激活·待入场（${fc.active.length}）**：` + fc.active.map(a =>
       `${a.name} ${a.contract} ${a.dir === 'long' ? '多' : '空'}（${a.born} 激活，损基 ${a.seg}，有效期至 ${a.expiry} 收盘）`).join('；') +
@@ -353,13 +354,13 @@ function fmtForecast(fc, today) {
   }
   if (fc.rows.length) {
     L.push('');
-    for (const r of fc.rows.slice(0, 8)) {
+    fc.rows.slice(0, 8).forEach((r, i) => {
       const mark = r.gate == null ? '' : (r.dir === 'short' ? `H>${r.gate}` : `L<${r.gate}`);
       const dist = r.pct == null ? '—' : `${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(2)}%`;
-      L.push(`${r.eta === 1 ? '①' : r.eta === 2 ? '②' : '③'} ${r.name} ${r.contract}｜${r.dir === 'long' ? '回调做多' : '反弹做空'}｜${r.stage} ${mark}（${dist}）→ 最快 ${r.etaDate}`);
-    }
+      L.push(`${i + 1}. ${r.name} ${r.contract}｜${r.dir === 'long' ? '回调做多' : '反弹做空'}｜${r.stage} ${mark}（${dist}）→ 最快 ${r.etaDate}`);
+    });
   } else {
-    L.push('', '全池无品种在窗口内具备出信号条件（均在额度已用或需重新攒回调）');
+    L.push('', '全池无品种在窗口内具备"破位即激活"条件（额度已用或触发线尚未形成）');
   }
   L.push('', `段内额度已用 ${fc.usedCnt} 个：翻段前无资格。破位当日收反向色不发信号（逆色过滤）；创新低/高会重置段并清零回调计数。`);
   return L.join('\n');
