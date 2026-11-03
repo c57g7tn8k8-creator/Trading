@@ -7,8 +7,8 @@ name: 年度交易日历刷新
 # modeCalendar 内 last_calendar 幂等守卫保证同一年度只实跑一次。
 on:
   schedule:
-    - cron: '0 2 30 12 *'
-    - cron: '0 4 30 12 *'
+    # 二次精简 2026-11-03：仅留 1 档并错峰到 07 分，避开整点高负载。
+    - cron: '7 2 30 12 *'
   workflow_dispatch:
     inputs:
       force:
