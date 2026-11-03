@@ -63,12 +63,12 @@ jobs:
             C4="${C% *}"
             IM=-1
             case "$C4" in
-              "31 3 * * *")  S=noon;    IM=211 ;;
-              "41 3 * * *")  S=noon;    IM=221 ;;
-              "1 7 * * *")   S=evening; IM=421 ;;
-              "11 7 * * *")  S=evening; IM=431 ;;
-              "1 15 * * *")  S=night;   IM=901 ;;
-              "11 15 * * *") S=night;   IM=911 ;;
+              "31 3 * *")  S=noon;    IM=211 ;;
+              "41 3 * *")  S=noon;    IM=221 ;;
+              "1 7 * *")   S=evening; IM=421 ;;
+              "11 7 * *")  S=evening; IM=431 ;;
+              "1 15 * *")  S=night;   IM=901 ;;
+              "11 15 * *") S=night;   IM=911 ;;
             esac
             if [ -n "$S" ] && [ $IM -ge 0 ]; then
               # 业务日 = 该 cron 计划时刻对应的北京时间日期（延迟跨零点也不漂移）

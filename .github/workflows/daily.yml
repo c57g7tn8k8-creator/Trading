@@ -6,6 +6,12 @@ name: 收盘日报
 # 被 GitHub 降权、整窗静默丢弃的可疑诱因（10-28~30 连续三天 07:0x UTC 窗口全丢）。
 # monitor.mjs 内 state.last_daily 幂等守卫保证只实跑一次：先跑到的档位完成推送与净值写入，
 # 其余档位读到标记即跳过（不重复推飞书、不重复写净值）。手动补跑用 Run workflow（force=1）。
+# 2026-11-03 加固（业务日校准 + 超时丢弃）：GitHub 备份 cron 可延迟数小时甚至跨日倾倒
+# （当日实例：11-02 的 15:15 档延迟约 10 小时，于 11-03 凌晨 01:04 倾倒执行，
+#  按运行时刻把业务日误判为 11-03、抢先写入当日 last_daily 标记，
+#  导致 15:20 踢腿器触发的真正收盘日报被幂等守卫拦截）。
+# 修复：schedule 触发时按 cron 计划时刻推算业务日（TODAY_OVERRIDE），
+# 延迟 >90 分钟直接放弃（stale），与 scan/remind 的防线一致。
 on:
   schedule:
     - cron: '15 7 * * 1-5'    # 15:15 主档
@@ -33,11 +39,46 @@ jobs:
         with:
           node-version: 22
 
+      - name: 确定业务日（cron 精确映射 + 超时丢弃）
+        id: biz
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "手动/踢腿触发：业务日按运行时刻（modeDaily 默认逻辑）"
+          else
+            # github.event.schedule = 触发本次运行的 cron 表达式，映射计划时刻
+            C="${{ github.event.schedule }}"
+            C4="${C% *}"   # 剥掉"仅工作日"后缀（如 '15 7 * * 1-5' → '15 7 * * *'）
+            IM=-1
+            case "$C4" in
+              "15 7 * *") IM=435 ;;   # UTC 07:15 = 北京 15:15 主档
+              "25 7 * *") IM=445 ;;   # UTC 07:25 = 北京 15:25 兜底
+            esac
+            if [ $IM -lt 0 ]; then
+              echo "stale=true" >> "$GITHUB_OUTPUT"
+              echo "::warning::cron=$C 未在映射表中（映射表未同步？），放弃本次日报以免错日"
+            else
+              NOW=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
+              DELTA=$(( (NOW - IM + 1440) % 1440 ))
+              if [ $DELTA -gt 90 ]; then
+                # 延迟倾倒（多为跨日）：推送陈旧日报并抢占当日幂等标记，百害无一利，直接放弃
+                echo "stale=true" >> "$GITHUB_OUTPUT"
+                echo "::warning::cron=$C 计划UTC ${IM}分、实际 ${NOW}分，延迟 ${DELTA} 分钟 >90，判定为延迟倾倒，放弃本次日报"
+              else
+                # 业务日 = 该 cron 计划时刻对应的北京时间日期（延迟数小时也不漂移）
+                BD=$(date -u -d "$(date -u +%F) $(printf '%02d:%02d' $((IM/60)) $((IM%60))) +8 hours" +%F)
+                echo "bizdate=$BD" >> "$GITHUB_OUTPUT"
+                echo "cron=$C 业务日=$BD（延迟 ${DELTA} 分钟）"
+              fi
+            fi
+          fi
+
       - name: 推送收盘日报
+        if: steps.biz.outputs.stale != 'true'
         env:
           FEISHU_WEBHOOK: ${{ secrets.FEISHU_WEBHOOK }}
           FEISHU_SECRET: ${{ secrets.FEISHU_SECRET }}
           DISPATCH_FORCE: ${{ github.event.inputs.force }}
+          TODAY_OVERRIDE: ${{ steps.biz.outputs.bizdate }}
         run: node monitor.mjs daily
 
       - name: 提交数据与面板
