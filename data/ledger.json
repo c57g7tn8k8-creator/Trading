@@ -131,11 +131,15 @@
       "mult": 20,
       "half_done": false,
       "realized": 0,
-      "status": "open",
+      "status": "closed",
       "margin1": 2641,
-      "fees": 7,
+      "fees": 14,
       "manual": true,
-      "fb": "自选 纯碱 空 978 997 2"
+      "fb": "自选 纯碱 空 978 997 2",
+      "pnl": -14,
+      "exit_date": "2026-11-03",
+      "exit_px": 978,
+      "reason": "手动平仓"
     }
   ],
   "nav": [
@@ -213,7 +217,7 @@
     },
     {
       "d": "2026-11-03",
-      "equity": 4808.6
+      "equity": 5041.6
     }
   ]
 }
