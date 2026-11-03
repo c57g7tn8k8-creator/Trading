@@ -14,8 +14,9 @@ name: 收盘日报
 # 延迟 >90 分钟直接放弃（stale），与 scan/remind 的防线一致。
 on:
   schedule:
-    - cron: '15 7 * * 1-5'    # 15:15 主档
-    - cron: '25 7 * * 1-5'    # 15:25 兜底
+    # 二次精简 2026-11-03：外部踢腿器 + 统一巡检已兜底，GitHub 备份仅留 1 档。
+    # 保留 '15 7'，因 jobs 段 cron→业务日映射表依赖该值；分钟 15 已避开整点。
+    - cron: '15 7 * * 1-5'    # 15:15 备份档（非整点）
   workflow_dispatch:
     inputs:
       force:
