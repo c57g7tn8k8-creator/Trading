@@ -256,7 +256,12 @@ function replayDaily(daily, spec) {
           // 一年回测：逆色激活31信号/23笔 胜率17.4%/PF0.97/净-196元（菜粕RM701 2026-10-20即此类）；
           // 过滤后整体胜率37.7%→42.4%，PF1.64→1.86，净盈亏+15766→+15962元。
           const oppColor = (zone.dir === 'long' && B.color === 'G') || (zone.dir === 'short' && B.color === 'R');
-          if (R > 0 && !(SETTINGS.filter_opp_color && oppColor)) {
+          const blocked = SETTINGS.filter_opp_color && oppColor;
+          // 记录本区是否真的产出了信号：逆色过滤（或 R<=0）时 zone 仍存活、zoneUsed 仍被消耗，
+          // 但 signals 里没有这一笔 → 日报不能把它当"已激活·待入场"列出（2026-11-04 修）。
+          zone.hasSignal = R > 0 && !blocked;
+          zone.blockedReason = zone.hasSignal ? null : (blocked ? 'opp' : 'r');
+          if (zone.hasSignal) {
             signals.push({
               date: B.d, dir: zone.dir, kind: 'activate',
               zoneId: `${zone.born}|${zone.dir}|${zone.trigPx}`,
@@ -277,7 +282,10 @@ function replayDaily(daily, spec) {
     term: {
       trend, base, trig, zoneUsed,
       pullN: pull.n, pullRun: pull.run,
-      zone: zone ? { dir: zone.dir, seg: zone.seg, born: zone.born, trigPx: zone.trigPx } : null
+      zone: zone ? {
+        dir: zone.dir, seg: zone.seg, born: zone.born, trigPx: zone.trigPx,
+        hasSignal: zone.hasSignal !== false, blockedReason: zone.blockedReason || null
+      } : null
     }
   };
 }
@@ -285,10 +293,15 @@ function replayDaily(daily, spec) {
 /* ---------------- 未来 N 个交易日信号展望（收盘日报用） ----------------
  * 依据 K3 段内进度推算每个品种"最快还要几步才能出信号"及对应点位：
  *   已激活(zone)      → 等 3 分钟转色入场，T+0（单独列示）
+ *   注意：zone 只有 hasSignal=true 才列示。逆色过滤（激活当根收反向色）时 zone 仍存活、
+ *   额度已消耗，但从未发出信号，属"本段无资格"，计入额度已用（2026-11-04 修）。
  *   已有触发线(trig)  → 破位即激活，T+1（唯一纳入提醒的类型）
  *   回调 n≥1 无 trig  → 先创新极值形成触发线，再破位，T+2（2026-11-03 起不再提醒）
  *   回调 n=0          → 需三步，T+3（2026-11-03 起不再提醒）
  * 段内额度已用(zoneUsed)的品种在趋势翻转前无资格，单独计数不列示。
+ * 当日 bar 补齐（2026-11-04）：新浪日线当日 K 要到晚间才生成，15:20 日报直接用日线
+ *   会使最后一根停留在昨日 → 幅度按昨收算、当日已破位也看不到。改用 3 分钟聚合的
+ *   当日 K 雏形补 last，与 scan 的盘中激活检测同一口径（partialDayBar）。
  */
 async function tradingDaysAfter(d, n) {
   const out = [];
@@ -299,18 +312,30 @@ async function tradingDaysAfter(d, n) {
 async function forecastWindow(today, horizon = 3) {
   const dates = await tradingDaysAfter(today, horizon);
   const rows = [], active = [];
-  let usedCnt = 0, failCnt = 0;
+  const prevTd = await prevTradingDay(today);   // 当日夜盘开在 prevTd 日历日晚间
+  let usedCnt = 0, failCnt = 0, patched = 0, oppCnt = 0;
   for (const spec of POOL) {
     let bars;
     try { bars = await fetchDailySmart(spec); } catch (e) { failCnt++; continue; }
     if (!bars || bars.length < SETTINGS.min_history) { failCnt++; continue; }
+    // 补齐当日 bar：日线接口当日 K 生成晚（实测 15:20/15:41 仍为昨日），
+    // 用 3 分钟聚合"昨夜盘 + 今白盘"补 last。取不到时保持日线口径，不会更差。
+    if (bars[bars.length - 1].d !== today) {
+      try {
+        let m3 = [];
+        try { m3 = await fetch3min(contractSinaCode(spec)); } catch { }
+        if (!m3.length) m3 = await fetch3min(spec.code);
+        const pb = partialDayBar(m3, today, prevTd);
+        if (pb && pb.d === today) { bars.push(pb); patched++; }
+      } catch { /* 3分钟数据不可用：保持日线口径 */ }
+    }
     let term;
     try { ({ term } = replayDaily(bars.map(b => ({ ...b })), spec)); } catch (e) { failCnt++; continue; }
     if (!term || (term.trend !== 'long' && term.trend !== 'short')) continue;
     const last = bars[bars.length - 1];
     const dir = term.trend === 'long' ? 'long' : 'short';   // 多头段回调做多／空头段反弹做空
 
-    if (term.zone) {
+    if (term.zone && term.zone.hasSignal !== false) {
       // 超期作废：有效期 = 激活日次一交易日收盘，超过即失去入场资格
       const zExpiry = await nextTradingDay(term.zone.born);
       if (today > zExpiry) { usedCnt++; continue; }
@@ -320,6 +345,9 @@ async function forecastWindow(today, horizon = 3) {
       });
       continue;
     }
+    // 激活当根收反向色被逆色过滤：zone 存活但从未发信号，不能当作"已激活·待入场"。
+    // 该段额度同样已被消耗（zoneUsed=true），下面统一计入额度已用。
+    if (term.zone && term.zone.hasSignal === false) oppCnt++;
     if (term.zoneUsed) { usedCnt++; continue; }
 
     let eta, gate, stage;
@@ -341,7 +369,8 @@ async function forecastWindow(today, horizon = 3) {
   // 先按最快出信号日，再按距门槛的绝对幅度（方向无关）
   const absPct = r => r.pct == null ? 9e9 : Math.abs(r.pct);
   rows.sort((a, b) => (a.eta - b.eta) || (absPct(a) - absPct(b)));
-  return { rows, active, usedCnt, failCnt, dates };
+  console.log(`  展望：补齐当日bar ${patched} 个，数据失败 ${failCnt} 个，额度已用 ${usedCnt} 个（其中逆色过滤 ${oppCnt} 个）`);
+  return { rows, active, usedCnt, failCnt, patched, oppCnt, dates };
 }
 function fmtForecast(fc, today) {
   if (!fc) return '';
