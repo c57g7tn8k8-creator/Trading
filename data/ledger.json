@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 6,
+  "seq": 7,
   "trades": [
     {
       "id": "T0001",
@@ -165,6 +165,31 @@
       "fees": 6.91,
       "manual": true,
       "fb": "自选 铁矿石 空 690.5 696 1"
+    },
+    {
+      "id": "T0007",
+      "signal": "自选",
+      "sym": "SP0",
+      "name": "纸浆",
+      "contract": "SP2701",
+      "dir": "short",
+      "entry_date": "2026-11-05",
+      "entry": 4686,
+      "lots": 1,
+      "lots0": 1,
+      "stop": 4728,
+      "stop0": 4728,
+      "R": 42,
+      "t3": 4560,
+      "t5": 4476,
+      "mult": 10,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "margin1": 4452,
+      "fees": 2.34,
+      "manual": true,
+      "fb": "自选 纸浆 空 4686 4728 1"
     }
   ],
   "nav": [
@@ -250,7 +275,7 @@
     },
     {
       "d": "2026-11-05",
-      "equity": 5034.69
+      "equity": 5062.35
     }
   ]
 }
