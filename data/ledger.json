@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 5,
+  "seq": 6,
   "trades": [
     {
       "id": "T0001",
@@ -140,6 +140,31 @@
       "exit_date": "2026-11-03",
       "exit_px": 978,
       "reason": "手动平仓"
+    },
+    {
+      "id": "T0006",
+      "signal": "自选",
+      "sym": "I0",
+      "name": "铁矿石",
+      "contract": "I2701",
+      "dir": "short",
+      "entry_date": "2026-11-05",
+      "entry": 690.5,
+      "lots": 1,
+      "lots0": 1,
+      "stop": 696,
+      "stop0": 696,
+      "R": 5.5,
+      "t3": 674,
+      "t5": 663,
+      "mult": 100,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "margin1": 8631,
+      "fees": 6.91,
+      "manual": true,
+      "fb": "自选 铁矿石 空 690.5 696 1"
     }
   ],
   "nav": [
@@ -225,7 +250,7 @@
     },
     {
       "d": "2026-11-05",
-      "equity": 5041.6
+      "equity": 5034.69
     }
   ]
 }
