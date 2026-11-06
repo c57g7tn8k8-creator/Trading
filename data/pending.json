@@ -148,8 +148,9 @@
       "avail": 1443,
       "equity": 5895,
       "remind_date": "2026-11-06",
-      "status": "pending",
-      "created": "2026-11-06 15:00"
+      "status": "reminded",
+      "created": "2026-11-06 15:00",
+      "reminded_at": "2026-11-06 20:00"
     }
   ]
 }
