@@ -13087,9 +13087,17 @@
     "I0|2026-11-05|short|2026-11-05|short|687": {
       "date": "2026-11-05",
       "alerted": false
+    },
+    "CJ0|2026-11-06|short|2026-11-06|short|6535": {
+      "date": "2026-11-06",
+      "alerted": true
+    },
+    "SP0|2026-11-06|short|2026-11-06|short|4696": {
+      "date": "2026-11-06",
+      "alerted": false
     }
   },
-  "last_scan": "2026-11-06 10:07",
+  "last_scan": "2026-11-06 12:30",
   "last_scan_slot": "noon",
   "runs": {
     "2026-10-30:night": "2026-10-30 21:00",
@@ -13119,5 +13127,8 @@
       "SP0": 4652
     }
   },
-  "last_maintenance": "2026-11"
+  "last_maintenance": "2026-11",
+  "manualRuns": {
+    "2026-11-06:noon": "2026-11-06 12:30"
+  }
 }

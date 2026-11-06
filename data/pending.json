@@ -1,5 +1,5 @@
 {
-  "seq": 4,
+  "seq": 5,
   "items": [
     {
       "id": "S20261008-001",
@@ -101,6 +101,30 @@
       "followup_at": "2026-10-21 08:11",
       "invalidated_at": "2026-10-21 15:32",
       "void_reason": "stop"
+    },
+    {
+      "id": "S20261106-005",
+      "sym": "CJ0",
+      "name": "红枣",
+      "contract": "CJ701",
+      "dir": "short",
+      "date": "2026-11-06",
+      "slot": "noon",
+      "ref": 6525,
+      "stop": 6580,
+      "R": 55,
+      "t3": 6360,
+      "t5": 6250,
+      "void_px": 6050,
+      "mult": 5,
+      "lots": 1,
+      "margin1": 3752,
+      "afford": false,
+      "avail": 0,
+      "equity": 5712,
+      "remind_date": "2026-11-06",
+      "status": "pending",
+      "created": "2026-11-06 12:30"
     }
   ]
 }
