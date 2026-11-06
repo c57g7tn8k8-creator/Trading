@@ -1,5 +1,5 @@
 {
-  "seq": 5,
+  "seq": 6,
   "items": [
     {
       "id": "S20261008-001",
@@ -126,6 +126,30 @@
       "status": "reminded",
       "created": "2026-11-06 12:30",
       "reminded_at": "2026-11-06 12:32"
+    },
+    {
+      "id": "S20261105-006",
+      "sym": "I0",
+      "name": "铁矿石",
+      "contract": "I2701",
+      "dir": "short",
+      "date": "2026-11-05",
+      "slot": "evening",
+      "ref": 691,
+      "stop": 692.5,
+      "R": 1.5,
+      "t3": 686.5,
+      "t5": 683.5,
+      "void_px": 660,
+      "mult": 100,
+      "lots": 1,
+      "margin1": 8638,
+      "afford": false,
+      "avail": 1443,
+      "equity": 5895,
+      "remind_date": "2026-11-06",
+      "status": "pending",
+      "created": "2026-11-06 15:00"
     }
   ]
 }
