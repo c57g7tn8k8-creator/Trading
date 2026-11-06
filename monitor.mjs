@@ -44,6 +44,10 @@ const FORCE_TD = process.env.FORCE_TRADING_DAY === '1';
 // 手动 Run workflow（workflow_dispatch）视为用户显式强制执行，绕过所有幂等守卫（2026-10-29）。
 // 外部定时踢腿器（cron-job.org 等）走的也是 workflow_dispatch，但它需要参与幂等去重，
 // 故仅在 DISPATCH_FORCE=1 时才绕过；外部触发传 force=0（或省略）即走正常守卫（2026-10-29）。
+// 2026-11-06：手动补跑(IS_MANUAL)不再占用整点幂等标记（scan 的 runs / remind 的 last_remind），
+// 只记 state.manualRuns 备查——避免提前手动跑一次拦掉后续正点触发（11-06 10:07 手动扫描
+// 占用 noon 标记致 11:30 正点跳过）。重复推送由 seen/pending 状态去重兜底。daily 仍写标记
+// （日报重复推送无去重手段，且属补报性质）。
 const IS_MANUAL = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.DISPATCH_FORCE === '1';
 
 /* ---------------- 时间（全部按北京时间 CST 处理） ---------------- */
@@ -312,6 +316,15 @@ async function tradingDaysAfter(d, n) {
 async function forecastWindow(today, horizon = 3) {
   const dates = await tradingDaysAfter(today, horizon);
   const rows = [], active = [];
+  // 资金可负担性（2026-11-05 引入；2026-11-06 口径更新）：与 scan 的 afford 标注同口径。
+  // scan 现已改为"资金不足照常推送、卡片内标注"，日报同步只做标注提示（不再说"不会推送"），
+  // 避免「日报说待入场、晚间提醒说无信号」的矛盾（I2701 11-05 曾因旧拦截逻辑出现）。
+  const _led = readJson(J('data/ledger.json'), { capital: 5000, trades: [], nav: [] });
+  const _navLast = (_led.nav || []).slice(-1)[0];
+  const _equity = _navLast ? _navLast.equity : _led.capital;   // modeDaily 已先落当日净值点
+  const _usedMargin = (_led.trades || []).filter(t => t.status === 'open')
+    .reduce((a, t) => a + (t.margin1 || 0) * (t.lots || 1), 0);
+  const _avail = Math.max(0, _equity - _usedMargin);   // 下限归零：自选仓占用可超本金，负数无意义
   const prevTd = await prevTradingDay(today);   // 当日夜盘开在 prevTd 日历日晚间
   let usedCnt = 0, failCnt = 0, patched = 0, oppCnt = 0;
   for (const spec of POOL) {
@@ -341,7 +354,10 @@ async function forecastWindow(today, horizon = 3) {
       if (today > zExpiry) { usedCnt++; continue; }
       active.push({
         name: spec.name, contract: spec.contract, dir: term.zone.dir,
-        seg: term.zone.seg, born: term.zone.born, expiry: zExpiry
+        seg: term.zone.seg, born: term.zone.born, expiry: zExpiry,
+        margin1: Math.round(last.c * spec.mult * marginRate(spec)),
+        avail: Math.round(_avail),
+        afford: last.c * spec.mult * marginRate(spec) <= _avail
       });
       continue;
     }
@@ -369,7 +385,7 @@ async function forecastWindow(today, horizon = 3) {
   // 先按最快出信号日，再按距门槛的绝对幅度（方向无关）
   const absPct = r => r.pct == null ? 9e9 : Math.abs(r.pct);
   rows.sort((a, b) => (a.eta - b.eta) || (absPct(a) - absPct(b)));
-  console.log(`  展望：补齐当日bar ${patched} 个，数据失败 ${failCnt} 个，额度已用 ${usedCnt} 个（其中逆色过滤 ${oppCnt} 个）`);
+  console.log(`  展望：补齐当日bar ${patched} 个，数据失败 ${failCnt} 个，额度已用 ${usedCnt} 个（其中逆色过滤 ${oppCnt} 个），已激活 ${active.length} 个（资金不足 ${active.filter(a => a.afford === false).length} 个，可用 ${Math.round(_avail)} 元）`);
   return { rows, active, usedCnt, failCnt, patched, oppCnt, dates };
 }
 function fmtForecast(fc, today) {
@@ -378,8 +394,11 @@ function fmtForecast(fc, today) {
   L.push(`**未来${fc.dates.length}个交易日信号展望**（截至 ${today} 收盘，破位即激活品种，按距门槛幅度排序）`);
   if (fc.active.length) {
     L.push('', `**已激活·待入场（${fc.active.length}）**：` + fc.active.map(a =>
-      `${a.name} ${a.contract} ${a.dir === 'long' ? '多' : '空'}（${a.born} 激活，损基 ${a.seg}，有效期至 ${a.expiry} 收盘）`).join('；') +
+      `${a.name} ${a.contract} ${a.dir === 'long' ? '多' : '空'}（${a.born} 激活，损基 ${a.seg}，有效期至 ${a.expiry} 收盘${a.afford === false ? `｜⚠单手保证金约 ${a.margin1} 元 > 可用 ${a.avail} 元，资金不足` : ''}）`).join('；') +
       '　→ 切 3 分钟图等新鲜转色入场');
+    if (fc.active.some(a => a.afford === false)) {
+      L.push('', '⚠ 标「资金不足」的品种一手保证金超过可用资金：信号仍会**照常推送**（卡片内有标注），是否入场请您自行判断。');
+    }
   }
   if (fc.rows.length) {
     L.push('');
@@ -620,6 +639,10 @@ function cardSignal(p, expiry, prio) {
   if (prio) {
     const tag = prio.rank === 1 ? '★ 建议优先' : `第 ${prio.rank} 顺位`;
     els.splice(1, 0, ftext(`**⚠ 本时段共 ${prio.total} 个信号并存**：${p.name}、${p.peers}\n**优先级**：${tag}${prio.conflicts ? '（与并存信号/持仓同板块，降级）' : ''}｜单手止损风险 ≈ ${prio.risk1} 元\n资金有限时可只做优先信号，其余回复"未入场"即可，不算违规`));
+  }
+  if (p.afford === false) {
+    // 2026-11-06：资金不足不再拦截，改为卡片内显著标注，是否入场由用户自行判断
+    els.splice(1, 0, ftext(`**⚠ 资金不足提示**：单手保证金约 ${p.margin1} 元 > 当前可用 ${p.avail} 元（权益 ${p.equity} − 持仓占用）\n本信号**照常推送**，是否入场请您自行判断；不做的话回复 **未入场 #${p.id}** 即可`));
   }
   return {
     config: { wide_screen_mode: true },
@@ -1138,12 +1161,14 @@ async function modeScan(slot) {
   }
   const equity = equityNow(ledger, lastPx);
   // 已持仓占用的保证金（2026-10-16）：新信号保证金检查从"权益"改为"可用保证金=权益-已用"
+  // 2026-11-06：下限归零 max(0,…)——自选仓名义保证金可超过纸面本金（11-06：两笔自选仓占用
+  // 13083 > 权益 5032），负数可用资金会让全池信号一律被拦。归零后仅作显示与标注基准。
   const usedMargin = ledger.trades.filter(t => t.status === 'open')
     .reduce((a, t) => a + (t.margin1 || 0) * (t.lots || 1), 0);
-  const availMargin = equity - usedMargin;
+  const availMargin = Math.max(0, equity - usedMargin);
 
   // 信号扫描
-  let newCnt = 0, skipCnt = { seen: 0, zone3: 0, afford: 0, dup: 0, hold: 0 };
+  let newCnt = 0, skipCnt = { seen: 0, zone3: 0, affordMark: 0, dup: 0, hold: 0 };
   const prevTd = await prevTradingDay(today);   // 今日夜盘开在prevTd日历日晚间
   for (const spec of POOL) {
     const bars = barCache.get(spec.code);
@@ -1203,14 +1228,22 @@ async function modeScan(slot) {
 
     for (const s of signals) {
       const key = `${spec.code}|${s.date}|${s.dir}|${s.zoneId}`;
-      if (state.seen[key]) continue;
-      state.seen[key] = { date: s.date, alerted: false };
+      // 2026-11-06：seen 只对"已推送过(alerted)"的信号生效。alerted=false 的（曾被资金门槛
+      // 拦下、或历史播种）允许重新评估——旧逻辑无条件 continue 会把被拦信号永久卡死
+      // （CJ701 11-06 上午被 afford 拦下后即使修复代码也永远发不出）。重复推送由下方
+      // zone3/dup/hold 各道去重及 pending 状态自然挡住，不会重发。
+      const _seen = state.seen[key];
+      if (_seen && _seen.alerted !== false) continue;
+      if (!_seen) state.seen[key] = { date: s.date, alerted: false };
       if (s.date !== lastDate && s.date !== today) continue;   // 历史信号仅播种（当日=盘中激活信号）
       if (zoneCount[s.zoneId] > SETTINGS.max_zone_signals) { skipCnt.zone3++; continue; }
       if (pending.items.some(p => p.sym === spec.code && p.date === s.date && p.dir === s.dir && ['pending', 'reminded'].includes(p.status))) { skipCnt.dup++; continue; }
       if (ledger.trades.some(t => t.status === 'open' && t.sym === spec.code && t.dir === s.dir)) { skipCnt.hold++; console.log(`  ${spec.name} 已有同向持仓，同向不加仓（2026-10-16回测：同段二次信号55笔仅+679元/PF1.06，不启用）`); continue; }
       const margin1 = s.ref * spec.mult * marginRate(spec);
-      if (margin1 > availMargin) { skipCnt.afford++; console.log(`  ${spec.name} 保证金${Math.round(margin1)}>可用${Math.round(availMargin)}（权益${Math.round(equity)}-已用${Math.round(usedMargin)}），不提醒`); continue; }
+      // 2026-11-06：资金不足不再拦截推送（旧逻辑 continue 曾致 I2701 11-05、CJ701 11-06
+      // "该发的信号没发"）。改为入队并标注 afford=false，是否入场由用户自行判断。
+      const afford = margin1 <= availMargin;
+      if (!afford) { skipCnt.affordMark++; console.log(`  ${spec.name} 保证金${Math.round(margin1)}>可用${Math.round(availMargin)}（权益${Math.round(equity)}-已用${Math.round(usedMargin)}）→ 照常推送，标注资金不足，由用户自行判断`); }
       if (blackout) continue;                                  // 禁提醒日仅记录
       // V2优化：止损宽度 = 区极值 ± 0.5×ATR14(3分钟)，随品种波动率自适应（原固定±3跳，回测PF 1.29→1.46）
       // 失败回退：拉不到3分钟数据则沿用日线状态机的±3跳止损
@@ -1257,6 +1290,7 @@ async function modeScan(slot) {
         ref: s.ref, stop, R: Math.round(R * 100) / 100, t3, t5,
         void_px: s.voidPx ?? null,                    // 作废基准：多头创新高/空头创新低即失效
         mult: spec.mult, lots, margin1: Math.round(margin1),
+        afford, avail: Math.round(availMargin),          // 2026-11-06：资金不足照常推送，仅标注
         equity: Math.round(equity),
         remind_date: slot === 'night' ? await nextTradingDay(today) : today,
         status: 'pending', created: nowStr()
@@ -1318,7 +1352,15 @@ async function modeScan(slot) {
   // 幂等标记：仅在整轮扫描成功走完后才写入，故主档中途失败时备份档仍会补跑（不会被误判为已完成）
   const _cut = addDays(today, -7);
   state.runs = Object.fromEntries(Object.entries(state.runs || {}).filter(([k]) => String(k).slice(0, 10) >= _cut));
-  state.runs[runKey] = nowStr();
+  if (IS_MANUAL) {
+    // 2026-11-06：手动补跑(force=1)不占用整点标记——10:07 手动扫描曾写入 noon 标记导致
+    // 11:30 正点触发被守卫跳过（11-06 实录）。手动只记 manualRuns 备查，正点照常实跑；
+    // 重复推送由 seen/pending 状态去重兜底，重复扫描本身幂等（只重算不重推）。
+    state.manualRuns = Object.fromEntries(Object.entries(state.manualRuns || {}).filter(([k]) => String(k).slice(0, 10) >= _cut));
+    state.manualRuns[runKey] = nowStr();
+  } else {
+    state.runs[runKey] = nowStr();
+  }
 
   writeJson(J('data/ledger.json'), ledger);
   writeJson(J('data/state.json'), state);
@@ -1445,7 +1487,14 @@ async function modeRemind(slot) {
   writeJson(J('data/pending.json'), pending);
   writeJson(J('data/holidays.json'), HOLIDAYS);
   const _rs = readJson(J('data/state.json'), { seen: {}, last_scan: null });
-  _rs.last_remind = `${today}:${slot}`;   // 冗余触发去重标记
+  if (IS_MANUAL) {
+    // 2026-11-06：手动补跑不写 last_remind，确保正点提醒照常执行（信号由 pending 状态
+    // 去重不会重复推送；最坏情况正点多发一条心跳，可接受）
+    _rs.manualRuns = _rs.manualRuns || {};
+    _rs.manualRuns[`remind-${today}:${slot}`] = nowStr();
+  } else {
+    _rs.last_remind = `${today}:${slot}`;   // 冗余触发去重标记
+  }
   writeJson(J('data/state.json'), _rs);
   console.log(`完成：发送 ${sent}，跟进 ${follow}，过期 ${expired}`);
 }
