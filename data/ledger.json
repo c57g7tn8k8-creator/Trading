@@ -160,11 +160,15 @@
       "mult": 100,
       "half_done": false,
       "realized": 0,
-      "status": "open",
+      "status": "closed",
       "margin1": 8631,
-      "fees": 6.91,
+      "fees": 13.78,
       "manual": true,
-      "fb": "自选 铁矿石 空 690.5 696 1"
+      "fb": "自选 铁矿石 空 690.5 696 1",
+      "pnl": 336.22,
+      "exit_date": "2026-11-06",
+      "exit_px": 687,
+      "reason": "手动平仓"
     },
     {
       "id": "T0007",
@@ -279,7 +283,7 @@
     },
     {
       "d": "2026-11-06",
-      "equity": 5712.35
+      "equity": 6035.48
     }
   ]
 }
