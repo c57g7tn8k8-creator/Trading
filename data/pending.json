@@ -1,5 +1,5 @@
 {
-  "seq": 6,
+  "seq": 7,
   "items": [
     {
       "id": "S20261008-001",
@@ -123,9 +123,11 @@
       "avail": 0,
       "equity": 5712,
       "remind_date": "2026-11-06",
-      "status": "reminded",
+      "status": "invalidated",
       "created": "2026-11-06 12:30",
-      "reminded_at": "2026-11-06 12:32"
+      "reminded_at": "2026-11-06 12:32",
+      "invalidated_at": "2026-11-06 23:00",
+      "void_reason": "stop"
     },
     {
       "id": "S20261105-006",
@@ -148,9 +150,35 @@
       "avail": 1443,
       "equity": 5895,
       "remind_date": "2026-11-06",
-      "status": "reminded",
+      "status": "invalidated",
       "created": "2026-11-06 15:00",
-      "reminded_at": "2026-11-06 20:00"
+      "reminded_at": "2026-11-06 20:00",
+      "invalidated_at": "2026-11-06 23:00",
+      "void_reason": "stop"
+    },
+    {
+      "id": "S20261106-007",
+      "sym": "SH0",
+      "name": "烧碱",
+      "contract": "SH701",
+      "dir": "short",
+      "date": "2026-11-06",
+      "slot": "night",
+      "ref": 1532,
+      "stop": 1547,
+      "R": 15,
+      "t3": 1487,
+      "t5": 1457,
+      "void_px": 1438,
+      "mult": 30,
+      "lots": 1,
+      "margin1": 4366,
+      "afford": false,
+      "avail": 1083,
+      "equity": 5535,
+      "remind_date": "2026-11-09",
+      "status": "pending",
+      "created": "2026-11-06 23:00"
     }
   ]
 }
