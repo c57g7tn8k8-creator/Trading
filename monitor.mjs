@@ -1113,6 +1113,21 @@ async function modeDaily() {
   console.log(`收盘日报已推送：权益 ${eq}，持仓 ${ledger.trades.filter(t => t.status === 'open').length} 笔`);
 }
 
+/* ---------------- 扫描时段 → 实际推送时段（2026-11-06） ----------------
+ * 手动补跑的时点可能已过该时段自己的提醒时间（例：12:30 手动跑 noon 扫描，noon 提醒 11:45 已过），
+ * 若仍按 noon 入队，20:00 evening 提醒会因 p.slot !== expectScan 把它判 expired，信号永远发不出。
+ * 提醒时点：noon=11:45、evening=20:00；超过即顺延到"尚未提醒的最近时段"，20:00 之后顺延到
+ * night（由次一交易日 morning 提醒推送）。night 扫描本就由次日早间推送，永不错位。
+ * 补跑历史日（TODAY_OVERRIDE）时不做顺延，按输入时段原样入队。 */
+function effectiveRemindSlot(scanSlot) {
+  if (TODAY_OVERRIDE) return scanSlot;
+  const t = nowStr();
+  const hm = Number(t.slice(11, 13)) * 60 + Number(t.slice(14, 16));
+  if (scanSlot === 'noon' && hm >= 11 * 60 + 45) return hm >= 20 * 60 ? 'night' : 'evening';
+  if (scanSlot === 'evening' && hm >= 20 * 60) return 'night';
+  return scanSlot;
+}
+
 /* ---------------- 模式：scan ---------------- */
 async function modeScan(slot) {
   const today = todayStr();
@@ -1283,22 +1298,25 @@ async function modeScan(slot) {
         }
       }
       const lots = computeLots(equity, R, spec.mult, margin1, usedMargin);
+      // 2026-11-06：手动补跑时点可能已过该时段的提醒时间（12:30 跑 noon 扫描即此），
+      // 按实际可推送时段入队，否则 20:00 evening 提醒会因时段不符把它判 expired。
+      const effSlot = effectiveRemindSlot(slot);
       const p = {
         id: 'S' + s.date.replaceAll('-', '') + '-' + String(++pending.seq).padStart(3, '0'),
         sym: spec.code, name: spec.name, contract: contractOf(spec.code),
-        dir: s.dir, date: s.date, slot,
+        dir: s.dir, date: s.date, slot: effSlot,
         ref: s.ref, stop, R: Math.round(R * 100) / 100, t3, t5,
         void_px: s.voidPx ?? null,                    // 作废基准：多头创新高/空头创新低即失效
         mult: spec.mult, lots, margin1: Math.round(margin1),
         afford, avail: Math.round(availMargin),          // 2026-11-06：资金不足照常推送，仅标注
         equity: Math.round(equity),
-        remind_date: slot === 'night' ? await nextTradingDay(today) : today,
+        remind_date: effSlot === 'night' ? await nextTradingDay(today) : today,
         status: 'pending', created: nowStr()
       };
       pending.items.push(p);
       state.seen[key].alerted = true;
       newCnt++;
-      console.log(`  ★ K3激活 ${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'} ref=${p.ref} 止损=${p.stop}(${stopNote}) 作废基准=${p.void_px} lots=${lots} → ${slot} 时段提醒(${p.remind_date})`);
+      console.log(`  ★ K3激活 ${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'} ref=${p.ref} 止损=${p.stop}(${stopNote}) 作废基准=${p.void_px} lots=${lots} → ${effSlot} 时段提醒(${p.remind_date})${effSlot !== slot ? `（原输入 ${slot}，提醒时点已过，顺延）` : ''}`);
     }
   }
 
