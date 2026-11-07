@@ -48,6 +48,9 @@ const FORCE_TD = process.env.FORCE_TRADING_DAY === '1';
 // 只记 state.manualRuns 备查——避免提前手动跑一次拦掉后续正点触发（11-06 10:07 手动扫描
 // 占用 noon 标记致 11:30 正点跳过）。重复推送由 seen/pending 状态去重兜底。daily 仍写标记
 // （日报重复推送无去重手段，且属补报性质）。
+// 2026-11-07：日线主源由新浪切换为东方财富 push2his（方案A）——新浪当日K晚间才入库，
+// 致15:00收盘日报/作废/持仓触发按昨日数据算（CJ701作废卡延迟8小时）；东财盘中实时更新当日bar。
+// 新浪降级为兜底（含主连取数），月度筛池因需持仓量/结算价字段固定走新浪。详见部署运维总存档 3.6 节。
 const IS_MANUAL = process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.DISPATCH_FORCE === '1';
 
 /* ---------------- 时间（全部按北京时间 CST 处理） ---------------- */
@@ -74,8 +77,10 @@ async function httpGet(url, timeout = 30000) {
   } finally { clearTimeout(t); }
 }
 
-/** 新浪期货主力连续日线，最后一根为当日实时bar（盘中为未完结bar） */
-async function fetchDaily(sym) {
+/** 新浪期货日线（兜底源）：具体合约/主连(FG0)均可取；但当日K要到晚间才入库，
+ *  收盘后15:00-20:00读不到当天bar（CJ701事件根源）。东财主源失败时回退本函数。
+ *  另：东财无持仓量(p)/结算价(s)字段，月度筛池（modePool 沉淀保证金口径）必须走本函数。 */
+async function fetchDailySina(sym) {
   const url = 'https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20d=/InnerFuturesNewService.getDailyKLine?symbol=' + sym;
   const t = await httpGet(url);
   const i = t.indexOf('['), j = t.lastIndexOf(']');
@@ -85,6 +90,48 @@ async function fetchDaily(sym) {
     p: +(x.p || 0),            // 持仓量（月度筛池算沉淀保证金用）
     s: +(x.s || 0)             // 结算价（缺失时回退收盘价）
   })).filter(b => b.d && isFinite(b.c));
+}
+
+/* ---------------- 东财日线（主源，2026-11-07 方案A） ----------------
+ * push2his 接口盘中逐笔更新当日bar，15:00收盘即可读到当天完整日K，无需等晚间入库；
+ * 夜盘归属与交易所口径一致（周五夜盘并入次一交易日bar，无夜盘品种末根停在当日）。
+ * 注意① klines 字段顺序：日期,开,收,高,低,量 —— 收/高与惯用顺序相反，解析勿改序（已实测核对）。
+ * 注意② 21:00后末尾会出现"次一交易日"的未完结bar（周末亦可见下周一bar），按 d>今天 丢弃。 */
+const EM_MARKET = { shfe: 113, dce: 114, czce: 115, gfex: 225 };
+const PREFIX_EXCH = {};
+for (const s of [...POOL, ...CANDIDATES]) {
+  if (s && s.prefix && s.exch && !PREFIX_EXCH[s.prefix]) PREFIX_EXCH[s.prefix] = s.exch;
+}
+/** 具体合约取数码（如 FG2701/I2701）→ 东财 secid；郑商所转3位展示码（FG701，东财与新浪展示口径一致）。
+ *  主连（FG0）等非4位合约码返回 null → 调用方回退新浪。 */
+function emSecid(sym) {
+  const m = /^([A-Za-z]+)(\d{4})$/.exec(sym || '');
+  if (!m) return null;
+  const exch = PREFIX_EXCH[m[1].toUpperCase()];
+  const mkt = exch && EM_MARKET[exch];
+  if (!mkt) return null;
+  const code = exch === 'czce' ? m[1].toUpperCase() + m[2].slice(1) : m[1].toUpperCase() + m[2];
+  return mkt + '.' + code;
+}
+async function fetchDailyEM(sym) {
+  const secid = emSecid(sym);
+  if (!secid) return null;
+  const url = 'https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=' + secid +
+    '&klt=101&fqt=0&lmt=300&end=20500101&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56';
+  const j = JSON.parse(await httpGet(url));
+  const kl = j && j.data && j.data.klines;
+  if (!kl || !kl.length) return null;
+  const today = todayStr();
+  return kl.map(line => {
+    const a = line.split(',');
+    return { d: a[0], o: +a[1], c: +a[2], h: +a[3], l: +a[4], v: +(a[5] || 0) };   // 东财序：开,收,高,低
+  }).filter(b => b.d && isFinite(b.c) && b.d <= today);   // 丢弃次一交易日未完结bar
+}
+
+/** 日线统一入口：东财为主（盘中实时当日bar），不支持（主连）或失败时回退新浪 */
+async function fetchDaily(sym) {
+  try { const b = await fetchDailyEM(sym); if (b && b.length) return b; } catch { }
+  return fetchDailySina(sym);
 }
 
 /** 新浪期货主力连续3分钟K线（约最近1023根，用于ATR止损宽度） */
@@ -804,6 +851,29 @@ function closeTrade(t, px, date, reason) {
 /** 持仓到位检查：止损/3R/5R/反向变色（3R后启用变色离场） */
 async function checkPositions(ledger, barCache, today) {
   const notes = [];
+  // 2026-11-07：价格触发（止损/3R/5R）用"当日雏形"判定。新浪当日日线要傍晚才生成，15:00 扫描
+  // 读到的末根仍是昨日，持仓当天下午打到的止损要拖到 23:00 夜盘扫描才报警（与作废卡同一根因）。
+  // 仅补价格触发；颜色翻转（反向变色离场）仍按定案日线——盘中未收线的颜色会反复，不能作离场依据。
+  // 21:00 后 3 分钟 bar 已归属次一交易日，不并入当日（hmNow 限制）。
+  const hmNow = Number(nowStr().slice(11, 13)) * 60 + Number(nowStr().slice(14, 16));
+  const prevTd = await prevTradingDay(today);
+  const _pbCache = new Map();
+  const dayBarOf = async (t) => {
+    if (hmNow >= 21 * 60) return null;
+    const own = t.contract && contractOf(t.sym) !== t.contract;
+    const cc = own ? tradeSinaCode(t.sym, t.contract) : (contractSinaCode(specOf(t.sym)) || t.sym);
+    if (_pbCache.has(cc)) return _pbCache.get(cc);
+    let pb = null;
+    try {
+      let m3 = [];
+      try { m3 = await fetch3min(cc); } catch { }
+      if (!m3.length && !own) { try { m3 = await fetch3min(t.sym); } catch { } }
+      const p = partialDayBar(m3, today, prevTd);
+      if (p && p.d === today) pb = p;
+    } catch { /* 3分钟不可用则退回日线口径 */ }
+    _pbCache.set(cc, pb);
+    return pb;
+  };
   for (const t of ledger.trades) {
     if (t.status !== 'open') continue;
     let bars = barCache.get(t.sym);
@@ -813,16 +883,19 @@ async function checkPositions(ledger, barCache, today) {
     }
     if (!bars || !bars.length) continue;
     const B = bars[bars.length - 1];
+    // 价格触发用的bar：日线已含当日则用日线，否则用当日雏形（无雏形则退回日线）
+    let Bpx = B;
+    if (B.d < today) { const pb = await dayBarOf(t); if (pb) { Bpx = pb; console.log(`  ${t.name} 持仓检查补当日雏形：H=${pb.h} L=${pb.l} C=${pb.c}`); } }
     const spec = SPEC[t.sym];
     const sgn = t.dir === 'long' ? 1 : -1;
-    const hitStop = t.dir === 'long' ? B.l <= t.stop : B.h >= t.stop;
-    const hitT3 = t.dir === 'long' ? B.h >= t.t3 : B.l <= t.t3;
-    const hitT5 = t.dir === 'long' ? B.h >= t.t5 : B.l <= t.t5;
+    const hitStop = t.dir === 'long' ? Bpx.l <= t.stop : Bpx.h >= t.stop;
+    const hitT3 = t.dir === 'long' ? Bpx.h >= t.t3 : Bpx.l <= t.t3;
+    const hitT5 = t.dir === 'long' ? Bpx.h >= t.t5 : Bpx.l <= t.t5;
     const flipColor = t.dir === 'long' ? B.color === 'G' : B.color === 'R';
 
     if (!t.half_done) {
       if (hitStop) {  // 保守：同bar同时触及止损与3R按止损计
-        closeTrade(t, t.stop, B.d, '止损');
+        closeTrade(t, t.stop, Bpx.d, '止损');
         await feishuSend(cardTouch(t, '止损', t.stop, `本单亏损 ${t.pnl} 元`));
         notes.push(`${t.name} 止损 ${t.pnl}`);
       } else if (hitT3) {
@@ -841,11 +914,11 @@ async function checkPositions(ledger, barCache, today) {
       }
     } else {
       if (hitStop) {
-        closeTrade(t, t.stop, B.d, t.stop === t.entry ? '保本出' : '锁盈出');
+        closeTrade(t, t.stop, Bpx.d, t.stop === t.entry ? '保本出' : '锁盈出');
         await feishuSend(cardTouch(t, t.reason === '保本出' ? '保本(移动止损)' : '锁盈止损', t.stop, `本单合计 ${t.pnl} 元`));
         notes.push(`${t.name} ${t.reason} ${t.pnl}`);
       } else if (hitT5) {
-        closeTrade(t, t.t5, B.d, '5R止盈');
+        closeTrade(t, t.t5, Bpx.d, '5R止盈');
         await feishuSend(cardTouch(t, '5R', t.t5, `本单合计 ${t.pnl} 元`));
         notes.push(`${t.name} 5R止盈 ${t.pnl}`);
       } else if (flipColor) {
@@ -1325,9 +1398,38 @@ async function modeScan(slot) {
   for (const n of touchNotes) console.log('  ● ' + n);
 
   // 已提醒信号的生命周期管理：①设置作废（价格破基准）②破止损作废（未入场破止损）③反馈超期自动关闭
+  // 2026-11-07：作废判定补当日雏形（与"信号生成"同口径）。新浪当日日线要到傍晚才生成，15:00 扫描
+  // 读到的末根仍是昨日，导致"当天下午已破止损"要拖到 23:00 夜盘扫描才被发现——CJ701 11-06 14:24
+  // H=6595 破止损 6580，作废卡推迟 8 小时才发。现在：日线末根 < today 且当前在 09:00~20:59 之间时，
+  // 用 partialDayBar 聚合当日白盘（含前夜盘）补一根。21:00 后 3 分钟 bar 已归属次一交易日，不能并入当日。
+  const hmNow = Number(nowStr().slice(11, 13)) * 60 + Number(nowStr().slice(14, 16));
+  const _lifeCache = new Map();
+  const lifeBarsOf = async (spec) => {
+    if (_lifeCache.has(spec.code)) return _lifeCache.get(spec.code);
+    const bs = barCache.get(spec.code);
+    let out = bs;
+    if (bs && bs.length && bs[bs.length - 1].d < today && hmNow < 21 * 60) {
+      try {
+        if (!min3Cache.has(spec.code)) {
+          let m3 = [];
+          try { m3 = await fetch3min(contractSinaCode(spec)); } catch { }
+          if (!m3.length) m3 = await fetch3min(spec.code);
+          min3Cache.set(spec.code, m3);
+        }
+        const pb = partialDayBar(min3Cache.get(spec.code), today, prevTd);
+        if (pb && pb.d === today) {
+          out = [...bs.map(b => ({ ...b })), pb];
+          console.log(`  ${spec.name} 作废判定补当日雏形：H=${pb.h} L=${pb.l} C=${pb.c}`);
+        }
+      } catch { /* 3分钟不可用则保持日线口径 */ }
+    }
+    _lifeCache.set(spec.code, out);
+    return out;
+  };
   for (const p of pending.items) {
     if (p.status !== 'reminded') continue;
-    const bars = barCache.get(p.sym);
+    const _spec = specOf(p.sym);
+    const bars = _spec ? await lifeBarsOf(_spec) : barCache.get(p.sym);
     if (bars && bars.length) {
       const since = bars.filter(b => b.d >= p.date);
       // ①破基准作废：多头创新高/空头创新低，操作区失效
@@ -1388,7 +1490,6 @@ async function modeScan(slot) {
   console.log(`完成：新信号 ${newCnt}，跳过 ${JSON.stringify(skipCnt)}，权益 ${eq2}`);
 }
 
-/* ---------------- 模式：remind ---------------- */
 /* ---------------- 模式：remind ---------------- */
 /**
  * 防竞态等待：GitHub 定时任务有 5~20 分钟延迟，提醒任务可能先于扫描任务运行。
@@ -1809,7 +1910,7 @@ async function modePool() {
     let row = null;
     try {
       const pick = pickContract(spec, today, c.min_days);
-      const bars = await fetchDaily(fetchCode(spec, pick.y, pick.m));
+      const bars = await fetchDailySina(fetchCode(spec, pick.y, pick.m));   // 需持仓量/结算价字段，固定走新浪
       const last20 = bars.slice(-20);
       if (last20.length < 20) throw new Error('历史不足20根');
       const av = last20.reduce((a, b) => a + b.v, 0) / last20.length;
