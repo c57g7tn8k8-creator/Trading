@@ -2,30 +2,6 @@
   "seq": 7,
   "items": [
     {
-      "id": "S20261008-001",
-      "sym": "UR0",
-      "name": "尿素",
-      "contract": "UR701",
-      "dir": "short",
-      "date": "2026-10-08",
-      "slot": "noon",
-      "ref": 1768,
-      "stop": 1781,
-      "R": 13,
-      "t3": 1729,
-      "t5": 1703,
-      "void_px": 1745,
-      "mult": 20,
-      "lots": 1,
-      "margin1": 2829,
-      "equity": 5000,
-      "remind_date": "2026-10-08",
-      "status": "filled",
-      "created": "2026-10-08 23:19",
-      "reminded_at": "2026-10-08 23:20",
-      "trade": "T0001"
-    },
-    {
       "id": "S20261014-002",
       "sym": "C0",
       "name": "玉米",
@@ -177,8 +153,9 @@
       "avail": 1083,
       "equity": 5535,
       "remind_date": "2026-11-09",
-      "status": "pending",
-      "created": "2026-11-06 23:00"
+      "status": "reminded",
+      "created": "2026-11-06 23:00",
+      "reminded_at": "2026-11-09 08:00"
     }
   ]
 }
