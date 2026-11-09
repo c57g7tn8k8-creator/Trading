@@ -113,7 +113,7 @@ function emSecid(sym) {
   const code = exch === 'czce' ? m[1].toUpperCase() + m[2].slice(1) : m[1].toUpperCase() + m[2];
   return mkt + '.' + code;
 }
-async function fetchDailyEM(sym) {
+async function fetchDailyEM(sym, includeNext = false) {
   const secid = emSecid(sym);
   if (!secid) return null;
   const url = 'https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=' + secid +
@@ -125,7 +125,77 @@ async function fetchDailyEM(sym) {
   return kl.map(line => {
     const a = line.split(',');
     return { d: a[0], o: +a[1], c: +a[2], h: +a[3], l: +a[4], v: +(a[5] || 0) };   // 东财序：开,收,高,低
-  }).filter(b => b.d && isFinite(b.c) && b.d <= today);   // 丢弃次一交易日未完结bar
+  }).filter(b => b.d && isFinite(b.c) && (includeNext || b.d <= today));   // 默认丢弃次一交易日未完结bar
+}
+
+/** 次一交易日雏形（2026-11-09）：东财把 21:00 后的夜盘归入次一交易日，故 23:00 扫描时
+ *  该 bar 已含整段夜盘行情。取 d > today 的那根，用于"出生即作废"判定；无则 null。 */
+async function fetchNextDayBar(sym) {
+  try {
+    const all = await fetchDailyEM(sym, true);
+    if (!all || !all.length) return null;
+    const t = todayStr();
+    return all.find(b => b.d > t) || null;
+  } catch { return null; }
+}
+
+/** 夜盘 bar（2026-11-09）：21:00 之后的行情归属**次一交易日**，当日日线（15:00 已收线）完全不含这段。
+ *  持仓止损/3R/5R、待入场信号作废只比日线的话，周五夜盘打到的止损要拖到周一 11:31 才发现——
+ *  与"烧碱出生即废"同一根因。两个源对夜盘的日期归属不同，合并取极值：
+ *    东财日线：夜盘记在 d>today 的次一交易日 bar 上；
+ *    新浪3分钟：按日历日记（d=today 且 hh>=21 即今晚夜盘）。
+ *  nextTd=次一交易日（业务日），用于退出日期/日志。两源都取不到返回 null。 */
+async function nightBarOf(cc, today, nextTd) {
+  const parts = [];
+  try { const nb = await fetchNextDayBar(cc); if (nb && nb.d > today) parts.push(nb); } catch { }
+  try {
+    const m3 = await fetch3min(cc);
+    const sel = m3.filter(b => b.d.slice(0, 10) === today && +b.d.slice(11, 13) >= 21);
+    if (sel.length) {
+      parts.push({
+        d: nextTd, o: sel[0].o, h: Math.max(...sel.map(b => b.h)),
+        l: Math.min(...sel.map(b => b.l)), c: sel[sel.length - 1].c
+      });
+    }
+  } catch { }
+  if (!parts.length) return null;
+  return {
+    d: nextTd, o: parts[0].o,
+    h: Math.max(...parts.map(b => b.h)), l: Math.min(...parts.map(b => b.l)),
+    c: parts[parts.length - 1].c
+  };
+}
+
+/** 信号判定用的"当日K"（2026-11-09，补尾盘破线漏判）：日线当日 bar 可能尚未发布（新浪要傍晚）
+ *  或只更新到几分钟前，15:00 扫描就看不到尾盘异动。烧碱 SH701 实例：11-06 14:42 H=1545 已破触发线
+ *  1543，15:00 扫描没判出，直到 23:00 日线落地才生成信号，提醒槽位变成 night、拖到次一交易日 08:00
+ *  推送——那时夜盘（最高 1549）早已把止损 1547 打穿。
+ *  做法：把 3 分钟聚合的当日雏形并入日线序列——同日期取极值合并（收盘仍以日线为准，避免 14:57 收盘覆盖
+ *  15:00 收盘），日线缺当日则直接追加。21:00 后夜盘归次一交易日，不并入。 */
+async function dayBarsForScan(spec, bars, today, prevTd, hmNow, m3cache) {
+  if (hmNow >= 21 * 60 || !bars || !bars.length) return bars;
+  const last = bars[bars.length - 1];
+  if (last.d > today) return bars;
+  let m3 = [];
+  try {
+    if (m3cache && m3cache.has(spec.code)) m3 = m3cache.get(spec.code);
+    else {
+      try { m3 = await fetch3min(contractSinaCode(spec)); } catch { }
+      if (!m3.length) { try { m3 = await fetch3min(spec.code); } catch { } }
+      if (m3cache) m3cache.set(spec.code, m3);
+    }
+  } catch { }
+  if (!m3.length) { console.log(`  ${spec.name} 当日K补强失败：3分钟数据不可用，按日线口径判定`); return bars; }
+  const pb = partialDayBar(m3, today, prevTd);
+  if (!pb) return bars;
+  const out = bars.map(b => ({ ...b }));
+  const l2 = out[out.length - 1];
+  if (l2 && l2.d === today) {
+    out[out.length - 1] = { ...l2, h: Math.max(l2.h, pb.h), l: Math.min(l2.l, pb.l) };
+  } else {
+    out.push(pb);
+  }
+  return out;
 }
 
 /** 日线统一入口：东财为主（盘中实时当日bar），不支持（主连）或失败时回退新浪 */
@@ -167,6 +237,51 @@ function partialDayBar(m3, today, prevTd) {
   });
   if (!sel.length) return null;
   return { d: today, o: sel[0].o, h: Math.max(...sel.map(b => b.h)), l: Math.min(...sel.map(b => b.l)), c: sel[sel.length - 1].c };
+}
+
+/** 夜盘出生即作废判定（2026-11-09）：夜盘时段(23:00)生成的信号，操作区极值/止损来自当日日线，
+ *  而 21:00 后的夜盘已归入次一交易日、根本没参与计算——于是可能出现"一出生止损就已被打穿"的废单。
+ *  SH701 实例：11-06 日线 H=1545 → 止损 1547；当夜 21:00-23:00 最高 1549 已破，08:00 仍推了提醒。
+ *  返回 null=未破 / 'stop'=破止损 / 'base'=破基准。 */
+async function birthVoidCheck(p) {
+  const spec = specOf(p.sym);
+  const cc = spec ? (contractSinaCode(spec) || p.sym) : p.sym;
+  const today = todayStr();
+  const nb = await nightBarOf(cc, today, await nextTradingDay(today));
+  if (!nb) return null;
+  if (p.void_px != null && (p.dir === 'long' ? nb.h > p.void_px : nb.l < p.void_px)) return 'base';
+  if (p.stop != null && (p.dir === 'long' ? nb.l <= p.stop : nb.h >= p.stop)) return 'stop';
+  return null;
+}
+
+/** 提醒推送前作废复检（2026-11-09）：扫描生成与提醒推送之间可能隔着完整一段行情
+ *  （夜盘信号 23:00 生成、次日 08:00 提醒，周五夜盘要隔整个周末），期间若已破止损/基准，
+ *  推出去的提醒卡就是废单。口径与 scan 生命周期判定一致：日线为主，当日缺根时用 3 分钟补雏形。
+ *  返回 null=仍有效 / 'stop' / 'base'。 */
+async function pendingVoidCheck(p) {
+  const spec = specOf(p.sym);
+  const cc = spec ? (contractSinaCode(spec) || p.sym) : p.sym;
+  let bars = [];
+  try { bars = await fetchDaily(cc); } catch { }
+  const today = todayStr();
+  const hm = +nowStr().slice(11, 13) * 60 + +nowStr().slice(14, 16);
+  if (bars.length && bars[bars.length - 1].d < today && hm < 21 * 60) {
+    try {
+      const m3 = await fetch3min(cc);
+      const pb = partialDayBar(m3, today, await prevTradingDay(today));
+      if (pb) bars = bars.concat([pb]);
+    } catch { }
+  }
+  // 21:00 后：夜盘归次一交易日，日线当日 bar 不含，需单独并入（否则夜盘已破止损的信号照推提醒卡）
+  if (hm >= 21 * 60) {
+    const nb = await nightBarOf(cc, today, await nextTradingDay(today));
+    if (nb) bars = bars.concat([nb]);
+  }
+  if (!bars.length) return null;
+  const since = bars.filter(b => b.d >= p.date);
+  if (p.void_px != null && since.some(b => p.dir === 'long' ? b.h > p.void_px : b.l < p.void_px)) return 'base';
+  if (p.stop != null && since.some(b => p.dir === 'long' ? b.l <= p.stop : b.h >= p.stop)) return 'stop';
+  return null;
 }
 
 /** 持仓估值价：优先3分钟K线最新收盘（新浪日线盘中不更新，会直接沿用昨结导致浮盈浮亏失真），失败回退日线收盘。
@@ -846,6 +961,11 @@ function closeTrade(t, px, date, reason) {
   t.exit_date = date;
   t.exit_px = px;
   t.reason = reason;
+  // 实际 R 倍数（2026-11-09）：分母用真实风险 R_risk，不用信号 R——
+  // 手动放宽止损的单，用信号 R 换算会虚增倍数，复盘会误判"手改更好"。
+  t.R_realized = t.R_risk > 0
+    ? Math.round((t.pnl / (t.R_risk * spec.mult * t.lots0)) * 100) / 100
+    : null;
 }
 
 /** 持仓到位检查：止损/3R/5R/反向变色（3R后启用变色离场） */
@@ -854,25 +974,60 @@ async function checkPositions(ledger, barCache, today) {
   // 2026-11-07：价格触发（止损/3R/5R）用"当日雏形"判定。新浪当日日线要傍晚才生成，15:00 扫描
   // 读到的末根仍是昨日，持仓当天下午打到的止损要拖到 23:00 夜盘扫描才报警（与作废卡同一根因）。
   // 仅补价格触发；颜色翻转（反向变色离场）仍按定案日线——盘中未收线的颜色会反复，不能作离场依据。
-  // 21:00 后 3 分钟 bar 已归属次一交易日，不并入当日（hmNow 限制）。
+  // 21:00 后夜盘归次一交易日，日线当日 bar 只到 15:00 —— 必须单独取夜盘 bar 比对（2026-11-09 补）。
   const hmNow = Number(nowStr().slice(11, 13)) * 60 + Number(nowStr().slice(14, 16));
   const prevTd = await prevTradingDay(today);
+  const isNight = hmNow >= 21 * 60;
+  const nextTd = isNight ? await nextTradingDay(today) : '';
   const _pbCache = new Map();
-  const dayBarOf = async (t) => {
-    if (hmNow >= 21 * 60) return null;
+  const ccOf = (t) => {
     const own = t.contract && contractOf(t.sym) !== t.contract;
-    const cc = own ? tradeSinaCode(t.sym, t.contract) : (contractSinaCode(specOf(t.sym)) || t.sym);
+    return own ? tradeSinaCode(t.sym, t.contract) : (contractSinaCode(specOf(t.sym)) || t.sym);
+  };
+  const pxBarOf = async (t) => {
+    // 返回「日线尚未包含、但已发生」的那段行情：
+    //   21:00 前 → 当日雏形（新浪日线晚间才入库，东财盘中会更新当日 bar）
+    //   21:00 后 → 夜盘 bar（归属次一交易日）
+    const own = t.contract && contractOf(t.sym) !== t.contract;
+    const cc = ccOf(t);
     if (_pbCache.has(cc)) return _pbCache.get(cc);
-    let pb = null;
+    let out = null;
     try {
-      let m3 = [];
-      try { m3 = await fetch3min(cc); } catch { }
-      if (!m3.length && !own) { try { m3 = await fetch3min(t.sym); } catch { } }
-      const p = partialDayBar(m3, today, prevTd);
-      if (p && p.d === today) pb = p;
-    } catch { /* 3分钟不可用则退回日线口径 */ }
-    _pbCache.set(cc, pb);
-    return pb;
+      if (isNight) {
+        out = await nightBarOf(cc, today, nextTd);
+      } else {
+        let m3 = [];
+        try { m3 = await fetch3min(cc); } catch { }
+        if (!m3.length && !own) { try { m3 = await fetch3min(t.sym); } catch { } }
+        const p = partialDayBar(m3, today, prevTd);
+        if (p && p.d === today) out = p;
+      }
+    } catch { /* 取不到则退回日线口径 */ }
+    _pbCache.set(cc, out);
+    return out;
+  };
+  // 入场当日的价格触发只看"入场之后"（2026-11-09）：日线当日 bar 的极值包含入场前的行情，
+  // 会把入场前的高/低当成入场后的触发。T0008 烧碱 11-09 空 1535／止损 1547，当日 H=1549 出自
+  // 前一晚夜盘（早于入场），按日线极值会被误判为止损（凭空记 -360 元）。做法：用 3 分钟序列
+  // 定位"价格首次触及入场价"的位置，只取该位置之后的极值；3 分钟不可用时退回原口径。
+  const _entryCache = new Map();
+  const entryBarOf = async (t) => {
+    const key = ccOf(t) + '|' + (t.id || t.entry);
+    if (_entryCache.has(key)) return _entryCache.get(key);
+    let out = null;
+    try {
+      const m3 = (await fetch3min(ccOf(t))).filter(b => b.d.slice(0, 10) === today);
+      const i = m3.findIndex(b => b.l <= t.entry && b.h >= t.entry);
+      const sub = i >= 0 ? m3.slice(i) : m3;
+      if (sub.length) {
+        out = {
+          d: today, o: sub[0].o, h: Math.max(...sub.map(b => b.h)),
+          l: Math.min(...sub.map(b => b.l)), c: sub[sub.length - 1].c
+        };
+      }
+    } catch { }
+    _entryCache.set(key, out);
+    return out;
   };
   for (const t of ledger.trades) {
     if (t.status !== 'open') continue;
@@ -883,9 +1038,24 @@ async function checkPositions(ledger, barCache, today) {
     }
     if (!bars || !bars.length) continue;
     const B = bars[bars.length - 1];
-    // 价格触发用的bar：日线已含当日则用日线，否则用当日雏形（无雏形则退回日线）
+    // 价格触发用的bar：日线已含当日则用日线，否则用当日雏形；21:00 后还要并入夜盘段
     let Bpx = B;
-    if (B.d < today) { const pb = await dayBarOf(t); if (pb) { Bpx = pb; console.log(`  ${t.name} 持仓检查补当日雏形：H=${pb.h} L=${pb.l} C=${pb.c}`); } }
+    if (B.d < today || isNight) {
+      const pb = await pxBarOf(t);
+      if (pb) {
+        // 与日线末根合并取极值：日盘段（B）+ 夜盘段（pb）都要覆盖，避免漏判/日期错位
+        Bpx = { d: pb.d, o: pb.o, h: Math.max(B.h, pb.h), l: Math.min(B.l, pb.l), c: pb.c };
+        console.log(`  ${t.name} 持仓检查补${isNight ? '夜盘' : '当日'}bar(${pb.d})：H=${pb.h} L=${pb.l} C=${pb.c}`);
+      }
+    }
+    // 入场当日：只认入场之后的行情（避免把入场前的极值当成入场后的触发）
+    if (t.entry_date === today) {
+      const eb = await entryBarOf(t);
+      if (eb) {
+        Bpx = eb;
+        console.log(`  ${t.name} 入场当日按"入场后"行情判定：${eb.d} H=${eb.h} L=${eb.l} C=${eb.c}（入场 ${t.entry}）`);
+      }
+    }
     const spec = SPEC[t.sym];
     const sgn = t.dir === 'long' ? 1 : -1;
     const hitStop = t.dir === 'long' ? Bpx.l <= t.stop : Bpx.h >= t.stop;
@@ -900,14 +1070,22 @@ async function checkPositions(ledger, barCache, today) {
         notes.push(`${t.name} 止损 ${t.pnl}`);
       } else if (hitT3) {
         if (t.lots0 === 1) {  // 单手追踪版：3R后止损上移至+2R，余仓追5R/变色
+          const _from = t.stop;
           t.half_done = true; t.stop = t.entry + 2 * sgn * t.R;
+          t.stop_hist = Array.isArray(t.stop_hist) ? t.stop_hist : [];
+          t.stop_hist.push({ at: nowStr(), from: _from, to: t.stop, src: 'rule', kind: 'tighten', reason: '3R 单手锁盈 +2R' });
+          // 注意：R_risk 是「入场时的初始风险」，移动止损不改它，否则事后 R 倍数会虚增
           await feishuSend(cardTouch(t, '3R', t.t3, '单手追踪：止损已上移至锁盈 +2R（' + t.stop + '），余仓追5R或反向变色'));
           notes.push(`${t.name} 3R（单手锁盈）`);
         } else {              // 师姐方案：3R平一半，余仓止损推保本
           const h = Math.max(1, Math.floor(t.lots / 2));
           t.realized = Math.round(((t.realized || 0) + 3 * t.R * spec.mult * h) * 100) / 100;
           t.fees = Math.round(((t.fees || 0) + feePerLot(spec, t.t3) * h) * 100) / 100;
-          t.lots -= h; t.half_done = true; t.stop = t.entry;
+          t.lots -= h; t.half_done = true;
+          const _from2 = t.stop;
+          t.stop = t.entry;
+          t.stop_hist = Array.isArray(t.stop_hist) ? t.stop_hist : [];
+          t.stop_hist.push({ at: nowStr(), from: _from2, to: t.stop, src: 'rule', kind: 'tighten', reason: '3R 平半后推保本' });
           await feishuSend(cardTouch(t, '3R', t.t3, `已按纪律平 ${h} 手锁定 +${3 * t.R * spec.mult * h} 元，余 ${t.lots} 手止损推保本，追5R/变色`));
           notes.push(`${t.name} 3R 平半`);
         }
@@ -1013,7 +1191,11 @@ function renderPage(ledger, state, year) {
     const fp = lp != null ? Math.round((t.dir === 'long' ? lp - t.entry : t.entry - lp) * t.mult * t.lots * 100) / 100 : null;
     const lpCell = lp != null ? fmtPx(lp, tk) : '-';
     const fpCell = fp != null ? `<span style="color:${fp >= 0 ? '#c23531' : '#1a9e4b'};font-weight:600">${fp >= 0 ? '+' : ''}${fp}</span>` : '-';
-    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${manualTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${fmtPx(t.entry, tk)}</td><td>${fmtPx(t.stop0, tk)}</td><td>${fmtPx(t.t3, tk)}</td><td>${fmtPx(t.t5, tk)}</td><td>${stat}</td><td>${t.signal || '-'}</td><td>${lpCell}</td><td>${fpCell}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
+    // 止损列：持仓显示当前有效止损（可能已上移/手改），已平仓显示初始止损 stop0，避免用锁盈位误读计划风险
+    const stopShow = t.status === 'open' ? t.stop : t.stop0;
+    const deviated = t.stop !== t.stop0 || (t.stop_signal != null && Math.abs(t.stop_signal - t.stop0) > 1e-9);
+    const stopTitle = `当前 ${fmtPx(t.stop, tk)}｜建仓 ${fmtPx(t.stop0, tk)}${t.stop_signal != null ? `｜信号 ${fmtPx(t.stop_signal, tk)}` : ''}`;
+    return `<tr><td>${t.entry_date}</td><td>${t.id}</td><td>${retryTag}${manualTag}${t.name} ${t.contract}</td><td style="color:${t.dir === 'long' ? '#c23531' : '#1a9e4b'}">${t.dir === 'long' ? '多' : '空'}</td><td>${t.lots0}</td><td>${fmtPx(t.entry, tk)}</td><td>${fmtPx(stopShow, tk)}${deviated ? `<span style="color:#b8860b;font-size:10px" title="${stopTitle}">改</span>` : ''}</td><td>${fmtPx(t.t3, tk)}</td><td>${fmtPx(t.t5, tk)}</td><td>${stat}</td><td>${t.signal || '-'}</td><td>${lpCell}</td><td>${fpCell}</td><td style="color:${pc};font-weight:600">${t.status === 'closed' ? t.pnl : '-'}</td></tr>`;
   };
 
   // 实时估值块（2026-10-31 新增）：state.live 存在且有持仓估值价时渲染。
@@ -1204,6 +1386,7 @@ function effectiveRemindSlot(scanSlot) {
 /* ---------------- 模式：scan ---------------- */
 async function modeScan(slot) {
   const today = todayStr();
+  const hmNow = Number(nowStr().slice(11, 13)) * 60 + Number(nowStr().slice(14, 16));
   console.log(`== scan ${slot} @ ${nowStr()} (today=${today}) ==`);
   if (!(await isTradingDay(today))) { console.log('非交易日，跳过'); return; }
 
@@ -1256,11 +1439,14 @@ async function modeScan(slot) {
   const availMargin = Math.max(0, equity - usedMargin);
 
   // 信号扫描
-  let newCnt = 0, skipCnt = { seen: 0, zone3: 0, affordMark: 0, dup: 0, hold: 0 };
+  let newCnt = 0, voidBirth = 0, skipCnt = { seen: 0, zone3: 0, affordMark: 0, dup: 0, hold: 0 };
   const prevTd = await prevTradingDay(today);   // 今日夜盘开在prevTd日历日晚间
   for (const spec of POOL) {
-    const bars = barCache.get(spec.code);
-    if (!bars || bars.length < SETTINGS.min_history) { console.log(`  ${spec.name} 数据不足，跳过`); continue; }
+    const bars0 = barCache.get(spec.code);
+    if (!bars0 || bars0.length < SETTINGS.min_history) { console.log(`  ${spec.name} 数据不足，跳过`); continue; }
+    // 2026-11-09：信号判定前把 3 分钟聚合的当日雏形并入日线（尾盘破线不再依赖日线是否已发布/已刷新）
+    const bars = await dayBarsForScan(spec, bars0, today, prevTd, hmNow, min3Cache);
+    if (bars !== bars0) addColor(bars);
     const { signals, term } = replayDaily(bars.map(b => ({ ...b })), spec);
     const lastDate = bars[bars.length - 1].d;
     const zoneCount = {};
@@ -1269,7 +1455,7 @@ async function modeScan(slot) {
     // 盘中激活检测（2026-10-14升级）：新浪日线当日bar要到15:00后才发布，夜盘/早盘破K2触发线
     // 云端原要等15:01/次日才确认，错过当日入场窗口。现用3分钟聚合"昨夜+今昼"当日K雏形，
     // 已破触发线且未创新高/低（否则走作废补丁口径）→ 立即生成信号，提醒提前到8:00/11:45。
-    if (term && term.trig && !term.zoneUsed && term.base && (term.trend === 'long' || term.trend === 'short') && today !== lastDate) {
+    if (term && term.trig && !term.zoneUsed && term.base && (term.trend === 'long' || term.trend === 'short') && today !== lastDate && hmNow < 21 * 60) {
       try {
         if (!min3Cache.has(spec.code)) {
           let m3 = [];
@@ -1386,8 +1572,18 @@ async function modeScan(slot) {
         remind_date: effSlot === 'night' ? await nextTradingDay(today) : today,
         status: 'pending', created: nowStr()
       };
+      // 2026-11-09 出生即作废（夜盘缺口）：23:00 扫描生成的信号，夜盘行情已归入次一交易日，
+      // 没有参与上面的极值/止损计算；若夜盘已把止损打穿，这信号一出生就是废单，不能推提醒。
+      const bv = await birthVoidCheck(p);
       pending.items.push(p);
       state.seen[key].alerted = true;
+      if (bv) {
+        p.status = 'invalidated'; p.invalidated_at = nowStr(); p.void_reason = bv; p.birth_void = true;
+        voidBirth++;
+        console.log(`  ✗ 出生即作废 ${p.id} ${p.name} ${p.contract}：夜盘已破${bv === 'stop' ? `止损 ${p.stop}` : `基准 ${p.void_px}`}，不推提醒`);
+        if (!blackout) await feishuSend(cardVoid(p, bv));
+        continue;
+      }
       newCnt++;
       console.log(`  ★ K3激活 ${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'} ref=${p.ref} 止损=${p.stop}(${stopNote}) 作废基准=${p.void_px} lots=${lots} → ${effSlot} 时段提醒(${p.remind_date})${effSlot !== slot ? `（原输入 ${slot}，提醒时点已过，顺延）` : ''}`);
     }
@@ -1401,14 +1597,16 @@ async function modeScan(slot) {
   // 2026-11-07：作废判定补当日雏形（与"信号生成"同口径）。新浪当日日线要到傍晚才生成，15:00 扫描
   // 读到的末根仍是昨日，导致"当天下午已破止损"要拖到 23:00 夜盘扫描才被发现——CJ701 11-06 14:24
   // H=6595 破止损 6580，作废卡推迟 8 小时才发。现在：日线末根 < today 且当前在 09:00~20:59 之间时，
-  // 用 partialDayBar 聚合当日白盘（含前夜盘）补一根。21:00 后 3 分钟 bar 已归属次一交易日，不能并入当日。
-  const hmNow = Number(nowStr().slice(11, 13)) * 60 + Number(nowStr().slice(14, 16));
+  // 用 partialDayBar 聚合当日白盘（含前夜盘）补一根。21:00 后夜盘归次一交易日，不能并入当日，
+  // 改为追加一根次一交易日（夜盘）bar——否则夜盘破止损/破基准的信号要等下一交易日 11:31 才作废。
+  const isNight = hmNow >= 21 * 60;
+  const nextTdScan = isNight ? await nextTradingDay(today) : '';
   const _lifeCache = new Map();
   const lifeBarsOf = async (spec) => {
     if (_lifeCache.has(spec.code)) return _lifeCache.get(spec.code);
     const bs = barCache.get(spec.code);
     let out = bs;
-    if (bs && bs.length && bs[bs.length - 1].d < today && hmNow < 21 * 60) {
+    if (bs && bs.length && bs[bs.length - 1].d < today && !isNight) {
       try {
         if (!min3Cache.has(spec.code)) {
           let m3 = [];
@@ -1422,6 +1620,16 @@ async function modeScan(slot) {
           console.log(`  ${spec.name} 作废判定补当日雏形：H=${pb.h} L=${pb.l} C=${pb.c}`);
         }
       } catch { /* 3分钟不可用则保持日线口径 */ }
+    }
+    // 21:00 后：夜盘归次一交易日，日线当日 bar 不含 → 补夜盘段，否则周五夜盘破止损的信号要拖到周一
+    if (bs && bs.length && isNight) {
+      try {
+        const nb = await nightBarOf(contractSinaCode(spec) || spec.code, today, nextTdScan);
+        if (nb) {
+          out = [...bs.map(b => ({ ...b })), nb];
+          console.log(`  ${spec.name} 作废判定补夜盘bar(${nb.d})：H=${nb.h} L=${nb.l} C=${nb.c}`);
+        }
+      } catch { /* 夜盘不可用则保持日线口径 */ }
     }
     _lifeCache.set(spec.code, out);
     return out;
@@ -1487,7 +1695,7 @@ async function modeScan(slot) {
   writeJson(J('data/pending.json'), pending);
   writeJson(J('data/holidays.json'), HOLIDAYS);
   rebuildDashboard(ledger, state);
-  console.log(`完成：新信号 ${newCnt}，跳过 ${JSON.stringify(skipCnt)}，权益 ${eq2}`);
+  console.log(`完成：新信号 ${newCnt}，出生作废 ${voidBirth}，跳过 ${JSON.stringify(skipCnt)}，权益 ${eq2}`);
 }
 
 /* ---------------- 模式：remind ---------------- */
@@ -1551,7 +1759,7 @@ async function modeRemind(slot) {
   }
   const pending = readJson(J('data/pending.json'), { seq: 0, items: [] });
   const blackout = await isBlackout(today);
-  let sent = 0, expired = 0;
+  let sent = 0, expired = 0, voided = 0;
 
   // 同时段多信号优先级（2026-10-16）：≥2个信号同槽推送时，卡内标注建议优先级（板块分散+小止损+小保证金）
   const expectScan = REMIND_EXPECT_SCAN[slot] || slot;
@@ -1571,6 +1779,16 @@ async function modeRemind(slot) {
     // 原直接比较 p.slot !== slot 会把 'night' ≠ 'morning' 误判为过期——夜盘扫描发现的信号永远不会被推送（2026-10-13棉花K3空头漏报根因）
     if (p.remind_date < today || p.slot !== expectScan) { p.status = 'expired'; expired++; continue; }
     if (blackout) { p.status = 'expired'; expired++; console.log(`  禁提醒日，信号 ${p.id} 作废：${blackout}`); continue; }
+    // 2026-11-09 推送前作废复检：扫生成→提醒之间可能隔着整段行情（夜盘 23:00 生成、次日 08:00 提醒），
+    // 期间已破止损/基准的一律改发作废卡，不再推"可入场"卡（SH701 11-06 实录：夜盘 H1549 破止损 1547 仍推送）。
+    const vchk = await pendingVoidCheck(p);
+    if (vchk) {
+      p.status = 'invalidated'; p.invalidated_at = nowStr(); p.void_reason = vchk;
+      voided++;
+      console.log(`  ✗ 推送前复检作废 ${p.id} ${p.name}：已破${vchk === 'stop' ? `止损 ${p.stop}` : `基准 ${p.void_px}`}，改发作废卡`);
+      await feishuSend(cardVoid(p, vchk));
+      continue;
+    }
     const expiry = await nextTradingDay(p.remind_date);
     const ok = await feishuSend(cardSignal(p, expiry, prio.get(p.id)));
     if (ok) { p.status = 'reminded'; p.reminded_at = nowStr(); sent++; console.log(`  → 已提醒 ${p.id} ${p.name} ${p.contract}`); }
@@ -1615,7 +1833,7 @@ async function modeRemind(slot) {
     _rs.last_remind = `${today}:${slot}`;   // 冗余触发去重标记
   }
   writeJson(J('data/state.json'), _rs);
-  console.log(`完成：发送 ${sent}，跟进 ${follow}，过期 ${expired}`);
+  console.log(`完成：发送 ${sent}，跟进 ${follow}，过期 ${expired}，复检作废 ${voided}`);
 }
 
 /* ---------------- 模式：feedback（GitHub Issue 评论） ---------------- */
@@ -1632,9 +1850,14 @@ async function modeFeedback() {
   const today = todayStr();
   let processed = false;
 
-  const mCJ = body.match(/(?:成交|入场)\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)?\s*(\d+)?/);
+  // 成交（2026-11-09）：尾参可带「止损=实际价」——入场后没用信号止损时，一次登记到位，
+  // 避免先按信号止损入账、下一轮扫描被旧止损误判平仓。格式：成交 #S... 入场价 [手数] 止损=1551
+  const mCJ = body.match(/(?:成交|入场)\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)?\s*(\d+)?(?:\s*[,，]?\s*止损\s*[=:：]?\s*(\d+(?:\.\d+)?))?/);
   const mWCJ = body.match(/未\s*(?:成交|入场)\s*#?(S\d{8}-\d+)?/);
   const mPC = body.match(/平仓\s*#?(T\d+)?\s*(\d+(?:\.\d+)?)?/);
+  // 调整止损（2026-11-09）：持仓中途改止损（结构位/推保本/手动偏移）。
+  // 格式：改止损 #T0008 1551 [原因]　也接受「止损 #T0008 1551」
+  const mSTOP = body.match(/(?:改止损|调整止损|移动止损|止损)\s*#?(T\d+)\s*(\d+(?:\.\d+)?)(?:\s+(\S.{0,40}))?/);
   // 试错/再入场（2026-10-21）：同一信号止损后再进场，可自定义止损。格式：试错 #信号号 入场价 止损价 [手数]
   const mSR = body.match(/(?:试错|重进|再入场)\s*#?(S\d{8}-\d+)?\s*(\d+(?:\.\d+)?)\s*(\d+(?:\.\d+)?)?\s*(\d+)?/);
   // 自选单（2026-10-30）：不依赖任何信号的手动记账。格式：自选 合约(或品种名) 多|空 入场价 止损价 [手数]
@@ -1676,11 +1899,17 @@ async function modeFeedback() {
         await feishuSend(cardFbAck('【擒龙手】试错未受理', [`止损价方向有误：${p.dir === 'long' ? '做多止损应低于入场价' : '做空止损应高于入场价'}（入场 ${entry} / 止损 ${stop}）。`], 'red'));
       } else {
         const R = Math.abs(entry - stop);
+        // 2026-11-09：试错单必记「信号止损」与偏差。原信号止损若已被破（stop_signal），
+        // 本单的风险基准是用户给的结构止损 stop，二者差别留档，供日后统计"放宽/收紧止损"的实际效果。
+        const stopSignal = p.stop;
         const t = {
           id: 'T' + String(++ledger.seq).padStart(4, '0'),
           signal: p.id, sym: p.sym, name: p.name, contract: p.contract,
           dir: p.dir, entry_date: today, entry, lots, lots0: lots,
-          stop, stop0: stop, R,
+          stop, stop0: stop, stop_signal: stopSignal, R, R_risk: R,
+          stop_hist: stopSignal !== stop
+            ? [{ at: nowStr(), from: stopSignal, to: stop, src: 'retry', reason: '试错自定义止损' }]
+            : [],
           t3: entry + 3 * sgn * R, t5: entry + 5 * sgn * R,
           mult: spec.mult, half_done: false, realized: 0, status: 'open',
           margin1: Math.round(entry * spec.mult * marginRate(spec)),
@@ -1688,12 +1917,22 @@ async function modeFeedback() {
           retry: true, fb: body.slice(0, 100)
         };
         ledger.trades.push(t);
+        // 原信号关闭：改记试错单后，原 pending 不该再被"跟进提醒/超期"追着发卡
+        if (['pending', 'reminded'].includes(p.status)) {
+          p.status = 'retried'; p.retried_at = nowStr(); p.trade = t.id;
+          if (stopSignal !== stop) { p.void_reason = 'stop_before_entry'; p.stop_signal = stopSignal; }
+          console.log(`  原信号 ${p.id} 关闭（已转试错单 ${t.id}）`);
+        }
         processed = true;
         console.log(`  ★ 试错登记 ${t.id}：${t.name} ${t.contract} ${p.dir === 'long' ? '多' : '空'} ${lots}手 @${entry} 止损${stop}（信号 #${p.id} 试错）`);
+        const eq0 = ((ledger.nav || []).slice(-1)[0] || {}).equity || ledger.capital;
+        const risk = Math.round(R * spec.mult * lots);
+        const widen = sgn * (stop - stopSignal) < 0;
         await feishuSend(cardFbAck('【擒龙手】试错单已入账 ' + t.id, [
           `**${t.name} ${t.contract}** ${p.dir === 'long' ? '多' : '空'} **${lots} 手 @ ${entry}**（信号 #${p.id} 试错）`,
           `止损 ${stop}｜1R=${Math.round(R * 100) / 100}点｜3R=${Math.round(t.t3 * 100) / 100}｜5R=${Math.round(t.t5 * 100) / 100}`,
-          `云端将按你给的止损 ${stop} 跟踪止损/3R/5R/变色并提醒。`
+          `信号原止损 ${stopSignal}（已破/不采用）→ 本单 ${widen ? '放宽' : '收紧'} ${Math.abs(Math.round((stop - stopSignal) * 100) / 100)} 点；单笔风险 ${risk} 元，占权益 ${(100 * risk / eq0).toFixed(1)}%`,
+          `云端将按你给的止损 ${stop} 跟踪止损/3R/5R/变色并提醒；原信号 ${p.id} 已关闭，不再重复推送。`
         ], 'green'));
       }
     }
@@ -1728,7 +1967,7 @@ async function modeFeedback() {
         id: 'T' + String(++ledger.seq).padStart(4, '0'),
         signal: '自选', sym: hit.code, name: hit.name, contract: dispContract,
         dir, entry_date: today, entry, lots, lots0: lots,
-        stop, stop0: stop, R,
+        stop, stop0: stop, R, R_risk: R, stop_hist: [],
         t3: entry + 3 * sgn * R, t5: entry + 5 * sgn * R,
         mult: spec.mult, half_done: false, realized: 0, status: 'open',
         margin1: Math.round(entry * spec.mult * marginRate(spec)),
@@ -1761,12 +2000,32 @@ async function modeFeedback() {
       const entry = mCJ[2] ? +mCJ[2] : p.ref;
       const lots = mCJ[3] ? +mCJ[3] : p.lots;
       const sgn = p.dir === 'long' ? 1 : -1;
-      const R = Math.abs(entry - p.stop);
+      // 实盘止损（2026-11-09）：尾参「止损=1551」直接采用；缺省沿用信号止损。
+      // R（3R/5R 目标基准）仍按信号止损算，保证策略目标位不被实盘偏移带跑；
+      // 真实风险另存 R_risk，事后复盘用 R_risk 换算，不被"放宽止损"美化胜率。
+      const stopSig = p.stop;
+      let stop = stopSig, adj = null;
+      if (mCJ[4]) {
+        const s = +mCJ[4];
+        const bad = (p.dir === 'long' && s >= entry) || (p.dir === 'short' && s <= entry);
+        if (bad) {
+          await feishuSend(cardFbAck('【擒龙手】成交未受理', [
+            `止损价方向有误：${p.dir === 'long' ? '做多止损应低于入场价' : '做空止损应高于入场价'}（入场 ${entry} / 止损 ${s}）。`,
+            '若只想改止损、不重新登记成交，用：**改止损 #单号 新止损价**'
+          ], 'red'));
+          return;
+        }
+        stop = s;
+        if (s !== stopSig) adj = { at: nowStr(), from: stopSig, to: s, src: 'entry', reason: body.slice(0, 60) };
+      }
+      const R = Math.abs(entry - stopSig);
+      const Rrisk = Math.abs(entry - stop);
       const t = {
         id: 'T' + String(++ledger.seq).padStart(4, '0'),
         signal: p.id, sym: p.sym, name: p.name, contract: p.contract,
         dir: p.dir, entry_date: today, entry, lots, lots0: lots,
-        stop: p.stop, stop0: p.stop, R,
+        stop, stop0: stop, stop_signal: stopSig, R, R_risk: Rrisk,
+        stop_hist: adj ? [adj] : [],
         t3: entry + 3 * sgn * R, t5: entry + 5 * sgn * R,
         mult: spec.mult, half_done: false, realized: 0, status: 'open',
         fees: Math.round(feePerLot(spec, entry) * lots * 100) / 100,
@@ -1775,10 +2034,19 @@ async function modeFeedback() {
       ledger.trades.push(t);
       p.status = 'filled'; p.trade = t.id;
       processed = true;
-      console.log(`  ★ 成交登记 ${t.id}：${t.name} ${t.contract} ${t.dir === 'long' ? '多' : '空'} ${lots}手 @${entry} 止损${t.stop} 3R=${t.t3} 5R=${t.t5}`);
+      console.log(`  ★ 成交登记 ${t.id}：${t.name} ${t.contract} ${t.dir === 'long' ? '多' : '空'} ${lots}手 @${entry} 止损${t.stop} 3R=${t.t3} 5R=${t.t5}${adj ? `（信号止损${stopSig}，偏差${Math.round((stop - stopSig) * 100) / 100}）` : ''}`);
+      const eq1 = ((ledger.nav || []).slice(-1)[0] || {}).equity || ledger.capital;
+      const risk1 = Math.round(Rrisk * spec.mult * lots);
+      const dl = Math.round((stop - stopSig) * 100) / 100;
       await feishuSend(cardFbAck('【擒龙手】成交已入账 ' + t.id, [
         `**${t.name} ${t.contract}** ${t.dir === 'long' ? '多' : '空'} **${lots} 手 @ ${entry}**`,
         `止损 ${t.stop}｜1R=${Math.round(R * 100) / 100}点｜3R=${Math.round(t.t3 * 100) / 100}｜5R=${Math.round(t.t5 * 100) / 100}`,
+        adj
+          ? `⚠ 实际止损 ${stop} ≠ 信号止损 ${stopSig}（${dl > 0 ? '+' : ''}${dl} 点，${sgn * (stop - stopSig) < 0 ? '放宽' : '收紧'}）｜单笔风险 ${risk1} 元，占权益 ${(100 * risk1 / eq1).toFixed(1)}%（已按实际止损跟踪，R 仍用信号口径算目标）`
+          : `单笔风险 ${risk1} 元，占权益 ${(100 * risk1 / eq1).toFixed(1)}%`,
+        adj && Rrisk > 0
+          ? `按实际风险折算：3R 目标 ${Math.round(t.t3 * 100) / 100} 实为 **${(3 * R / Rrisk).toFixed(2)}R**、5R 目标 ${Math.round(t.t5 * 100) / 100} 实为 **${(5 * R / Rrisk).toFixed(2)}R**（盈亏比随放宽止损等比下降）`
+          : '',
         `信号 #${p.id} 已关闭，云端将按纪律自动跟踪止损/3R/5R/变色并提醒。`,
         mCJ[1] ? '' : '⚠ 本次回复未带 #编号，系统按"最新一条有效信号"匹配——多个信号并存时务必带编号'
       ].filter(Boolean), 'green'));
@@ -1804,11 +2072,69 @@ async function modeFeedback() {
         `本单净盈亏（已扣双边手续费）：**${t.pnl} 元**`
       ], t.pnl > 0 ? 'green' : 'wathet'));
     }
+  } else if (mSTOP) {
+    // 持仓中途调整止损（2026-11-09）：结构位止损、手动偏移、提前推保本都走这里。
+    // 关键点：只改 t.stop，不改 t.t3/t.t5/t.R（策略目标按信号 R 计），
+    // 实际风险另存 t.R_risk，并写 stop_hist 留档——"今天把止损放宽了几点"是可统计事件。
+    const t = ledger.trades.find(x => x.id === mSTOP[1]);
+    const newStop = +mSTOP[2];
+    const reason = (mSTOP[3] || '').trim();
+    if (!t || t.status !== 'open') {
+      await feishuSend(cardFbAck('【擒龙手】改止损未受理', [
+        `未找到持仓中的单 **#${mSTOP[1]}**${t ? `（当前状态：${t.reason || t.status}）` : ''}。`,
+        '只有持仓中的单能改止损；格式：**改止损 #T0008 1551 结构高点**'
+      ], 'red'));
+    } else if ((t.dir === 'long' && newStop >= t.entry) || (t.dir === 'short' && newStop <= t.entry)) {
+      await feishuSend(cardFbAck('【擒龙手】改止损未受理', [
+        `止损方向有误：${t.dir === 'long' ? '多单止损必须低于入场价' : '空单止损必须高于入场价'}（入场 ${t.entry} / 新止损 ${newStop}）。`,
+        '要平仓请用：**平仓 #' + t.id + ' 实际价**'
+      ], 'red'));
+    } else {
+      let px = null;
+      try { px = await liveLastPx(t.sym, null, t.contract); } catch { }
+      const crossed = px != null && (t.dir === 'long' ? newStop >= px : newStop <= px);
+      if (crossed) {
+        await feishuSend(cardFbAck('【擒龙手】改止损未受理', [
+          `新止损 ${newStop} 已在当前价 ${px} 的${t.dir === 'long' ? '上方' : '下方'}，改完会立刻触发平仓。`,
+          '若确实要按这个价离场，请直接发：**平仓 #' + t.id + ' ' + newStop + '**'
+        ], 'red'));
+      } else {
+        const sgn = t.dir === 'long' ? 1 : -1;
+        const spec = SPEC[t.sym];
+        const oldStop = t.stop;
+        const tighten = sgn * (newStop - oldStop) > 0;
+        const delta = Math.round((newStop - oldStop) * 100) / 100;
+        const fromSignal = t.stop_signal != null ? Math.round((newStop - t.stop_signal) * 100) / 100 : null;
+        t.stop_hist = Array.isArray(t.stop_hist) ? t.stop_hist : [];
+        t.stop_hist.push({
+          at: nowStr(), from: oldStop, to: newStop, src: 'manual',
+          kind: tighten ? 'tighten' : 'loosen', reason: reason || ''
+        });
+        t.stop = newStop;
+        // R_risk 保持入场时的初始风险不变（用于事后 R 换算）；当前风险由 stop 与 entry 的间距体现
+        processed = true;
+        const eqm = ((ledger.nav || []).slice(-1)[0] || {}).equity || ledger.capital;
+        // 正数=最大亏损，负数=已锁盈（空单止损在入场下方时才会出现）
+        const risk = Math.round((t.entry - newStop) * sgn * spec.mult * t.lots);
+        console.log(`  ✎ 改止损 ${t.id}：${oldStop} → ${newStop}（${tighten ? '收紧' : '放宽'}${delta >= 0 ? '+' : ''}${delta}）${reason ? '｜' + reason : ''}`);
+        await feishuSend(cardFbAck('【擒龙手】止损已调整 ' + t.id, [
+          `**${t.name} ${t.contract}** ${t.dir === 'long' ? '多' : '空'} ${t.lots} 手｜入场 ${t.entry}`,
+          `止损 ${oldStop} → **${newStop}**（${tighten ? '收紧' : '放宽'} ${Math.abs(delta)} 点${reason ? '｜' + reason : ''}）`,
+          fromSignal != null && t.stop_signal !== newStop
+            ? `相对信号止损 ${t.stop_signal}：${fromSignal > 0 ? '+' : ''}${fromSignal} 点（${sgn * (newStop - t.stop_signal) < 0 ? '放宽' : '收紧'}）；3R/5R 目标不变（仍按信号 R=${Math.round(t.R * 100) / 100}）`
+            : `3R/5R 目标不变（仍按信号 R=${Math.round(t.R * 100) / 100}）`,
+          risk >= 0
+            ? `按新止损，本单最大亏损 ${risk} 元（占权益 ${(100 * risk / eqm).toFixed(1)}%）；3R 目标实为 ${((3 * t.R) / Math.abs(t.entry - newStop)).toFixed(2)}R、5R 实为 ${((5 * t.R) / Math.abs(t.entry - newStop)).toFixed(2)}R`
+            : `按新止损，本单已锁定盈利 ${-risk} 元`,
+          '下一轮扫描即按新止损判定；历史调整已留档（用于复盘手动干预的实际效果）。'
+        ].filter(Boolean), tighten ? 'green' : 'orange'));
+      }
+    }
   } else {
-    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] / 未入场 #信号号 / 平仓 #单号 [价] / 试错 #信号号 入场价 止损价 [手数] / 自选 合约 多|空 入场价 止损价 [手数]）');
+    console.log('  未识别指令（支持：成交 #信号号 [价] [手数] [止损=价] / 未入场 #信号号 / 平仓 #单号 [价] / 改止损 #单号 新止损 [原因] / 试错 #信号号 入场价 止损价 [手数] / 自选 合约 多|空 入场价 止损价 [手数]）');
     await feishuSend(cardFbAck('【擒龙手】未能识别回复', [
       `您的回复："${body.slice(0, 60)}" 未匹配任何指令。`,
-      '支持格式：\n**成交 #信号号 [实际价] [手数]**（如：成交 #S20261008-001 935 2）\n**未入场 #信号号**\n**平仓 #单号 [实际价]**（如：平仓 #T0007 921）\n**试错 #信号号 入场价 止损价 [手数]**（同一信号止损后再进场，如：试错 #S20261019-002 5383 5370 1）\n**自选 合约 多|空 入场价 止损价 [手数]**（非信号手动记账，如：自选 HC2701 多 3210 3195 1）',
+      '支持格式：\n**成交 #信号号 [实际价] [手数] [止损=价]**（如：成交 #S20261008-001 935 2 止损=958）\n**未入场 #信号号**\n**平仓 #单号 [实际价]**（如：平仓 #T0007 921）\n**改止损 #单号 新止损价 [原因]**（如：改止损 #T0008 1551 夜盘高点+2）\n**试错 #信号号 入场价 止损价 [手数]**（同一信号止损后再进场，如：试错 #S20261019-002 5383 5370 1）\n**自选 合约 多|空 入场价 止损价 [手数]**（非信号手动记账，如：自选 HC2701 多 3210 3195 1）',
       '多个信号并存时务必带 #编号；不带编号将匹配"最新一条有效信号/持仓"，存在错配风险。'
     ], 'red'));
   }
@@ -1822,7 +2148,10 @@ async function modeFeedback() {
     const eq = equityNow(ledger, lastPx);
     ledger.nav = (ledger.nav || []).filter(p => p.d !== today);
     ledger.nav.push({ d: today, equity: eq });
-    state.last_scan = nowStr();
+    // 2026-11-09 修复：原此处写 state.last_scan，导致"交易反馈处理"被当成一次扫描——
+    // 11-09 08:28 反馈job把 last_scan 写成 08:28，而当日第一次扫描其实要到 11:31 才跑，
+    // 既污染面板"最近更新"，又会骗过 remind 的防竞态等待（st.last_scan 判断）。
+    state.last_feedback = nowStr();
     writeJson(J('data/ledger.json'), ledger);
     writeJson(J('data/pending.json'), pending);
     writeJson(J('data/state.json'), state);
