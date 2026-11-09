@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 7,
+  "seq": 8,
   "trades": [
     {
       "id": "T0001",
@@ -198,6 +198,29 @@
       "exit_date": "2026-11-09",
       "exit_px": 4682,
       "reason": "手动平仓"
+    },
+    {
+      "id": "T0008",
+      "signal": "S20261106-007",
+      "sym": "SH0",
+      "name": "烧碱",
+      "contract": "SH701",
+      "dir": "short",
+      "entry_date": "2026-11-09",
+      "entry": 1535,
+      "lots": 1,
+      "lots0": 1,
+      "stop": 1547,
+      "stop0": 1547,
+      "R": 12,
+      "t3": 1499,
+      "t5": 1475,
+      "mult": 30,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "fees": 2,
+      "fb": "成交 #S20261106-007 1535 1"
     }
   ],
   "nav": [
@@ -291,7 +314,7 @@
     },
     {
       "d": "2026-11-09",
-      "equity": 5413.14
+      "equity": 5501.14
     }
   ]
 }
