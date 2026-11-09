@@ -218,9 +218,13 @@
       "mult": 30,
       "half_done": false,
       "realized": 0,
-      "status": "open",
-      "fees": 2,
-      "fb": "成交 #S20261106-007 1535 1"
+      "status": "closed",
+      "fees": 4,
+      "fb": "成交 #S20261106-007 1535 1",
+      "pnl": 86,
+      "exit_date": "2026-11-09",
+      "exit_px": 1532,
+      "reason": "手动平仓"
     },
     {
       "id": "T0009",
@@ -339,7 +343,7 @@
     },
     {
       "d": "2026-11-09",
-      "equity": 6219.14
+      "equity": 5917.14
     }
   ]
 }
