@@ -1906,7 +1906,17 @@ async function modePool() {
   const newPool = [], added = [], removed = [], retained = [];
   let contractsChanged = false;
 
-  for (const spec of CANDIDATES) {
+  // 2026-11-09 加固：候选池外的在池品种若有持仓/待反馈，强制并入本轮筛选
+  // （否则从 candidates 移除品种时会静默丢失其持仓的止损/3R/5R 跟踪）
+  const candAll = [...CANDIDATES];
+  for (const s of POOL) {
+    if (keepForHold.has(s.code) && !candAll.some(c => c.code === s.code)) {
+      candAll.push(s);
+      console.log(`  ${s.name} 不在候选池但有持仓/待反馈，强制并入本轮筛选`);
+    }
+  }
+
+  for (const spec of candAll) {
     let row = null;
     try {
       const pick = pickContract(spec, today, c.min_days);
