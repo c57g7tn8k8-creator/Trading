@@ -189,11 +189,15 @@
       "mult": 10,
       "half_done": false,
       "realized": 0,
-      "status": "open",
+      "status": "closed",
       "margin1": 4452,
-      "fees": 2.34,
+      "fees": 4.68,
       "manual": true,
-      "fb": "自选 纸浆 空 4686 4728 1"
+      "fb": "自选 纸浆 空 4686 4728 1",
+      "pnl": 35.32,
+      "exit_date": "2026-11-09",
+      "exit_px": 4682,
+      "reason": "手动平仓"
     }
   ],
   "nav": [
@@ -284,6 +288,10 @@
     {
       "d": "2026-11-06",
       "equity": 5535.48
+    },
+    {
+      "d": "2026-11-09",
+      "equity": 5413.14
     }
   ]
 }
