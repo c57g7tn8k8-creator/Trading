@@ -245,11 +245,16 @@
       "mult": 30,
       "half_done": false,
       "realized": 0,
-      "status": "open",
+      "status": "closed",
       "margin1": 4366,
-      "fees": 2,
+      "fees": 4,
       "manual": true,
-      "fb": "平仓 #T0008 1532\n自选 SH701 空 1532 1551 1"
+      "fb": "平仓 #T0008 1532\n自选 SH701 空 1532 1551 1",
+      "pnl": -574,
+      "exit_date": "2026-11-10",
+      "exit_px": 1551,
+      "reason": "止损",
+      "R_realized": null
     }
   ],
   "nav": [
@@ -344,6 +349,10 @@
     {
       "d": "2026-11-09",
       "equity": 5527.14
+    },
+    {
+      "d": "2026-11-10",
+      "equity": 4925.14
     }
   ]
 }
