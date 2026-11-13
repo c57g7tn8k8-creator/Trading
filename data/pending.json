@@ -179,8 +179,9 @@
       "avail": 4925,
       "equity": 4925,
       "remind_date": "2026-11-13",
-      "status": "pending",
-      "created": "2026-11-13 11:30"
+      "status": "reminded",
+      "created": "2026-11-13 11:30",
+      "reminded_at": "2026-11-13 11:45"
     },
     {
       "id": "S20261113-009",
@@ -203,8 +204,9 @@
       "avail": 4925,
       "equity": 4925,
       "remind_date": "2026-11-13",
-      "status": "pending",
-      "created": "2026-11-13 11:30"
+      "status": "reminded",
+      "created": "2026-11-13 11:30",
+      "reminded_at": "2026-11-13 11:45"
     },
     {
       "id": "S20261113-010",
@@ -227,8 +229,9 @@
       "avail": 4925,
       "equity": 4925,
       "remind_date": "2026-11-13",
-      "status": "pending",
-      "created": "2026-11-13 11:30"
+      "status": "reminded",
+      "created": "2026-11-13 11:30",
+      "reminded_at": "2026-11-13 11:45"
     }
   ]
 }
