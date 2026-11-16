@@ -238,7 +238,8 @@
    5,
    9
   ],
-  "fee_fix": 1
+  "fee_fix": 1,
+  "alias": "聚乙烯"
  },
  {
   "code": "M0",
@@ -289,7 +290,7 @@
   "code": "AG0",
   "prefix": "AG",
   "exch": "shfe",
-  "name": "白银",
+  "name": "沪银",
   "mult": 15,
   "tick": 1,
   "rate": 0.12,
@@ -303,7 +304,7 @@
   "code": "AL0",
   "prefix": "AL",
   "exch": "shfe",
-  "name": "铝",
+  "name": "沪铝",
   "mult": 5,
   "tick": 5,
   "rate": 0.09,
@@ -393,7 +394,7 @@
   "code": "ZN0",
   "prefix": "ZN",
   "exch": "shfe",
-  "name": "锌",
+  "name": "沪锌",
   "mult": 5,
   "tick": 5,
   "rate": 0.09,
@@ -438,7 +439,7 @@
   "code": "LU0",
   "prefix": "LU",
   "exch": "ine",
-  "name": "低硫燃油",
+  "name": "低硫燃料油",
   "mult": 10,
   "tick": 1,
   "rate": 0.1,
@@ -480,6 +481,7 @@
    10,
    12
   ],
-  "fee_rate": 0.0002
+  "fee_rate": 0.0002,
+  "alias": "集运指数(欧线)"
  }
 ]
