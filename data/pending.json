@@ -234,8 +234,9 @@
       "avail": 4925,
       "equity": 4925,
       "remind_date": "2026-11-16",
-      "status": "pending",
-      "created": "2026-11-16 11:31"
+      "status": "reminded",
+      "created": "2026-11-16 11:31",
+      "reminded_at": "2026-11-16 11:45"
     },
     {
       "id": "S20261116-012",
@@ -258,8 +259,9 @@
       "avail": 4925,
       "equity": 4925,
       "remind_date": "2026-11-16",
-      "status": "pending",
-      "created": "2026-11-16 11:31"
+      "status": "reminded",
+      "created": "2026-11-16 11:31",
+      "reminded_at": "2026-11-16 11:45"
     }
   ]
 }
