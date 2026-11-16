@@ -2,32 +2,6 @@
   "seq": 10,
   "items": [
     {
-      "id": "S20261014-002",
-      "sym": "C0",
-      "name": "玉米",
-      "contract": "C2701",
-      "dir": "short",
-      "date": "2026-10-14",
-      "slot": "evening",
-      "ref": 2212,
-      "stop": 2227.86,
-      "R": 15.86,
-      "t3": 2164.43,
-      "t5": 2132.71,
-      "void_px": 2172,
-      "mult": 10,
-      "lots": 1,
-      "margin1": 1880,
-      "equity": 5470,
-      "remind_date": "2026-10-14",
-      "status": "filled",
-      "created": "2026-10-14 14:08",
-      "reminded_at": "2026-10-14 14:16",
-      "followup": true,
-      "followup_at": "2026-10-15 20:35",
-      "trade": "T0002"
-    },
-    {
       "id": "S20261019-003",
       "sym": "SR0",
       "name": "白糖",
@@ -208,7 +182,9 @@
       "remind_date": "2026-11-13",
       "status": "reminded",
       "created": "2026-11-13 11:30",
-      "reminded_at": "2026-11-13 11:45"
+      "reminded_at": "2026-11-13 11:45",
+      "followup": true,
+      "followup_at": "2026-11-16 08:00"
     },
     {
       "id": "S20261113-010",
