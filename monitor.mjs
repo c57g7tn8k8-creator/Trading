@@ -122,10 +122,19 @@ async function fetchDailyEM(sym, includeNext = false) {
   const kl = j && j.data && j.data.klines;
   if (!kl || !kl.length) return null;
   const today = todayStr();
-  return kl.map(line => {
+  const arr = kl.map(line => {
     const a = line.split(',');
     return { d: a[0], o: +a[1], c: +a[2], h: +a[3], l: +a[4], v: +(a[5] || 0) };   // 东财序：开,收,高,低
   }).filter(b => b.d && isFinite(b.c) && (includeNext || b.d <= today));   // 默认丢弃次一交易日未完结bar
+  // 郑商所 3 位码陷阱（2026-11-16 修）：东财把"历年同后缀合约"拼成一条序列——
+  // 请求 115.TA701 返回的是 2016 的 TA701、2017 的 TA701 … 2026 的 TA701 首尾相接，
+  // 相邻根间隔 > 60 天即合约断层。旧代码整段喂给状态机，EMA 从 2016 起算、跨年跳空
+  // 还会伪造趋势翻转/创新高，污染段基准与"段内额度"。只保留最近一段合约。
+  let cut = 0;
+  for (let i = 1; i < arr.length; i++) {
+    if ((new Date(arr[i].d) - new Date(arr[i - 1].d)) / 864e5 > 60) cut = i;
+  }
+  return cut ? arr.slice(cut) : arr;
 }
 
 /** 次一交易日雏形（2026-11-09）：东财把 21:00 后的夜盘归入次一交易日，故 23:00 扫描时
@@ -254,11 +263,30 @@ async function birthVoidCheck(p) {
   return null;
 }
 
+/** 信号有效性复核（2026-11-16）：把日线用**当前状态机**重放到信号出生日，
+ *  若该日不再产出同向信号，说明原信号是计数口径/数据修正后的伪激活，应从待入场清单撤下。
+ *  TA701 11-13 实录：盘中 H=6152 时因"新低当根被误计为 K1"激活（K2=11-12 trig 6074），
+ *  收盘 H=6178 后 K2 应为 11-13（trig 6178）、当日不破自身，信号本不该存在，但它已入队并进了日报。
+ *  返回 null=仍成立 / 'ghost'=重放后不成立。 */
+async function signalGhostCheck(p) {
+  const spec = specOf(p.sym);
+  if (!spec) return null;
+  try {
+    const bars = await fetchDaily(contractSinaCode(spec) || p.sym);
+    if (!bars.length || !bars.some(b => b.d === p.date)) return null;   // 出生日 bar 尚不可得，不判
+    const upto = bars.filter(b => b.d <= p.date).map(b => ({ ...b }));
+    const { signals } = replayDaily(upto, spec);
+    return signals.some(s => s.date === p.date && s.dir === p.dir) ? null : 'ghost';
+  } catch { return null; }
+}
+
 /** 提醒推送前作废复检（2026-11-09）：扫描生成与提醒推送之间可能隔着完整一段行情
  *  （夜盘信号 23:00 生成、次日 08:00 提醒，周五夜盘要隔整个周末），期间若已破止损/基准，
  *  推出去的提醒卡就是废单。口径与 scan 生命周期判定一致：日线为主，当日缺根时用 3 分钟补雏形。
  *  返回 null=仍有效 / 'stop' / 'base'。 */
 async function pendingVoidCheck(p) {
+  // 先复核信号本身是否还成立（计数口径修正后的幽灵信号优先撤下，不依赖价格）
+  if (await signalGhostCheck(p)) return 'ghost';
   const spec = specOf(p.sym);
   const cc = spec ? (contractSinaCode(spec) || p.sym) : p.sym;
   let bars = [];
@@ -367,11 +395,17 @@ function replayDaily(daily, spec) {
     }
 
     // 2) 创新高作废补丁：触发线未激活时创新高/低，重置基准与回调计数
+    // 2026-11-16 修：作废补丁命中 = 本根是新的 T0（创新极值），必须整根排除在回调计数之外。
+    // 旧代码更新 base 后，步骤 3 的 B.l < base.px 恒为假（相等），于是同一根被计为 K1 →
+    // K2 提前一根、触发位偏低，产生文华公式没有的伪激活。TA701 实例：11-11 新低 5864 被计为 K1，
+    // 11-12 成 K2（trig=6074），11-13 H=6178 破 6074 → 云端口径激活；文华 T0=11-11、K1=11-12、
+    // K2=11-13（trig=6178），当日不破自身，无信号。故此处置 baseJust 跳过本根计数。
     if (trig && !zoneUsed && base &&
       ((trend === 'long' && B.h > base.px) || (trend === 'short' && B.l < base.px))) {
       trig = null;
       base = { px: trend === 'long' ? B.h : B.l, idx: i };
       pull = { n: 0, run: null, k2: null };
+      baseJust = true;
     }
 
     // 3) 回调计数与K2形成（平底合并：不创新低/高的bar跳过）
@@ -512,8 +546,11 @@ async function forecastWindow(today, horizon = 3) {
 
     if (term.zone && term.zone.hasSignal !== false) {
       // 超期作废：有效期 = 激活日次一交易日收盘，超过即失去入场资格
+      // 2026-11-16 修：日报在 15:20（已收盘）生成，"有效期至今日收盘"的信号此刻已失效，
+      // 旧判定 today > zExpiry 会把它继续列进"已激活·待入场"，误导次日入场。收盘后同判过期。
       const zExpiry = await nextTradingDay(term.zone.born);
-      if (today > zExpiry) { usedCnt++; continue; }
+      const hmFc = +nowStr().slice(11, 13) * 60 + +nowStr().slice(14, 16);
+      if (today > zExpiry || (today === zExpiry && hmFc >= 15 * 60)) { usedCnt++; continue; }
       active.push({
         name: spec.name, contract: spec.contract, dir: term.zone.dir,
         seg: term.zone.seg, born: term.zone.born, expiry: zExpiry,
@@ -832,12 +869,15 @@ function cardFollowup(p, px, expiry) {
 }
 function cardVoid(p, reason) {
   const isStop = reason === 'stop';
+  const isGhost = reason === 'ghost';
   return {
     config: { wide_screen_mode: true },
-    header: { template: 'orange', title: { tag: 'plain_text', content: `【擒龙手】${isStop ? '止损破位作废' : '设置作废'} ${p.name} ${p.contract}` } },
+    header: { template: 'orange', title: { tag: 'plain_text', content: `【擒龙手】${isStop ? '止损破位作废' : isGhost ? '信号复核作废' : '设置作废'} ${p.name} ${p.contract}` } },
     elements: [
       ftext(isStop
         ? `信号 **#${p.id}**（${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'}）**尚未入场**，但价格已破止损位 **${p.stop}**（${p.dir === 'long' ? '跌破' : '涨破'}）。未入场即破止损，继续等待入场将致 R<0，信号失效。\n**请勿再按此信号入场**。`
+        : isGhost
+        ? `信号 **#${p.id}**（${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'}）复核后不成立：按完整日线重算，${p.date} 当日并未真正突破触发线（盘中快照触发的伪激活）。\n**请勿再按此信号入场**；以收盘日报/文华图上的信号为准。`
         : `信号 **#${p.id}**（${p.name} ${p.contract} ${p.dir === 'long' ? '多' : '空'}）操作区已失效：价格${p.dir === 'long' ? '创新高' : '创新低'}突破基准 **${p.void_px}**。\n**请勿再按此信号入场**；若已入场，按原止损纪律执行不受影响。`),
       { tag: 'note', elements: [{ tag: 'lark_md', content: '该信号已关闭，之后的成交/未入场回复不再受理' }] }
     ]
@@ -1785,7 +1825,7 @@ async function modeRemind(slot) {
     if (vchk) {
       p.status = 'invalidated'; p.invalidated_at = nowStr(); p.void_reason = vchk;
       voided++;
-      console.log(`  ✗ 推送前复检作废 ${p.id} ${p.name}：已破${vchk === 'stop' ? `止损 ${p.stop}` : `基准 ${p.void_px}`}，改发作废卡`);
+      console.log(`  ✗ 推送前复检作废 ${p.id} ${p.name}：${vchk === 'stop' ? `已破止损 ${p.stop}` : vchk === 'ghost' ? '按完整日线重算后信号不成立（伪激活）' : `已破基准 ${p.void_px}`}，改发作废卡`);
       await feishuSend(cardVoid(p, vchk));
       continue;
     }
