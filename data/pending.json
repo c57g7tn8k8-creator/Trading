@@ -1,5 +1,5 @@
 {
-  "seq": 10,
+  "seq": 12,
   "items": [
     {
       "id": "S20261019-003",
@@ -212,6 +212,54 @@
       "reminded_at": "2026-11-13 11:45",
       "invalidated_at": "2026-11-13 15:00",
       "void_reason": "stop"
+    },
+    {
+      "id": "S20261116-011",
+      "sym": "V0",
+      "name": "PVC",
+      "contract": "V2701",
+      "dir": "short",
+      "date": "2026-11-16",
+      "slot": "noon",
+      "ref": 5010,
+      "stop": 5099,
+      "R": 89,
+      "t3": 4743,
+      "t5": 4565,
+      "void_px": 4827,
+      "mult": 5,
+      "lots": 1,
+      "margin1": 2129,
+      "afford": true,
+      "avail": 4925,
+      "equity": 4925,
+      "remind_date": "2026-11-16",
+      "status": "pending",
+      "created": "2026-11-16 11:31"
+    },
+    {
+      "id": "S20261116-012",
+      "sym": "FU0",
+      "name": "燃料油",
+      "contract": "FU2701",
+      "dir": "short",
+      "date": "2026-11-16",
+      "slot": "noon",
+      "ref": 4089,
+      "stop": 4248,
+      "R": 159,
+      "t3": 3612,
+      "t5": 3294,
+      "void_px": 3877,
+      "mult": 10,
+      "lots": 1,
+      "margin1": 4702,
+      "afford": true,
+      "avail": 4925,
+      "equity": 4925,
+      "remind_date": "2026-11-16",
+      "status": "pending",
+      "created": "2026-11-16 11:31"
     }
   ]
 }
