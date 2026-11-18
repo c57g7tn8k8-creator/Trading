@@ -1,5 +1,5 @@
 {
-  "seq": 12,
+  "seq": 13,
   "items": [
     {
       "id": "S20261019-003",
@@ -270,6 +270,30 @@
       "followup_at": "2026-11-17 08:00",
       "invalidated_at": "2026-11-17 11:30",
       "void_reason": "base"
+    },
+    {
+      "id": "S20261118-013",
+      "sym": "AP0",
+      "name": "苹果",
+      "contract": "AP701",
+      "dir": "long",
+      "date": "2026-11-18",
+      "slot": "evening",
+      "ref": 6006,
+      "stop": 5999,
+      "R": 7,
+      "t3": 6027,
+      "t5": 6041,
+      "void_px": 6297,
+      "mult": 10,
+      "lots": 1,
+      "margin1": 6907,
+      "afford": false,
+      "avail": 4925,
+      "equity": 4925,
+      "remind_date": "2026-11-18",
+      "status": "pending",
+      "created": "2026-11-18 15:00"
     }
   ]
 }
