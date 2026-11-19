@@ -268,11 +268,13 @@
       "avail": 4925,
       "equity": 4925,
       "remind_date": "2026-11-18",
-      "status": "reminded",
+      "status": "invalidated",
       "created": "2026-11-18 15:00",
       "reminded_at": "2026-11-18 20:00",
       "followup": true,
-      "followup_at": "2026-11-19 08:00"
+      "followup_at": "2026-11-19 08:00",
+      "invalidated_at": "2026-11-19 11:30",
+      "void_reason": "stop"
     }
   ]
 }
