@@ -2,30 +2,6 @@
   "seq": 13,
   "items": [
     {
-      "id": "S20261019-003",
-      "sym": "SR0",
-      "name": "白糖",
-      "contract": "SR701",
-      "dir": "long",
-      "date": "2026-10-19",
-      "slot": "noon",
-      "ref": 5390,
-      "stop": 5365,
-      "R": 25,
-      "t3": 5465,
-      "t5": 5515,
-      "void_px": 5563,
-      "mult": 10,
-      "lots": 1,
-      "margin1": 4582,
-      "equity": 5669,
-      "remind_date": "2026-10-19",
-      "status": "filled",
-      "created": "2026-10-19 12:05",
-      "reminded_at": "2026-10-19 12:15",
-      "trade": "T0003"
-    },
-    {
       "id": "S20261020-004",
       "sym": "RM0",
       "name": "菜粕",
@@ -294,7 +270,9 @@
       "remind_date": "2026-11-18",
       "status": "reminded",
       "created": "2026-11-18 15:00",
-      "reminded_at": "2026-11-18 20:00"
+      "reminded_at": "2026-11-18 20:00",
+      "followup": true,
+      "followup_at": "2026-11-19 08:00"
     }
   ]
 }
