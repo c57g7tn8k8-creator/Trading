@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 9,
+  "seq": 10,
   "trades": [
     {
       "id": "T0001",
@@ -255,6 +255,32 @@
       "exit_px": 1551,
       "reason": "止损",
       "R_realized": null
+    },
+    {
+      "id": "T0010",
+      "signal": "S20261120-014",
+      "sym": "FG0",
+      "name": "玻璃",
+      "contract": "FG701",
+      "dir": "long",
+      "entry_date": "2026-11-20",
+      "entry": 888,
+      "lots": 2,
+      "lots0": 2,
+      "stop": 879,
+      "stop0": 879,
+      "stop_signal": 879,
+      "R": 9,
+      "R_risk": 9,
+      "stop_hist": [],
+      "t3": 915,
+      "t5": 933,
+      "mult": 20,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "fees": 12,
+      "fb": "成交 #S20261120-014 888 2"
     }
   ],
   "nav": [
@@ -384,7 +410,7 @@
     },
     {
       "d": "2026-11-20",
-      "equity": 4925.14
+      "equity": 4953.14
     }
   ]
 }
