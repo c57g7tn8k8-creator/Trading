@@ -1,5 +1,5 @@
 {
-  "seq": 13,
+  "seq": 14,
   "items": [
     {
       "id": "S20261106-005",
@@ -248,6 +248,30 @@
       "followup_at": "2026-11-19 08:00",
       "invalidated_at": "2026-11-19 11:30",
       "void_reason": "stop"
+    },
+    {
+      "id": "S20261120-014",
+      "sym": "FG0",
+      "name": "玻璃",
+      "contract": "FG701",
+      "dir": "long",
+      "date": "2026-11-20",
+      "slot": "evening",
+      "ref": 884,
+      "stop": 879,
+      "R": 5,
+      "t3": 899,
+      "t5": 909,
+      "void_px": 925,
+      "mult": 20,
+      "lots": 1,
+      "margin1": 2387,
+      "afford": true,
+      "avail": 4925,
+      "equity": 4925,
+      "remind_date": "2026-11-20",
+      "status": "pending",
+      "created": "2026-11-20 15:00"
     }
   ]
 }
