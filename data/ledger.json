@@ -278,9 +278,14 @@
       "mult": 20,
       "half_done": false,
       "realized": 0,
-      "status": "open",
-      "fees": 12,
-      "fb": "成交 #S20261120-014 888 2"
+      "status": "closed",
+      "fees": 24,
+      "fb": "成交 #S20261120-014 888 2",
+      "pnl": -384,
+      "exit_date": "2026-11-23",
+      "exit_px": 879,
+      "reason": "止损",
+      "R_realized": -1.07
     }
   ],
   "nav": [
@@ -411,6 +416,10 @@
     {
       "d": "2026-11-20",
       "equity": 4913.14
+    },
+    {
+      "d": "2026-11-23",
+      "equity": 4541.14
     }
   ]
 }
