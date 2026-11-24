@@ -296,9 +296,10 @@
       "avail": 4378,
       "equity": 4378,
       "remind_date": "2026-11-24",
-      "status": "reminded",
+      "status": "filled",
       "created": "2026-11-24 15:01",
-      "reminded_at": "2026-11-24 20:00"
+      "reminded_at": "2026-11-24 20:00",
+      "trade": "T0012"
     },
     {
       "id": "S20261124-016",
