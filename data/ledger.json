@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 10,
+  "seq": 11,
   "trades": [
     {
       "id": "T0001",
@@ -286,6 +286,33 @@
       "exit_px": 879,
       "reason": "止损",
       "R_realized": -1.07
+    },
+    {
+      "id": "T0011",
+      "signal": "自选",
+      "sym": "M0",
+      "name": "豆粕",
+      "contract": "M2701",
+      "dir": "short",
+      "entry_date": "2026-11-24",
+      "entry": 3126,
+      "lots": 1,
+      "lots0": 1,
+      "stop": 3142,
+      "stop0": 3142,
+      "R": 16,
+      "R_risk": 16,
+      "stop_hist": [],
+      "t3": 3078,
+      "t5": 3046,
+      "mult": 10,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "margin1": 2657,
+      "fees": 1.5,
+      "manual": true,
+      "fb": "自选 M2701 空 3126 3142 1"
     }
   ],
   "nav": [
@@ -420,6 +447,10 @@
     {
       "d": "2026-11-23",
       "equity": 4541.14
+    },
+    {
+      "d": "2026-11-24",
+      "equity": 4549.64
     }
   ]
 }
