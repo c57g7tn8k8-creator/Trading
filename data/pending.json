@@ -1,5 +1,5 @@
 {
-  "seq": 14,
+  "seq": 16,
   "items": [
     {
       "id": "S20261106-005",
@@ -274,6 +274,54 @@
       "created": "2026-11-20 15:00",
       "reminded_at": "2026-11-20 20:00",
       "trade": "T0010"
+    },
+    {
+      "id": "S20261124-015",
+      "sym": "M0",
+      "name": "豆粕",
+      "contract": "M2701",
+      "dir": "short",
+      "date": "2026-11-24",
+      "slot": "evening",
+      "ref": 3130,
+      "stop": 3145,
+      "R": 15,
+      "t3": 3085,
+      "t5": 3055,
+      "void_px": 3041,
+      "mult": 10,
+      "lots": 1,
+      "margin1": 2661,
+      "afford": true,
+      "avail": 4378,
+      "equity": 4378,
+      "remind_date": "2026-11-24",
+      "status": "pending",
+      "created": "2026-11-24 15:01"
+    },
+    {
+      "id": "S20261124-016",
+      "sym": "RB0",
+      "name": "螺纹钢",
+      "contract": "RB2701",
+      "dir": "short",
+      "date": "2026-11-24",
+      "slot": "evening",
+      "ref": 3028,
+      "stop": 3035,
+      "R": 7,
+      "t3": 3007,
+      "t5": 2993,
+      "void_px": 2955,
+      "mult": 10,
+      "lots": 1,
+      "margin1": 2574,
+      "afford": true,
+      "avail": 4378,
+      "equity": 4378,
+      "remind_date": "2026-11-24",
+      "status": "pending",
+      "created": "2026-11-24 15:01"
     }
   ]
 }
