@@ -308,11 +308,16 @@
       "mult": 10,
       "half_done": false,
       "realized": 0,
-      "status": "open",
+      "status": "closed",
       "margin1": 2657,
-      "fees": 1.5,
+      "fees": 3,
       "manual": true,
-      "fb": "自选 M2701 空 3126 3142 1"
+      "fb": "自选 M2701 空 3126 3142 1",
+      "pnl": -163,
+      "exit_date": "2026-11-24",
+      "exit_px": 3142,
+      "reason": "止损",
+      "R_realized": -1.02
     }
   ],
   "nav": [
@@ -450,7 +455,7 @@
     },
     {
       "d": "2026-11-24",
-      "equity": 4549.64
+      "equity": 4378.14
     }
   ]
 }
