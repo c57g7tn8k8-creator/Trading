@@ -328,21 +328,30 @@
       "dir": "short",
       "entry_date": "2026-11-24",
       "entry": 3132,
-      "lots": 2,
+      "lots": 1,
       "lots0": 2,
-      "stop": 3145,
+      "stop": 3132,
       "stop0": 3145,
       "stop_signal": 3145,
       "R": 13,
       "R_risk": 13,
-      "stop_hist": [],
+      "stop_hist": [
+        {
+          "at": "2026-11-25 11:30",
+          "from": 3145,
+          "to": 3132,
+          "src": "rule",
+          "kind": "tighten",
+          "reason": "3R 平半后推保本"
+        }
+      ],
       "t3": 3093,
       "t5": 3067,
       "mult": 10,
-      "half_done": false,
-      "realized": 0,
+      "half_done": true,
+      "realized": 390,
       "status": "open",
-      "fees": 3,
+      "fees": 4.5,
       "fb": "成交 #S20261124-015 3132 2"
     }
   ],
@@ -482,6 +491,10 @@
     {
       "d": "2026-11-24",
       "equity": 4315.14
+    },
+    {
+      "d": "2026-11-25",
+      "equity": 5093.64
     }
   ]
 }
