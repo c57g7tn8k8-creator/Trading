@@ -349,8 +349,9 @@
       "avail": 4762,
       "equity": 4762,
       "remind_date": "2026-11-26",
-      "status": "pending",
-      "created": "2026-11-26 11:30"
+      "status": "reminded",
+      "created": "2026-11-26 11:30",
+      "reminded_at": "2026-11-26 11:45"
     },
     {
       "id": "S20261126-018",
@@ -373,8 +374,9 @@
       "avail": 4762,
       "equity": 4762,
       "remind_date": "2026-11-26",
-      "status": "pending",
-      "created": "2026-11-26 11:30"
+      "status": "reminded",
+      "created": "2026-11-26 11:30",
+      "reminded_at": "2026-11-26 11:45"
     }
   ]
 }
