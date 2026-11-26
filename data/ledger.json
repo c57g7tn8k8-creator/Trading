@@ -1,6 +1,6 @@
 {
   "capital": 5000,
-  "seq": 12,
+  "seq": 13,
   "trades": [
     {
       "id": "T0001",
@@ -358,6 +358,32 @@
       "exit_px": 3132,
       "reason": "保本出",
       "R_realized": 1.48
+    },
+    {
+      "id": "T0013",
+      "signal": "S20261126-018",
+      "sym": "HC0",
+      "name": "热卷",
+      "contract": "HC2701",
+      "dir": "short",
+      "entry_date": "2026-11-26",
+      "entry": 3163,
+      "lots": 1,
+      "lots0": 1,
+      "stop": 3178,
+      "stop0": 3178,
+      "stop_signal": 3178,
+      "R": 15,
+      "R_risk": 15,
+      "stop_hist": [],
+      "t3": 3118,
+      "t5": 3088,
+      "mult": 10,
+      "half_done": false,
+      "realized": 0,
+      "status": "open",
+      "fees": 3.16,
+      "fb": "成交 #S20261126-018 3163 1"
     }
   ],
   "nav": [
@@ -503,7 +529,7 @@
     },
     {
       "d": "2026-11-26",
-      "equity": 4762.14
+      "equity": 4738.98
     }
   ]
 }

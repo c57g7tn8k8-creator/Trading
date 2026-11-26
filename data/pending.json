@@ -374,9 +374,10 @@
       "avail": 4762,
       "equity": 4762,
       "remind_date": "2026-11-26",
-      "status": "reminded",
+      "status": "filled",
       "created": "2026-11-26 11:30",
-      "reminded_at": "2026-11-26 11:45"
+      "reminded_at": "2026-11-26 11:45",
+      "trade": "T0013"
     }
   ]
 }
