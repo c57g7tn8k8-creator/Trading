@@ -1,5 +1,5 @@
 {
-  "seq": 16,
+  "seq": 18,
   "items": [
     {
       "id": "S20261106-005",
@@ -327,6 +327,54 @@
       "reminded_at": "2026-11-24 20:00",
       "invalidated_at": "2026-11-24 23:00",
       "void_reason": "stop"
+    },
+    {
+      "id": "S20261126-017",
+      "sym": "SR0",
+      "name": "白糖",
+      "contract": "SR701",
+      "dir": "short",
+      "date": "2026-11-26",
+      "slot": "noon",
+      "ref": 5169,
+      "stop": 5197,
+      "R": 28,
+      "t3": 5085,
+      "t5": 5029,
+      "void_px": 5007,
+      "mult": 10,
+      "lots": 1,
+      "margin1": 4394,
+      "afford": true,
+      "avail": 4762,
+      "equity": 4762,
+      "remind_date": "2026-11-26",
+      "status": "pending",
+      "created": "2026-11-26 11:30"
+    },
+    {
+      "id": "S20261126-018",
+      "sym": "HC0",
+      "name": "热卷",
+      "contract": "HC2701",
+      "dir": "short",
+      "date": "2026-11-26",
+      "slot": "noon",
+      "ref": 3165,
+      "stop": 3178,
+      "R": 13,
+      "t3": 3126,
+      "t5": 3100,
+      "void_px": 3091,
+      "mult": 10,
+      "lots": 1,
+      "margin1": 2690,
+      "afford": true,
+      "avail": 4762,
+      "equity": 4762,
+      "remind_date": "2026-11-26",
+      "status": "pending",
+      "created": "2026-11-26 11:30"
     }
   ]
 }
